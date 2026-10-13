@@ -8,6 +8,9 @@ export function points(metres) {
 }
 
 export function formatDistance(metres) {
+  if (metres < 25) {
+    return `${metres.toFixed(metres < 5 ? 2 : 1)} m`
+  }
   return metres < 1000 ? `${Math.round(metres)} m` : `${(metres / 1000).toFixed(metres < 10000 ? 2 : 1)} km`
 }
 
