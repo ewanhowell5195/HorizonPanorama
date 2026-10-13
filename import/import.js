@@ -152,13 +152,9 @@ async function importAll() {
   const removed = new Set(await readJson(REMOVED, []))
   const jobs = []
   let imported = 0
-  let present = 0
-  let skipped = 0
-  let failed = 0
   for (const { file, game: defaultGame } of await captures()) {
     const name = path.basename(file, ".json")
     if (removed.has(name)) {
-      skipped++
       continue
     }
     const info = JSON.parse(await fs.promises.readFile(file, "utf8"))
@@ -172,12 +168,10 @@ async function importAll() {
     }
     if (!source || !info.complete || !info.position) {
       console.log(`${name}: skipped, no image or an incomplete capture`)
-      failed++
       continue
     }
     const target = path.join(OUT, `${name}.avif`)
     if (await isFile(target) && index[game]?.[name]) {
-      present++
       continue
     }
     jobs.push({ name, game, source, target, position: info.position })
@@ -192,7 +186,6 @@ async function importAll() {
     } catch (error) {
       await fs.promises.rm(target, { force: true })
       console.log(`${name}: failed, ${error.message}`)
-      failed++
       return
     }
     index[game] ??= {}
@@ -204,7 +197,7 @@ async function importAll() {
     console.log(`${name}: ${await megabytes(source)} MB -> ${await megabytes(target)} MB`)
   })
   await save(index)
-  console.log(`${imported} imported, ${present} already imported, ${skipped} removed, ${failed} skipped or failed`)
+  console.log(`${imported} imported`)
 }
 
 const [command, ...args] = process.argv.slice(2)
