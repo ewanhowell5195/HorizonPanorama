@@ -20,6 +20,7 @@ const COUNTDOWN = 3
 // after RoundIntro's per tick ring step (0.45 s) and pulse (0.7 s) have finished
 const QUIET_MS = 700
 const MAP_DELAY_MS = 1200
+const SECRET = "horizon-panorama"
 const TIPS = [
   "Hover the map in the corner to open it. The button in its corner makes it bigger.",
   "Right drag pans the map without moving your pin.",
@@ -135,11 +136,22 @@ function clearMarkers() {
   bigmap.value?.setLines([])
 }
 
+async function decodePosition(name, text) {
+  const key = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(SECRET + name)))
+  const bytes = Uint8Array.from(atob(text), character => character.charCodeAt(0)).map((value, n) => value ^ key[n])
+  const view = new DataView(bytes.buffer)
+  return [0, 4, 8].map(offset => Math.round(view.getFloat32(offset, true) * 100) / 100)
+}
+
 async function loadPool() {
   try {
-    const response = await fetch("/rounds.json", { cache: "no-store" })
+    const response = await fetch("/photospheres/photospheres.json", { cache: "no-store" })
     if (response.ok) {
-      pool.value = await response.json()
+      const entries = Object.entries(await response.json()).flatMap(([game, spheres]) => Object.entries(spheres).map(([name, text]) => ({ name, game, text })))
+      pool.value = await Promise.all(entries.map(async ({ name, game, text }) => {
+        const [x, y, z] = await decodePosition(name, text)
+        return { name, game, x, y, z }
+      }))
     }
   } catch (error) {
     console.warn(error)
