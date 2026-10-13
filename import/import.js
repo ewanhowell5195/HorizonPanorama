@@ -1,7 +1,6 @@
-import { execFile } from "node:child_process"
+import { execFile, spawn } from "node:child_process"
 import crypto from "node:crypto"
 import fs from "node:fs"
-import os from "node:os"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { promisify } from "node:util"
@@ -19,7 +18,8 @@ const SOURCES = [
 const OUT = path.join(ROOT, "public", "photospheres")
 const INDEX = path.join(OUT, "photospheres.json")
 const REMOVED = path.join(HERE, "removed.json")
-const STITCH = path.join(ROOT, "tools", "stitcher", "target", "release", "stitch-cli.exe")
+const ENCODER = path.join(HERE, "encoder")
+const ENCODER_EXE = path.join(ENCODER, "target", "release", "encoder.exe")
 const QUALITY = 85
 const DEPTH = 8
 const SECRET = "horizon-panorama"
@@ -39,15 +39,24 @@ async function isFile(file) {
   }
 }
 
+function finished(child, name) {
+  let errors = ""
+  child.stderr.on("data", data => errors += data)
+  return new Promise((resolve, reject) => {
+    child.on("error", reject)
+    child.on("close", code => code === 0 ? resolve() : reject(new Error(`${name}: ${errors.trim() || `exit code ${code}`}`)))
+  })
+}
+
 async function convert(source, target) {
-  const temp = await fs.promises.mkdtemp(path.join(os.tmpdir(), "photosphere-"))
-  const png = path.join(temp, "sphere.png")
-  try {
-    await run("ffmpeg", ["-v", "error", "-y", "-i", source, "-frames:v", "1", "-pix_fmt", "rgb48be", png])
-    await run(STITCH, ["--from-png", png, "--quality", String(QUALITY), "--depth", String(DEPTH), "--out", target])
-  } finally {
-    await fs.promises.rm(temp, { recursive: true, force: true })
-  }
+  const decoder = spawn("ffmpeg", ["-v", "error", "-i", source, "-frames:v", "1", "-f", "rawvideo", "-pix_fmt", "rgb48le", "-"])
+  const encoder = spawn(ENCODER_EXE, [String(QUALITY), String(DEPTH), target])
+  decoder.stdout.pipe(encoder.stdin)
+  await Promise.all([finished(decoder, "ffmpeg"), finished(encoder, "encoder")])
+}
+
+async function buildEncoder() {
+  await run("cargo", ["build", "--release", "--quiet", "--manifest-path", path.join(ENCODER, "Cargo.toml")])
 }
 
 async function readJson(file, fallback) {
@@ -119,6 +128,7 @@ async function importAll() {
   await fs.promises.mkdir(OUT, { recursive: true })
   const index = await readIndex()
   const removed = new Set(await readJson(REMOVED, []))
+  let building = null
   let imported = 0
   let present = 0
   let skipped = 0
@@ -148,6 +158,8 @@ async function importAll() {
       present++
       continue
     }
+    building ??= buildEncoder()
+    await building
     try {
       await convert(source, target)
     } catch (error) {

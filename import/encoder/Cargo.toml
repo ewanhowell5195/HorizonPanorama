@@ -1,0 +1,15 @@
+[package]
+name = "encoder"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+avif-serialize = "0.8"
+rav1e = { version = "0.8", default-features = false, features = ["threading", "asm"] }
+rayon = "1"
+
+[profile.release]
+opt-level = 3
+codegen-units = 1
+lto = "thin"
+strip = true
