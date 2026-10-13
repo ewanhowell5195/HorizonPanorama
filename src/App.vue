@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from "vue"
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue"
 import ChallengeScreen from "./components/ChallengeScreen.vue"
 import GameHud from "./components/GameHud.vue"
 import GuessPanel from "./components/GuessPanel.vue"
@@ -25,6 +25,7 @@ const SWAP_FADE_MS = 200
 const SCREEN_PATHS = { home: "", setup: "setup", challenge: "challenge", game: "game" }
 const SECRET = "horizon-panorama"
 const GAME_SUFFIXES = { both: "", hzd: "ZeroDawn", hfw: "ForbiddenWest" }
+const GAME_TITLES = { hzd: "Horizon Zero Dawn Remastered", hfw: "Horizon Forbidden West" }
 const COMBINATIONS = [false, true].flatMap(isHard => Object.keys(GAME_SUFFIXES).map(which => [isHard, which]))
 const TIPS = [
   "Hover the map in the corner to open it. The button in its corner makes it bigger.",
@@ -81,6 +82,7 @@ const choices = computed(() => games.value === "both" ? pool.value : pool.value.
 const counts = computed(() => ({ both: pool.value.length, hzd: pool.value.filter(round => round.game === "hzd").length, hfw: pool.value.filter(round => round.game === "hfw").length }))
 const roundCount = computed(() => Math.min(ROUNDS, choices.value.length))
 const canPlay = computed(() => pool.value.length > 0)
+const previewGame = computed(() => isMenu.value && setup.value && !challenge.value && games.value !== "both" ? games.value : null)
 const hard = computed(() => mode.value === "hard")
 const gameHard = ref(false)
 
@@ -622,13 +624,28 @@ onMounted(async () => {
   }
   setup.value = history.state.screen === "setup"
   loadPool()
-  backdrop.value.next()
-  backdrop.value.cycle(true)
+  if (!previewGame.value) {
+    backdrop.value.next()
+    backdrop.value.cycle(true)
+  }
   backdrop.value.preload(3)
   await backdrop.value.ready.catch(error => console.warn(error))
   await wait(MAP_DELAY_MS)
   loadMaps()
 })
+
+watch(previewGame, (value, old) => {
+  if (value) {
+    backdrop.value.useMaps(value, GAME_TITLES[value])
+    backdrop.value.cycle(true)
+  } else if (old) {
+    backdrop.value.useScreenshots()
+    if (isMenu.value) {
+      backdrop.value.next()
+      backdrop.value.cycle(true)
+    }
+  }
+}, { flush: "sync" })
 
 onBeforeUnmount(() => {
   window.removeEventListener("keydown", onKey)

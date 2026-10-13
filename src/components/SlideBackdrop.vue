@@ -5,6 +5,7 @@ import { SLIDE_MS, createBackdrop } from "../lib/backdrop.js"
 const props = defineProps({ active: Boolean, timer: Boolean })
 const canvas = ref(null)
 const game = ref("")
+const label = ref("Screenshot")
 const slide = ref(0)
 const cycling = ref(false)
 const timerStyle = { "--slide-ms": `${SLIDE_MS}ms` }
@@ -12,6 +13,7 @@ let mounted
 const ready = new Promise(resolve => mounted = resolve).then(() => createBackdrop(canvas.value, {
   onSlide(entry) {
     game.value = entry.game
+    label.value = entry.label || "Screenshot"
     slide.value++
   }
 })).then(backdrop => {
@@ -26,6 +28,8 @@ watch(() => props.active, active => ready.then(backdrop => backdrop.setActive(ac
 defineExpose({
   ready,
   next: () => ready.then(backdrop => backdrop.next()),
+  useMaps: (game, title) => ready.then(backdrop => backdrop.useMaps(game, title)),
+  useScreenshots: () => ready.then(backdrop => backdrop.useScreenshots()),
   cycle(on) {
     cycling.value = on
     return ready.then(backdrop => backdrop.cycle(on))
@@ -39,7 +43,7 @@ defineExpose({
     <canvas ref="canvas"></canvas>
     <div class="shade"></div>
     <div class="credit">
-      <small>Screenshot</small>
+      <small>{{ label }}</small>
       <span>{{ game }}</span>
       <div :key="slide" class="timer" :class="{ running: cycling, hidden: !timer }" :style="timerStyle"></div>
     </div>
