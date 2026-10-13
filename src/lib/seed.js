@@ -5,6 +5,7 @@ const VIEW_DIGITS = 3
 const YAW_STEP = 2
 const PITCH_RANGE = 15
 const PITCH_SLOTS = PITCH_RANGE * 2 + 1
+const MODES = { n: [false, "both"], h: [true, "both"], f: [false, "hfw"], g: [true, "hfw"], z: [false, "hzd"], y: [true, "hzd"] }
 
 function checksum(text) {
   let sum = 0
@@ -45,8 +46,9 @@ export function snapView(view) {
   return decodeView(encodeView(view.yaw, view.pitch))
 }
 
-export function encodeSeed({ hard, rounds }) {
-  const body = VERSION + (hard ? "h" : "n") + rounds.map(round => nameToSeconds(round.name).toString(36).padStart(TIME_DIGITS, "0") + encodeView(round.view.yaw, round.view.pitch)).join("")
+export function encodeSeed({ hard, games, rounds }) {
+  const mode = Object.keys(MODES).find(key => MODES[key][0] === hard && MODES[key][1] === games)
+  const body = VERSION + mode + rounds.map(round => nameToSeconds(round.name).toString(36).padStart(TIME_DIGITS, "0") + encodeView(round.view.yaw, round.view.pitch)).join("")
   return body + checksum(body)
 }
 
@@ -65,7 +67,7 @@ export function decodeSeed(input) {
   const fromLink = /[?&]seed=([0-9a-z]+)/i.exec(text)
   const code = (fromLink ? fromLink[1] : text).toLowerCase()
   const roundLength = TIME_DIGITS + VIEW_DIGITS
-  if (!/^[0-9a-z]+$/.test(code) || code[0] !== VERSION || !"nh".includes(code[1]) || (code.length - 3) % roundLength !== 0 || code.length <= 3) {
+  if (!/^[0-9a-z]+$/.test(code) || code[0] !== VERSION || !MODES[code[1]] || (code.length - 3) % roundLength !== 0 || code.length <= 3) {
     return null
   }
   const body = code.slice(0, -1)
@@ -77,5 +79,6 @@ export function decodeSeed(input) {
     const name = secondsToName(parseInt(body.slice(at, at + TIME_DIGITS), 36))
     rounds.push({ name, view: decodeView(body.slice(at + TIME_DIGITS, at + roundLength)) })
   }
-  return { code, hard: code[1] === "h", rounds }
+  const [hard, games] = MODES[code[1]]
+  return { code, hard, games, rounds }
 }

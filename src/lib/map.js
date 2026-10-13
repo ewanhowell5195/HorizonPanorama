@@ -1008,9 +1008,9 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     return { x: layer.offset[0] + worldX / UNIT_METRES, y: layer.offset[1] + worldY / UNIT_METRES, layer }
   }
 
-  function tileExtent() {
+  function tileExtent(game) {
     const box = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity }
-    for (const layer of layers) {
+    for (const layer of layers.filter(layer => !game || layer.game === game)) {
       for (const [col, row] of layer.tiles) {
         const x = layer.offset[0] + (layer.domain.minX + col) * layer.scale
         const y = layer.offset[1] + (layer.domain.maxY - row) * layer.scale
@@ -1150,8 +1150,8 @@ export async function createMap(container, { root, onPick, pois = false, scale =
       })
       needsDraw = true
     },
-    fit(points, { snap = false, inset = 0, start = null } = {}) {
-      const box = points?.length ? { minX: Math.min(...points.map(p => p.x)), maxX: Math.max(...points.map(p => p.x)), minY: Math.min(...points.map(p => p.y)), maxY: Math.max(...points.map(p => p.y)) } : extent
+    fit(points, { snap = false, inset = 0, start = null, game = null } = {}) {
+      const box = points?.length ? { minX: Math.min(...points.map(p => p.x)), maxX: Math.max(...points.map(p => p.x)), minY: Math.min(...points.map(p => p.y)), maxY: Math.max(...points.map(p => p.y)) } : game ? tileExtent(game) : extent
       pendingFit = { box, snap, inset, start }
       needsDraw = true
     },

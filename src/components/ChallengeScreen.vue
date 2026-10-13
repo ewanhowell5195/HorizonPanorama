@@ -2,12 +2,14 @@
 import { computed } from "vue"
 import { MAX_POINTS } from "../lib/game.js"
 
-const props = defineProps({ visible: Boolean, ready: Boolean, hard: Boolean, rounds: Number, score: Number, error: String })
+const props = defineProps({ visible: Boolean, ready: Boolean, hard: Boolean, games: String, rounds: Number, score: Number, error: String })
 const emit = defineEmits(["play", "menu"])
 
 const hasScore = computed(() => props.score !== null && props.score !== undefined)
 const modeName = computed(() => props.hard ? "Hard" : "Normal")
 const modeDetail = computed(() => props.hard ? "Fixed view, no zoom" : "Look around freely")
+const gameName = computed(() => ({ hfw: "Forbidden West", hzd: "Zero Dawn" })[props.games] || "Both games")
+const gameDetail = computed(() => props.games === "hfw" || props.games === "hzd" ? `Horizon ${gameName.value} only` : "Forbidden West and Zero Dawn")
 
 function play() {
   emit("play")
@@ -30,6 +32,7 @@ function menu() {
       <p class="lede rise" style="--i: 3">Someone sent you this game. Same photospheres, same views, in the same order.</p>
       <div class="details rise" style="--i: 4">
         <div class="detail"><small>Rounds</small><strong>{{ rounds }}</strong><span>Up to {{ (rounds * MAX_POINTS).toLocaleString() }} points</span></div>
+        <div class="detail"><small>Game</small><strong>{{ gameName }}</strong><span>{{ gameDetail }}</span></div>
         <div class="detail"><small>Mode</small><strong>{{ modeName }}</strong><span>{{ modeDetail }}</span></div>
         <div v-if="hasScore" class="detail target"><small>Score to beat</small><strong>{{ score.toLocaleString() }}</strong><span>out of {{ (rounds * MAX_POINTS).toLocaleString() }}</span></div>
       </div>

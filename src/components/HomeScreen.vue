@@ -1,11 +1,5 @@
 <script setup>
 import { computed, ref, watch } from "vue"
-import { MAX_POINTS } from "../lib/game.js"
-
-const MODES = [
-  { id: "normal", name: "Normal", detail: "Look around freely" },
-  { id: "hard", name: "Hard", detail: "Fixed view, no zoom" }
-]
 
 const TITLE = "Panorama"
 
@@ -29,9 +23,8 @@ function scatterLetters() {
   })
 }
 
-const props = defineProps({ visible: Boolean, count: Number, rounds: Number, ready: Boolean, best: Number, last: Number, average: Number, mode: String, seed: String, seedError: String })
-const emit = defineEmits(["play", "mode", "seed"])
-const seedText = ref(props.seed || "")
+const props = defineProps({ visible: Boolean, count: Number, ready: Boolean })
+const emit = defineEmits(["play"])
 const pieces = ref(scatterLetters())
 
 watch(() => props.visible, visible => {
@@ -41,26 +34,9 @@ watch(() => props.visible, visible => {
 })
 
 const countLabel = computed(() => props.count ? `${props.count} locations` : "")
-const roundsLabel = computed(() => props.count ? `${props.rounds} rounds` : "No photospheres yet")
-const maxLabel = computed(() => props.count ? `Up to ${(props.rounds * MAX_POINTS).toLocaleString()} points` : "Capture some to play")
-const bestLabel = computed(() => props.best ? props.best.toLocaleString() : "None yet")
-const lastLabel = computed(() => props.last === null || props.last === undefined ? "None yet" : props.last.toLocaleString())
-const averageLabel = computed(() => props.average === null || props.average === undefined ? "None yet" : props.average.toLocaleString())
-
-const lookStep = computed(() => props.mode === "hard" ? "One fixed view. No turning, no zooming." : "Drag to turn, scroll to zoom in on the details.")
 
 function play() {
   emit("play")
-}
-
-function choose(mode) {
-  emit("mode", mode)
-}
-
-function playSeed() {
-  if (seedText.value.trim()) {
-    emit("seed", seedText.value)
-  }
 }
 </script>
 
@@ -73,30 +49,16 @@ function playSeed() {
     <div class="home-main">
       <p class="eyebrow rise" style="--i: 1">Guess the location</p>
       <h1 class="title" aria-label="Horizon Panorama"><span class="rise" style="--i: 2">Horizon</span><span class="pieces" aria-hidden="true"><span v-for="(piece, n) in pieces" :key="n" class="piece" :style="piece.style">{{ piece.char }}</span></span></h1>
-      <p class="lede rise" style="--i: 3">Each round puts you somewhere in Horizon Forbidden West. Have a look around, then drop a pin on the map where you think you are.</p>
-      <div class="modes rise" style="--i: 4" role="radiogroup" aria-label="Mode">
-        <button v-for="option in MODES" :key="option.id" class="mode" :class="{ selected: mode === option.id }" type="button" role="radio" :aria-checked="mode === option.id" @click="choose(option.id)"><strong>{{ option.name }}</strong><span>{{ option.detail }}</span></button>
-      </div>
-      <div class="cta rise" style="--i: 5">
+      <p class="lede rise" style="--i: 3">Each round puts you somewhere in Horizon Forbidden West or Horizon Zero Dawn. Have a look around, then drop a pin on the map where you think you are.</p>
+      <div class="cta rise" style="--i: 4">
         <button class="play" type="button" :disabled="!ready" @click="play">Play<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4" /></svg></button>
-        <div class="cta-meta"><strong>{{ roundsLabel }}</strong><span>{{ maxLabel }}</span></div>
       </div>
-      <form class="seed rise" style="--i: 6" @submit.prevent="playSeed">
-        <input v-model="seedText" type="text" spellcheck="false" autocomplete="off" placeholder="Paste a seed or link to replay a game" aria-label="Seed">
-        <button class="secondary" type="submit" :disabled="!ready || !seedText.trim()">Play seed</button>
-        <p v-if="seedError" class="seed-error">{{ seedError }}</p>
-      </form>
-      <ol class="steps rise" style="--i: 7">
-        <li><em>01</em><strong>Look around</strong><span>{{ lookStep }}</span></li>
+      <ol class="steps rise" style="--i: 5">
+        <li><em>01</em><strong>Look around</strong><span>Drag to turn, scroll to zoom in on the details.</span></li>
         <li><em>02</em><strong>Pin the map</strong><span>Hover the map and click where you think you are.</span></li>
         <li><em>03</em><strong>Score</strong><span>Up to 5,000 points a round. Closer scores more.</span></li>
       </ol>
     </div>
-    <footer class="home-bottom rise" style="--i: 8">
-      <div class="stat-block"><small>Best score</small><strong>{{ bestLabel }}</strong></div>
-      <div class="stat-block"><small>Last game</small><strong>{{ lastLabel }}</strong></div>
-      <div class="stat-block"><small>Average</small><strong>{{ averageLabel }}</strong></div>
-    </footer>
   </section>
 </template>
 
@@ -106,7 +68,7 @@ function playSeed() {
   inset: 0;
   z-index: 11;
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto 1fr;
   padding: clamp(20px, 3.6vh, 34px) 56px;
   opacity: 0;
   visibility: hidden;
@@ -203,55 +165,6 @@ function playSeed() {
   color: rgba(232, 234, 237, 0.84);
 }
 
-.modes {
-  display: flex;
-  gap: 10px;
-  margin: 0 0 clamp(14px, 2.4vh, 26px);
-}
-
-.mode {
-  display: grid;
-  gap: 2px;
-  min-width: 170px;
-  padding: 10px 16px;
-  text-align: left;
-  text-transform: none;
-  letter-spacing: normal;
-  color: var(--muted);
-  background: rgba(10, 12, 16, 0.55);
-  border: 1px solid var(--border);
-  border-radius: 0;
-  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
-}
-
-.mode strong {
-  font-family: "Hunter Condensed", "Oita Norm", sans-serif;
-  font-weight: 400;
-  font-size: 20px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.mode span {
-  font-size: 12px;
-  font-weight: 400;
-}
-
-.mode:hover {
-  color: var(--text);
-  filter: none;
-}
-
-.mode.selected {
-  color: var(--text);
-  background: rgba(242, 165, 65, 0.12);
-  border-color: var(--accent);
-}
-
-.mode.selected strong {
-  color: var(--accent);
-}
-
 .cta {
   display: flex;
   align-items: center;
@@ -275,59 +188,6 @@ function playSeed() {
 
 .play:hover:not(:disabled) svg {
   transform: translateX(4px);
-}
-
-.cta-meta {
-  display: grid;
-  gap: 2px;
-  font-size: 13px;
-  color: var(--muted);
-}
-
-.cta-meta strong {
-  font-size: 15px;
-  color: var(--text);
-}
-
-.seed {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  max-width: 470px;
-  margin: clamp(14px, 2.4vh, 22px) 0 0;
-}
-
-.seed input {
-  flex: 1;
-  min-width: 0;
-  padding: 9px 12px;
-  font: inherit;
-  font-size: 13px;
-  color: var(--text);
-  background: rgba(10, 12, 16, 0.55);
-  border: 1px solid var(--border);
-  outline: none;
-}
-
-.seed input:focus {
-  border-color: var(--accent);
-}
-
-.seed input::placeholder {
-  color: var(--muted);
-}
-
-.seed button {
-  padding: 9px 16px;
-  font-size: 13px;
-  border-radius: 0;
-}
-
-.seed-error {
-  flex-basis: 100%;
-  margin: 0;
-  font-size: 13px;
-  color: #f28b82;
 }
 
 .steps {
@@ -369,32 +229,6 @@ function playSeed() {
   color: var(--muted);
 }
 
-.home-bottom {
-  display: flex;
-  align-items: flex-end;
-  gap: 40px;
-}
-
-.stat-block {
-  display: grid;
-  gap: 4px;
-}
-
-.stat-block small {
-  font-size: 11px;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.stat-block strong {
-  font-family: "Hunter Condensed", "Oita Norm", sans-serif;
-  font-weight: 400;
-  font-size: 30px;
-  line-height: 1;
-  letter-spacing: 0.04em;
-}
-
 @media (max-height: 760px) and (min-width: 761px) {
   .steps {
     display: none;
@@ -416,22 +250,8 @@ function playSeed() {
     font-size: 15px;
   }
 
-  .modes {
-    margin-bottom: 18px;
-  }
-
-  .mode {
-    flex: 1;
-    min-width: 0;
-  }
-
   .steps, .count {
     display: none;
-  }
-
-  .home-bottom {
-    gap: 24px;
-    margin-top: 24px;
   }
 }
 </style>

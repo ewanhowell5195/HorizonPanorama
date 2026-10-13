@@ -9,6 +9,7 @@ import PhotoSphere from "./components/PhotoSphere.vue"
 import ResultCard from "./components/ResultCard.vue"
 import RoundIntro from "./components/RoundIntro.vue"
 import SlideBackdrop from "./components/SlideBackdrop.vue"
+import SetupScreen from "./components/SetupScreen.vue"
 import SummaryCard from "./components/SummaryCard.vue"
 import { MAX_POINTS, ROUNDS, formatDistance, points, readStore, shuffle, wait, writeStore } from "./lib/game.js"
 import { METRES_PER_UNIT } from "./lib/map.js"
@@ -21,6 +22,7 @@ const COUNTDOWN = 3
 const QUIET_MS = 700
 const MAP_DELAY_MS = 1200
 const SECRET = "horizon-panorama"
+const GAME_SUFFIXES = { both: "", hfw: "ForbiddenWest", hzd: "ZeroDawn" }
 const TIPS = [
   "Hover the map in the corner to open it. The button in its corner makes it bigger.",
   "Right drag pans the map without moving your pin.",
@@ -34,7 +36,9 @@ const HARD_TIPS = TIPS.concat("Hard mode locks the view. Everything you get is a
 
 const phase = ref("menu")
 const mode = ref(readStore("mode") === "hard" ? "hard" : "normal")
+const games = ref(Object.hasOwn(GAME_SUFFIXES, readStore("games")) ? readStore("games") : "both")
 const intro = ref(false)
+const setup = ref(false)
 const pool = ref([])
 const mapsReady = ref(false)
 let mapsLoading = null
@@ -66,7 +70,9 @@ const isRound = computed(() => phase.value === "round")
 const showsMap = computed(() => (phase.value === "result" || phase.value === "summary") && !viewing.value)
 const playing = computed(() => isRound.value && !intro.value)
 const sphereActive = computed(() => playing.value || Boolean(viewing.value && !viewing.value.loading))
-const roundCount = computed(() => Math.min(ROUNDS, pool.value.length))
+const choices = computed(() => games.value === "both" ? pool.value : pool.value.filter(round => round.game === games.value))
+const counts = computed(() => ({ both: pool.value.length, hfw: pool.value.filter(round => round.game === "hfw").length, hzd: pool.value.filter(round => round.game === "hzd").length }))
+const roundCount = computed(() => Math.min(ROUNDS, choices.value.length))
 const canPlay = computed(() => pool.value.length > 0)
 const hard = computed(() => mode.value === "hard")
 const gameHard = ref(false)
@@ -103,16 +109,26 @@ function playChallenge() {
   playSeed(challenge.value.seed.code)
 }
 
-function scoreKey(name) {
-  return mode.value === "hard" ? `${name}Hard` : name
+function scoreKey(name, isHard = mode.value === "hard", which = games.value) {
+  return `${name}${isHard ? "Hard" : ""}${GAME_SUFFIXES[which]}`
+}
+
+function refreshScores() {
+  best.value = storedScore(scoreKey("bestScore"))
+  last.value = storedScore(scoreKey("lastScore"))
+  average.value = averageScore()
 }
 
 function setMode(value) {
   mode.value = value
   writeStore("mode", value)
-  best.value = storedScore(scoreKey("bestScore"))
-  last.value = storedScore(scoreKey("lastScore"))
-  average.value = averageScore()
+  refreshScores()
+}
+
+function setGames(value) {
+  games.value = value
+  writeStore("games", value)
+  refreshScores()
 }
 
 function averageScore() {
@@ -234,7 +250,7 @@ async function startRound() {
   status.tip = tips[Math.floor(Math.random() * tips.length)]
   phase.value = "round"
   intro.value = true
-  loadMaps().then(() => minimap.value.fit(null, { snap: true }))
+  loadMaps().then(() => minimap.value.fit(null, { snap: true, game: current.games === "both" ? null : current.games }))
   backdrop.value.cycle(false)
   backdrop.value.next()
   preload(current.index)
@@ -329,16 +345,14 @@ async function showSummary() {
     resultMarkers.push(bigmap.value.addMarker(pin("var(--accent)", n + 1), entry.guess.x, entry.guess.y), bigmap.value.addMarker(answerMarker(n + 1), entry.answer.x, entry.answer.y))
   })
   bigmap.value.setLines(game.results.map(entry => [entry.guess, entry.answer]))
-  const suffix = game.hard ? "Hard" : ""
-  writeStore(`lastScore${suffix}`, game.total)
-  if (game.total > (storedScore(`bestScore${suffix}`) || 0)) {
-    writeStore(`bestScore${suffix}`, game.total)
+  const key = name => scoreKey(name, game.hard, game.games)
+  writeStore(key("lastScore"), game.total)
+  if (game.total > (storedScore(key("bestScore")) || 0)) {
+    writeStore(key("bestScore"), game.total)
   }
-  writeStore(`gamesPlayed${suffix}`, (storedScore(`gamesPlayed${suffix}`) || 0) + 1)
-  writeStore(`scoreSum${suffix}`, (storedScore(`scoreSum${suffix}`) || 0) + game.total)
-  best.value = storedScore(scoreKey("bestScore"))
-  last.value = storedScore(scoreKey("lastScore"))
-  average.value = averageScore()
+  writeStore(key("gamesPlayed"), (storedScore(key("gamesPlayed")) || 0) + 1)
+  writeStore(key("scoreSum"), (storedScore(key("scoreSum")) || 0) + game.total)
+  refreshScores()
   summary.value = { seed: encodeSeed(game), total: game.total, max: game.rounds.length * MAX_POINTS, results: game.results.map(entry => ({ distance: formatDistance(entry.metres), score: entry.score })) }
   phase.value = "summary"
   await nextTick()
@@ -406,16 +420,17 @@ function showMenu() {
   }
   clearMarkers()
   phase.value = "menu"
+  setup.value = false
   intro.value = false
   loadPool()
   backdrop.value.next()
   backdrop.value.cycle(true)
 }
 
-function begin(rounds, isHard) {
+function begin(rounds, isHard, which) {
   seedError.value = ""
   closeView()
-  game = { rounds, index: 0, total: 0, results: [], state: "round", guess: null, hard: isHard }
+  game = { rounds, index: 0, total: 0, results: [], state: "round", guess: null, hard: isHard, games: which }
   gameHard.value = isHard
   preload(0)
   startRound()
@@ -423,11 +438,11 @@ function begin(rounds, isHard) {
 
 async function newGame() {
   await loadPool()
-  if (!pool.value.length) {
+  if (!choices.value.length) {
     showMenu()
     return
   }
-  begin(shuffle(pool.value).slice(0, ROUNDS).map(round => Object.assign({}, round)), hard.value)
+  begin(shuffle(choices.value).slice(0, ROUNDS).map(round => Object.assign({}, round)), hard.value, games.value)
 }
 
 async function playSeed(input) {
@@ -443,7 +458,7 @@ async function playSeed(input) {
     seedError.value = missing.length === seed.rounds.length ? "None of this seed's photospheres are available any more." : `${missing.length} of this seed's photospheres ${missing.length === 1 ? "is" : "are"} no longer available.`
     return
   }
-  begin(seed.rounds.map(round => Object.assign({}, byName.get(round.name), { view: round.view })), seed.hard)
+  begin(seed.rounds.map(round => Object.assign({}, byName.get(round.name), { view: round.view })), seed.hard, seed.games)
 }
 
 function replay() {
@@ -455,6 +470,10 @@ function onKey(event) {
     if (event.key === "Escape") {
       closeView()
     }
+    return
+  }
+  if (isMenu.value && setup.value && !challenge.value && event.key === "Escape") {
+    setup.value = false
     return
   }
   if (event.key !== " " && event.key !== "Enter") {
@@ -505,8 +524,9 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey))
     </div>
   </Transition>
   <SlideBackdrop ref="backdrop" :active="isMenu || intro" :timer="isMenu" />
-  <ChallengeScreen :visible="isMenu && Boolean(challenge)" :ready="canPlay" :hard="challenge?.seed.hard" :rounds="challenge?.seed.rounds.length || 0" :score="challenge?.score" :error="seedError" @play="playChallenge" @menu="leaveChallenge" />
-  <HomeScreen :visible="isMenu && !challenge" :count="pool.length" :rounds="roundCount" :ready="canPlay" :best="best" :last="last" :average="average" :mode="mode" :seed="seedInput" :seed-error="seedError" @play="newGame" @mode="setMode" @seed="openChallenge" />
+  <ChallengeScreen :visible="isMenu && Boolean(challenge)" :ready="canPlay" :hard="challenge?.seed.hard" :games="challenge?.seed.games" :rounds="challenge?.seed.rounds.length || 0" :score="challenge?.score" :error="seedError" @play="playChallenge" @menu="leaveChallenge" />
+  <HomeScreen :visible="isMenu && !challenge && !setup" :count="pool.length" :ready="canPlay" @play="setup = true" />
+  <SetupScreen :visible="isMenu && !challenge && setup" :ready="canPlay" :counts="counts" :rounds="roundCount" :games="games" :mode="mode" :best="best" :last="last" :average="average" :seed="seedInput" :seed-error="seedError" @start="newGame" @back="setup = false" @games="setGames" @mode="setMode" @seed="openChallenge" />
   <RoundIntro :visible="intro" :number="status.index" :count="status.count" :progress="status.progress" :label="status.label" :tip="status.tip" :hard="gameHard" :countdown="status.countdown" :steps="COUNTDOWN" :waiting="status.waiting" />
 </template>
 
