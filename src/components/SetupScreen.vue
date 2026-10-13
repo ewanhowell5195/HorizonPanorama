@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watch } from "vue"
 import { MAX_POINTS } from "../lib/game.js"
+import { RULES } from "../lib/rules.js"
 
 const GAMES = [
   { id: "both", name: "Both games" },
@@ -9,15 +10,17 @@ const GAMES = [
 ]
 const MODES = [
   { id: "normal", name: "Normal", detail: "Look around freely" },
-  { id: "hard", name: "Hard", detail: "Fixed view, no zoom" }
+  { id: "hard", name: "Hard", detail: "Fixed view, no zoom" },
+  { id: "custom", name: "Custom", detail: "Choose what you get" }
 ]
 
-const props = defineProps({ visible: Boolean, ready: Boolean, counts: Object, rounds: Number, games: String, mode: String, best: Number, last: Number, average: Number, seed: String, seedError: String })
-const emit = defineEmits(["start", "back", "games", "mode", "seed"])
+const props = defineProps({ visible: Boolean, ready: Boolean, counts: Object, rounds: Number, games: String, mode: String, customRules: Object, best: Number, last: Number, average: Number, seed: String, seedError: String })
+const emit = defineEmits(["start", "back", "games", "mode", "rule", "seed"])
 const seedText = ref(props.seed || "")
 
 watch(() => props.seed, value => seedText.value = value || "")
 
+const custom = computed(() => props.mode === "custom")
 const count = computed(() => props.counts?.[props.games] || 0)
 const roundsLabel = computed(() => count.value ? `${props.rounds} rounds` : "No photospheres yet")
 const maxLabel = computed(() => count.value ? `Up to ${(props.rounds * MAX_POINTS).toLocaleString()} points` : "Capture some to play")
@@ -58,14 +61,37 @@ function playSeed() {
           <button v-for="option in MODES" :key="option.id" class="option" :class="{ selected: mode === option.id }" type="button" role="radio" :aria-checked="mode === option.id" @click="emit('mode', option.id)"><strong>{{ option.name }}</strong><span>{{ option.detail }}</span></button>
         </div>
       </div>
+      <div class="rise" style="--i: 4">
+        <div class="collapse" :class="{ open: custom }" :inert="!custom">
+          <div class="collapse-inner">
+            <div class="group">
+              <small>Custom rules</small>
+              <div class="rules">
+                <button v-for="rule in RULES" :key="rule.id" class="rule" :class="{ on: customRules[rule.id] }" type="button" role="switch" :aria-checked="customRules[rule.id]" @click="emit('rule', rule.id, !customRules[rule.id])"><span class="switch"></span><strong>{{ rule.name }}</strong><span>{{ rule.detail }}</span></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="cta rise" style="--i: 5">
         <button class="play" type="button" :disabled="!ready || !count" @click="emit('start')">Start<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4" /></svg></button>
         <div class="cta-meta"><strong>{{ roundsLabel }}</strong><span>{{ maxLabel }}</span></div>
       </div>
-      <div class="stats rise" style="--i: 6">
-        <div class="stat-block"><small>Best score</small><strong>{{ bestLabel }}</strong></div>
-        <div class="stat-block"><small>Last game</small><strong>{{ lastLabel }}</strong></div>
-        <div class="stat-block"><small>Average</small><strong>{{ averageLabel }}</strong></div>
+      <div class="rise" style="--i: 6">
+        <div class="collapse" :class="{ open: custom }" :inert="!custom">
+          <div class="collapse-inner">
+            <p class="unscored">Custom games are not scored, but you can still share them.</p>
+          </div>
+        </div>
+        <div class="collapse" :class="{ open: !custom }" :inert="custom">
+          <div class="collapse-inner">
+            <div class="stats">
+              <div class="stat-block"><small>Best score</small><strong>{{ bestLabel }}</strong></div>
+              <div class="stat-block"><small>Last game</small><strong>{{ lastLabel }}</strong></div>
+              <div class="stat-block"><small>Average</small><strong>{{ averageLabel }}</strong></div>
+            </div>
+          </div>
+        </div>
       </div>
       <form class="seed rise" style="--i: 7" @submit.prevent="playSeed">
         <input v-model="seedText" type="text" spellcheck="false" autocomplete="off" placeholder="Paste a seed or link to replay a game" aria-label="Seed">
@@ -223,6 +249,103 @@ function playSeed() {
   color: var(--accent);
 }
 
+.collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
+}
+
+.collapse.open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.collapse-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.rules {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  max-width: 640px;
+}
+
+.rule {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: 10px;
+  padding: 8px 12px;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--muted);
+  background: rgba(10, 12, 16, 0.55);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.rule:hover {
+  color: var(--text);
+  filter: none;
+}
+
+.rule.on {
+  color: var(--text);
+  border-color: rgba(242, 165, 65, 0.6);
+}
+
+.rule .switch {
+  grid-row: span 2;
+  position: relative;
+  width: 26px;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 7px;
+  transition: background 0.2s ease;
+}
+
+.rule .switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 10px;
+  height: 10px;
+  background: var(--muted);
+  border-radius: 50%;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.rule.on .switch {
+  background: rgba(242, 165, 65, 0.35);
+}
+
+.rule.on .switch::after {
+  background: var(--accent);
+  transform: translateX(12px);
+}
+
+.rule strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.rule > span:last-child {
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.unscored {
+  margin: clamp(18px, 3.2vh, 34px) 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
 .cta {
   display: flex;
   align-items: center;
@@ -334,6 +457,10 @@ function playSeed() {
   .option {
     flex: 1;
     min-width: 0;
+  }
+
+  .rules {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .stats {

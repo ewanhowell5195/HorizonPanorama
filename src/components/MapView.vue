@@ -19,7 +19,8 @@ defineExpose({
   setLines: pairs => map?.setLines(pairs),
   fit: (points, options) => map?.fit(points, options),
   refresh: () => map?.refresh(),
-  setMode: (on, instant) => map?.setMode(on, instant)
+  setMode: (on, instant) => map?.setMode(on, instant),
+  setFeatures: features => map?.setFeatures(features)
 })
 </script>
 

@@ -47,7 +47,7 @@ export function createSphere(canvas, { onHeading } = {}) {
   let texture = null
   let needsDraw = true
   let active = true
-  let locked = false
+  let controls = { pan: true, zoom: true }
   let spin = { yaw: 0, pitch: 0 }
   let lastMove = 0
   let lastFrame = performance.now()
@@ -191,14 +191,14 @@ export function createSphere(canvas, { onHeading } = {}) {
   }
 
   canvas.addEventListener("pointerdown", event => {
-    if (locked) {
+    if (!controls.pan && !controls.zoom) {
       return
     }
     canvas.setPointerCapture(event.pointerId)
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
     spin = { yaw: 0, pitch: 0 }
     lastMove = performance.now()
-    canvas.classList.add("dragging")
+    canvas.classList.toggle("dragging", controls.pan)
     if (pointers.size === 2) {
       pinchDistance = pinchSpan()
     }
@@ -213,8 +213,13 @@ export function createSphere(canvas, { onHeading } = {}) {
     pointers.set(event.pointerId, current)
     if (pointers.size === 2) {
       const span = pinchSpan()
-      zoom(pinchDistance / span)
+      if (controls.zoom) {
+        zoom(pinchDistance / span)
+      }
       pinchDistance = span
+      return
+    }
+    if (!controls.pan) {
       return
     }
     const step = 2 * Math.tan(view.fov * Math.PI / 360) / canvas.clientHeight
@@ -250,27 +255,27 @@ export function createSphere(canvas, { onHeading } = {}) {
 
   canvas.addEventListener("wheel", event => {
     event.preventDefault()
-    if (!locked) {
+    if (controls.zoom) {
       zoom(Math.exp(event.deltaY * 0.001))
     }
   }, { passive: false })
 
   window.addEventListener("keydown", event => {
-    if (!active || locked || event.target.closest?.("input, textarea")) {
+    if (!active || event.target.closest?.("input, textarea")) {
       return
     }
     const step = 2 * Math.PI / 180
-    if (event.key === "ArrowLeft") {
+    if (controls.pan && event.key === "ArrowLeft") {
       look(-step, 0)
-    } else if (event.key === "ArrowRight") {
+    } else if (controls.pan && event.key === "ArrowRight") {
       look(step, 0)
-    } else if (event.key === "ArrowUp") {
+    } else if (controls.pan && event.key === "ArrowUp") {
       look(0, step)
-    } else if (event.key === "ArrowDown") {
+    } else if (controls.pan && event.key === "ArrowDown") {
       look(0, -step)
-    } else if (event.key === "+" || event.key === "=") {
+    } else if (controls.zoom && (event.key === "+" || event.key === "=")) {
       zoom(0.9)
-    } else if (event.key === "-") {
+    } else if (controls.zoom && event.key === "-") {
       zoom(1 / 0.9)
     }
   })
@@ -297,12 +302,12 @@ export function createSphere(canvas, { onHeading } = {}) {
     setActive(value) {
       active = value
     },
-    setLocked(value) {
-      locked = value
+    setControls({ pan, zoom: zooming }) {
+      controls = { pan, zoom: zooming }
       spin = { yaw: 0, pitch: 0 }
       pointers.clear()
       canvas.classList.remove("dragging")
-      canvas.classList.toggle("locked", value)
+      canvas.classList.toggle("locked", !pan)
     }
   }
 }

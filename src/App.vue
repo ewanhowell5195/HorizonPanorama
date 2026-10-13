@@ -14,7 +14,8 @@ import SummaryCard from "./components/SummaryCard.vue"
 import { MAX_POINTS, ROUNDS, formatDistance, points, readStore, shuffle, wait, writeStore } from "./lib/game.js"
 import { METRES_PER_UNIT } from "./lib/map.js"
 import { answerMarker, pin } from "./lib/markers.js"
-import { decodeScore, decodeSeed, encodeSeed, randomCode, seededRandom, seedLink, startView } from "./lib/seed.js"
+import { MODE_RULES, fullRules, modeOf } from "./lib/rules.js"
+import { decodeScore, decodeSeed, encodeSeed, randomCode, seededRandom, seedLink } from "./lib/seed.js"
 import { pickView } from "./lib/view.js"
 
 const COUNTDOWN = 3
@@ -27,20 +28,23 @@ const SECRET = "horizon-panorama"
 const SAVED_GAME = "savedGame"
 const GAME_SUFFIXES = { both: "", hzd: "ZeroDawn", hfw: "ForbiddenWest" }
 const GAME_TITLES = { hzd: "Horizon Zero Dawn Remastered", hfw: "Horizon Forbidden West" }
-const COMBINATIONS = [false, true].flatMap(isHard => Object.keys(GAME_SUFFIXES).map(which => [isHard, which]))
+const COMBINATIONS = ["normal", "hard"].flatMap(modeName => Object.keys(GAME_SUFFIXES).map(which => [modeName, which]))
 const TIPS = [
   "Hover the map in the corner to open it. The button in its corner makes it bigger.",
   "Right drag pans the map without moving your pin.",
   "Click your pin again to take it back.",
   "Space or Enter locks in your guess.",
-  "The compass at the top shows which way you are facing.",
-  "Look for landmarks on the skyline: ruins, mountains and machine sites."
+  "Look for landmarks on the skyline: ruins, mountains and machine sites.",
+  "The view always starts somewhere worth looking, never at a wall."
 ]
-const NORMAL_TIPS = TIPS.concat("Drag to look around. Scroll or pinch to zoom in on far off details.")
-const HARD_TIPS = TIPS.concat("Hard mode locks the view. Everything you get is already in frame.", "The view is never pointed at a wall, so the skyline is usually worth reading.")
+const COMPASS_TIP = "The compass at the top shows which way you are facing."
+const PAN_TIP = "Drag to look around."
+const ZOOM_TIP = "Scroll or pinch to zoom in on far off details."
+const LOCKED_TIP = "The view is locked. Everything you get is already in frame."
 
 const phase = ref("menu")
-const mode = ref(readStore("mode") === "hard" ? "hard" : "normal")
+const mode = ref(["hard", "custom"].includes(readStore("mode")) ? readStore("mode") : "normal")
+const customRules = ref(fullRules(readJson("customRules")))
 const games = ref(Object.hasOwn(GAME_SUFFIXES, readStore("games")) ? readStore("games") : "both")
 const intro = ref(false)
 const setup = ref(false)
@@ -50,9 +54,9 @@ const swapFading = ref(false)
 const pool = ref([])
 const mapsReady = ref(false)
 let mapsLoading = null
-const best = ref(storedScore(scoreKey("bestScore")))
-const last = ref(storedScore(scoreKey("lastScore")))
-const average = ref(averageScore())
+const best = ref(mode.value === "custom" ? null : storedScore(scoreKey("bestScore")))
+const last = ref(mode.value === "custom" ? null : storedScore(scoreKey("lastScore")))
+const average = ref(mode.value === "custom" ? null : averageScore())
 const overall = ref(overallScores())
 const heading = ref(0)
 const hasGuess = ref(false)
@@ -85,8 +89,9 @@ const counts = computed(() => ({ both: pool.value.length, hzd: pool.value.filter
 const roundCount = computed(() => Math.min(ROUNDS, choices.value.length))
 const canPlay = computed(() => pool.value.length > 0)
 const previewGame = computed(() => isMenu.value && setup.value && !challenge.value && games.value !== "both" ? games.value : null)
-const hard = computed(() => mode.value === "hard")
-const gameHard = ref(false)
+const rules = computed(() => mode.value === "custom" ? customRules.value : MODE_RULES[mode.value])
+const gameRules = ref(MODE_RULES.normal)
+const gameMode = computed(() => modeOf(gameRules.value))
 
 let game = null
 let guessMarker = null
@@ -96,6 +101,14 @@ let viewToken = 0
 let trail = []
 let paused = null
 let introRunning = false
+
+function readJson(key) {
+  try {
+    return JSON.parse(readStore(key))
+  } catch {
+    return null
+  }
+}
 
 function readChallenge(input) {
   const seed = decodeSeed(input)
@@ -197,22 +210,23 @@ function playChallenge() {
   playSeed(challenge.value.seed.code)
 }
 
-function scoreKey(name, isHard = mode.value === "hard", which = games.value) {
-  return `${name}${isHard ? "Hard" : ""}${GAME_SUFFIXES[which]}`
+function scoreKey(name, modeName = mode.value, which = games.value) {
+  return `${name}${modeName === "hard" ? "Hard" : ""}${GAME_SUFFIXES[which]}`
 }
 
 function refreshScores() {
-  best.value = storedScore(scoreKey("bestScore"))
-  last.value = storedScore(scoreKey("lastScore"))
-  average.value = averageScore()
+  const scored = mode.value !== "custom"
+  best.value = scored ? storedScore(scoreKey("bestScore")) : null
+  last.value = scored ? storedScore(scoreKey("lastScore")) : null
+  average.value = scored ? averageScore() : null
   overall.value = overallScores()
 }
 
 function overallScores() {
-  const total = name => COMBINATIONS.reduce((sum, [isHard, which]) => sum + (storedScore(scoreKey(name, isHard, which)) || 0), 0)
-  const bests = COMBINATIONS.map(([isHard, which]) => storedScore(scoreKey("bestScore", isHard, which))).filter(value => value !== null)
+  const total = name => COMBINATIONS.reduce((sum, [modeName, which]) => sum + (storedScore(scoreKey(name, modeName, which)) || 0), 0)
+  const bests = COMBINATIONS.map(([modeName, which]) => storedScore(scoreKey("bestScore", modeName, which))).filter(value => value !== null)
   const played = total("gamesPlayed")
-  const lasts = COMBINATIONS.map(([isHard, which]) => storedScore(scoreKey("lastScore", isHard, which))).filter(value => value !== null)
+  const lasts = COMBINATIONS.map(([modeName, which]) => storedScore(scoreKey("lastScore", modeName, which))).filter(value => value !== null)
   return { best: bests.length ? Math.max(...bests) : null, last: storedScore("lastScoreOverall") ?? lasts[0] ?? null, average: played ? Math.round(total("scoreSum") / played) : null }
 }
 
@@ -220,6 +234,11 @@ function setMode(value) {
   mode.value = value
   writeStore("mode", value)
   refreshScores()
+}
+
+function setRule(id, value) {
+  customRules.value = Object.assign({}, customRules.value, { [id]: value })
+  writeStore("customRules", JSON.stringify(customRules.value))
 }
 
 function setGames(value) {
@@ -286,7 +305,7 @@ function prepare(round, current) {
     return
   }
   if (!round.view) {
-    round.view = current.hard ? pickView(round.bitmap, seededRandom(round.code)) : startView(round.code)
+    round.view = pickView(round.bitmap, seededRandom(round.code))
   }
   round.prepared = { texture: sphere.value.upload(round.bitmap), view: round.view }
   round.bitmap = null
@@ -345,12 +364,13 @@ async function startRound() {
   status.label = "Loading photosphere"
   status.countdown = COUNTDOWN
   status.waiting = false
-  const tips = current.hard ? HARD_TIPS : NORMAL_TIPS
+  const tips = TIPS.concat(current.rules.compass ? [COMPASS_TIP] : [], current.rules.pan ? [PAN_TIP] : [LOCKED_TIP], current.rules.zoom ? [ZOOM_TIP] : [])
   status.tip = tips[Math.floor(Math.random() * tips.length)]
   phase.value = "round"
   intro.value = true
   introRunning = true
   loadMaps().then(() => {
+    minimap.value.setFeatures({ modes: current.rules.map3d, readouts: current.rules.readouts, compass: current.rules.compass, icons: current.rules.icons })
     minimap.value.setMode(false, true)
     minimap.value.fit(null, { snap: true, game: current.games === "both" ? null : current.games })
   })
@@ -386,7 +406,7 @@ async function startRound() {
   status.label = "Ready"
   sphere.value.present(round.prepared.texture, round.prepared.view.yaw, round.prepared.view.pitch)
   presentedRound = current.index
-  sphere.value.setLocked(current.hard)
+  sphere.value.setControls({ pan: current.rules.pan, zoom: current.rules.zoom })
   round.prepared = null
   round.image = null
   introRunning = false
@@ -410,7 +430,7 @@ function saveGame() {
     sessionStorage.setItem(SAVED_GAME, JSON.stringify({
       id: game.id,
       seed: game.seed,
-      hard: game.hard,
+      rules: game.rules,
       games: game.games,
       index: game.index,
       total: game.total,
@@ -441,8 +461,8 @@ async function restoreGame(saved) {
   paused = null
   challenge.value = null
   setup.value = false
-  game = { rounds: saved.rounds, index: saved.index, total: saved.total, results: saved.results, state: saved.state, guess: null, hard: saved.hard, games: saved.games, seed: saved.seed, id: saved.id }
-  gameHard.value = game.hard
+  game = { rounds: saved.rounds, index: saved.index, total: saved.total, results: saved.results, state: saved.state, guess: null, rules: fullRules(saved.rules), games: saved.games, seed: saved.seed, id: saved.id }
+  gameRules.value = game.rules
   status.index = game.index + 1
   status.count = game.rounds.length
   status.total = game.total
@@ -522,8 +542,8 @@ async function showSummary(record = true) {
     resultMarkers.push(bigmap.value.addMarker(pin("var(--accent)", n + 1), entry.guess.x, entry.guess.y), bigmap.value.addMarker(answerMarker(n + 1), entry.answer.x, entry.answer.y))
   })
   bigmap.value.setLines(game.results.map(entry => [entry.guess, entry.answer]))
-  if (record) {
-    const key = name => scoreKey(name, game.hard, game.games)
+  if (record && modeOf(game.rules) !== "custom") {
+    const key = name => scoreKey(name, modeOf(game.rules), game.games)
     writeStore(key("lastScore"), game.total)
     writeStore("lastScoreOverall", game.total)
     if (game.total > (storedScore(key("bestScore")) || 0)) {
@@ -562,7 +582,7 @@ async function viewRound(index) {
   const token = ++viewToken
   const round = game.rounds[index]
   const title = `Round ${index + 1}`
-  sphere.value.setLocked(false)
+  sphere.value.setControls({ pan: true, zoom: true })
   if (presentedRound === index) {
     viewing.value = { title, loading: false }
     return
@@ -620,11 +640,11 @@ function resumeGame() {
   backdrop.value.cycle(false)
 }
 
-function begin(rounds, isHard, which) {
+function begin(rounds, gameRulesValue, which) {
   seedError.value = ""
   closeView()
   paused = null
-  game = { rounds, index: 0, total: 0, results: [], state: "round", guess: null, hard: isHard, games: which }
+  game = { rounds, index: 0, total: 0, results: [], state: "round", guess: null, rules: fullRules(gameRulesValue), games: which }
   game.seed = encodeSeed(game)
   game.id = Math.random().toString(36).slice(2, 8)
   const url = `${screenUrl("game")}?seed=${game.seed}&id=${game.id}`
@@ -635,7 +655,7 @@ function begin(rounds, isHard, which) {
   }
   challenge.value = null
   setup.value = false
-  gameHard.value = isHard
+  gameRules.value = game.rules
   saveGame()
   preload(0)
   startRound()
@@ -646,7 +666,7 @@ async function newGame() {
   if (!choices.value.length) {
     return
   }
-  begin(shuffle(choices.value).slice(0, ROUNDS).map(round => Object.assign({}, round, { code: randomCode() })), hard.value, games.value)
+  begin(shuffle(choices.value).slice(0, ROUNDS).map(round => Object.assign({}, round, { code: randomCode() })), rules.value, games.value)
 }
 
 async function playSeed(input) {
@@ -662,7 +682,7 @@ async function playSeed(input) {
     seedError.value = missing.length === seed.rounds.length ? "None of this seed's photospheres are available any more." : `${missing.length} of this seed's photospheres ${missing.length === 1 ? "is" : "are"} no longer available.`
     return
   }
-  begin(seed.rounds.map(round => Object.assign({}, byName.get(round.name), { code: round.code })), seed.hard, seed.games)
+  begin(seed.rounds.map(round => Object.assign({}, byName.get(round.name), { code: round.code })), seed.rules, seed.games)
 }
 
 async function toggleSwap() {
@@ -756,7 +776,7 @@ onBeforeUnmount(() => {
     <PhotoSphere ref="sphere" :active="sphereActive" :boxed="swapView" :faded="swapFading" @heading="setHeading" />
   </Teleport>
   <div id="map-full" class="map-full" :class="{ shown: swapView }"></div>
-  <GameHud :round="status.index" :count="status.count" :score="status.total" :heading="heading" :hidden="!isRound" :hard="gameHard" :swapped="swapView" :faded="swapFading" />
+  <GameHud :round="status.index" :count="status.count" :score="status.total" :heading="heading" :hidden="!isRound" :mode="gameMode" :compass="gameRules.compass" :swapped="swapView" :faded="swapFading" />
   <GuessPanel :hidden="!isRound" :has-guess="hasGuess" :swapped="swapView" @guess="submitGuess" @swap="toggleSwap">
     <Teleport to="#map-full" defer :disabled="!swapView">
       <MapView ref="minimap" pickable pois scale modes :faded="swapFading" @pick="placeGuess" />
@@ -769,7 +789,7 @@ onBeforeUnmount(() => {
     <ResultCard v-if="phase === `result` && result && !viewing" ref="resultCard" :key="result.key" :score="result.score" :distance="result.distance" :last-round="result.lastRound" @next="next" @view="viewResult" />
   </Transition>
   <Transition name="card">
-    <SummaryCard v-if="phase === `summary` && summary && !viewing" ref="summaryCard" :results="summary.results" :total="summary.total" :max="summary.max" :hard="gameHard" :seed="summary.seed" @menu="goHome" @again="newGame" @replay="replay" @view="viewRound" />
+    <SummaryCard v-if="phase === `summary` && summary && !viewing" ref="summaryCard" :results="summary.results" :total="summary.total" :max="summary.max" :mode="gameMode" :seed="summary.seed" @menu="goHome" @again="newGame" @replay="replay" @view="viewRound" />
   </Transition>
   <Transition name="card">
     <div v-if="viewing" class="viewing">
@@ -778,10 +798,10 @@ onBeforeUnmount(() => {
     </div>
   </Transition>
   <SlideBackdrop ref="backdrop" :active="isMenu || intro" :timer="isMenu" />
-  <ChallengeScreen :visible="isMenu && Boolean(challenge)" :ready="canPlay" :hard="challenge?.seed.hard" :games="challenge?.seed.games" :rounds="challenge?.seed.rounds.length || 0" :score="challenge?.score" :error="seedError" @play="playChallenge" @menu="goHome" />
+  <ChallengeScreen :visible="isMenu && Boolean(challenge)" :ready="canPlay" :rules="challenge?.seed.rules" :games="challenge?.seed.games" :rounds="challenge?.seed.rounds.length || 0" :score="challenge?.score" :error="seedError" @play="playChallenge" @menu="goHome" />
   <HomeScreen :visible="isMenu && !challenge && !setup && !restoring" :count="pool.length" :ready="canPlay" :best="overall.best" :last="overall.last" :average="overall.average" @play="goSetup" />
-  <SetupScreen :visible="isMenu && !challenge && setup" :ready="canPlay" :counts="counts" :rounds="roundCount" :games="games" :mode="mode" :best="best" :last="last" :average="average" :seed="seedInput" :seed-error="seedError" @start="newGame" @back="goHome" @games="setGames" @mode="setMode" @seed="openChallenge" />
-  <RoundIntro :visible="intro" :number="status.index" :count="status.count" :progress="status.progress" :label="status.label" :tip="status.tip" :hard="gameHard" :countdown="status.countdown" :steps="COUNTDOWN" :waiting="status.waiting" />
+  <SetupScreen :visible="isMenu && !challenge && setup" :ready="canPlay" :counts="counts" :rounds="roundCount" :games="games" :mode="mode" :custom-rules="customRules" :best="best" :last="last" :average="average" :seed="seedInput" :seed-error="seedError" @start="newGame" @back="goHome" @games="setGames" @mode="setMode" @rule="setRule" @seed="openChallenge" />
+  <RoundIntro :visible="intro" :number="status.index" :count="status.count" :progress="status.progress" :label="status.label" :tip="status.tip" :mode="gameMode" :countdown="status.countdown" :steps="COUNTDOWN" :waiting="status.waiting" />
 </template>
 
 <style scoped>

@@ -3,7 +3,7 @@ import { computed } from "vue"
 
 const RING = 2 * Math.PI * 28
 
-const props = defineProps({ visible: Boolean, number: Number, count: Number, progress: Number, label: String, tip: String, hard: Boolean, countdown: Number, steps: Number, waiting: Boolean })
+const props = defineProps({ visible: Boolean, number: Number, count: Number, progress: Number, label: String, tip: String, mode: String, countdown: Number, steps: Number, waiting: Boolean })
 
 const bar = computed(() => ({ transform: `scaleX(${props.progress})` }))
 const ring = computed(() => ({ strokeDasharray: RING, strokeDashoffset: RING * (1 - Math.max(props.countdown, 0) / props.steps) }))
@@ -12,7 +12,7 @@ const digit = computed(() => props.waiting || props.countdown <= 0 ? "" : props.
 
 <template>
   <section class="round-intro" :class="{ visible }">
-    <p class="eyebrow rise">Round<span v-if="hard" class="hard">Hard</span></p>
+    <p class="eyebrow rise">Round<span v-if="mode !== 'normal'" class="mode">{{ mode === "hard" ? "Hard" : "Custom" }}</span></p>
     <div class="number rise" style="--i: 1"><span>{{ number }}</span><small>/ {{ count }}</small></div>
     <div class="start rise" style="--i: 2">
       <div class="countdown" :class="{ waiting }">
@@ -57,7 +57,7 @@ const digit = computed(() => props.waiting || props.countdown <= 0 ? "" : props.
   animation-delay: calc(var(--i, 0) * 80ms);
 }
 
-.hard {
+.mode {
   padding: 2px 8px;
   font-size: 11px;
   letter-spacing: 0.2em;

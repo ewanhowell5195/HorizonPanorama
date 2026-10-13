@@ -1,7 +1,7 @@
 <script setup>
 import HudCompass from "./HudCompass.vue"
 
-defineProps({ round: Number, count: Number, score: Number, heading: Number, hidden: Boolean, hard: Boolean, swapped: Boolean, faded: Boolean })
+defineProps({ round: Number, count: Number, score: Number, heading: Number, hidden: Boolean, mode: String, compass: Boolean, swapped: Boolean, faded: Boolean })
 </script>
 
 <template>
@@ -9,10 +9,10 @@ defineProps({ round: Number, count: Number, score: Number, heading: Number, hidd
     <div class="stats">
       <div class="stat"><span>Round</span><strong>{{ round }} / {{ count }}</strong></div>
       <div class="stat"><span>Score</span><strong>{{ score.toLocaleString() }}</strong></div>
-      <div v-if="hard" class="stat"><span>Mode</span><strong class="hard">Hard</strong></div>
+      <div v-if="mode !== 'normal'" class="stat"><span>Mode</span><strong class="mode">{{ mode === "hard" ? "Hard" : "Custom" }}</strong></div>
     </div>
     <Teleport to="#sphere-box" defer :disabled="!swapped">
-      <HudCompass :heading="heading" :boxed="swapped" :faded="faded" />
+      <HudCompass v-if="compass" :heading="heading" :boxed="swapped" :faded="faded" />
     </Teleport>
   </div>
 </template>
@@ -59,7 +59,7 @@ defineProps({ round: Number, count: Number, score: Number, heading: Number, hidd
   font-variant-numeric: tabular-nums;
 }
 
-.stat .hard {
+.stat .mode {
   color: var(--accent);
 }
 

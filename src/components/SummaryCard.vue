@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from "vue"
 import { seedLink } from "../lib/seed.js"
 
-const props = defineProps({ results: Array, total: Number, max: Number, hard: Boolean, seed: String })
+const props = defineProps({ results: Array, total: Number, max: Number, mode: String, seed: String })
 const emit = defineEmits(["menu", "again", "replay", "view"])
 const copied = ref(false)
 const link = computed(() => seedLink(props.seed, props.total))
@@ -41,7 +41,7 @@ function view(index) {
 <template>
   <div class="card">
     <h2>{{ total.toLocaleString() }} points</h2>
-    <p>out of {{ max.toLocaleString() }}<template v-if="hard"> in hard mode</template></p>
+    <p>out of {{ max.toLocaleString() }}<template v-if="mode !== 'normal'"> in {{ mode }} mode</template></p>
     <div class="bar"><div :style="bar"></div></div>
     <div class="rounds">
       <div v-for="(result, n) in results" :key="n">

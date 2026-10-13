@@ -287,7 +287,11 @@ button.secondary {
   background: rgba(242, 165, 65, 0.12);
 }
 
-.map-mode ~ .map-scale {
+.map-mode[hidden], .map-scale[hidden] {
+  display: none;
+}
+
+.map-mode:not([hidden]) ~ .map-scale {
   left: 104px;
 }
 

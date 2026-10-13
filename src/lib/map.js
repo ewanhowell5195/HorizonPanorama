@@ -24,6 +24,10 @@ const POI_ZOOM = { "campfire": 1, "machine-site": 1 }
 const POI_MARGIN = 40
 const POI_HOVER_RADIUS = 24
 const POI_SPACING = 44
+const POI_OCCLUSION_RADIUS = 30
+const POI_OCCLUSION_SAMPLES = 8
+const OCCLUSION_STEPS = 32
+const OCCLUSION_END = 0.97
 const POI_SPREAD_PASSES = 4
 const POI_ZOOM_MIN = 5
 // covers the 0.3 s .map-poi opacity transition in styles.css
@@ -134,19 +138,20 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
   }
   const compass = createCompass()
   const compassHolder = document.createElement("div")
+  const compassFrame = document.createElement("div")
   if (modes) {
-    const frame = document.createElement("div")
-    frame.className = "map-compass-frame"
+    compassFrame.className = "map-compass-frame"
     compassHolder.className = "map-compass"
     compassHolder.append(compass.element)
-    frame.append(compassHolder)
-    container.append(frame)
+    compassFrame.append(compassHolder)
+    container.append(compassFrame)
   }
   if (scale) {
     container.append(scaleBar)
   }
   const pointsOfInterest = []
   const hiddenTypes = new Set()
+  let iconsOn = true
   const tracksHover = Boolean(scale || onHover)
 
   const gl = canvas.getContext("webgl2", { antialias: true })
@@ -930,6 +935,35 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     }
   }
 
+  function terrainBetween(x, y, z) {
+    for (let n = 1; n < OCCLUSION_STEPS; n++) {
+      const t = n / OCCLUSION_STEPS * OCCLUSION_END
+      const px = eye[0] + (x - eye[0]) * t, py = eye[1] + (y - eye[1]) * t, pz = eye[2] + (z - eye[2]) * t
+      if (heightAt(px, py) > pz) {
+        return true
+      }
+    }
+    return false
+  }
+
+  function hiddenByTerrain(x, y, z) {
+    const screen = project(x, y, z)
+    if (screen.x < -POI_MARGIN || screen.y < -POI_MARGIN || screen.x > viewSize.width + POI_MARGIN || screen.y > viewSize.height + POI_MARGIN) {
+      return false
+    }
+    const radius = POI_OCCLUSION_RADIUS * Math.hypot(eye[0] - x, eye[1] - y, eye[2] - z) * 2 * Math.tan(FOV / 2) / Math.max(viewSize.height, 1)
+    const st = Math.sin(camera.tilt), ct = Math.cos(camera.tilt)
+    const sh = Math.sin(camera.heading), ch = Math.cos(camera.heading)
+    for (let k = 0; k <= POI_OCCLUSION_SAMPLES; k++) {
+      const angle = (k - 1) / POI_OCCLUSION_SAMPLES * 2 * Math.PI
+      const across = k ? Math.cos(angle) * radius : 0, upward = k ? Math.sin(angle) * radius : 0
+      if (!terrainBetween(x + ch * across + sh * ct * upward, y - sh * across + ch * ct * upward, z + st * upward)) {
+        return false
+      }
+    }
+    return true
+  }
+
   function spread(placed) {
     for (let pass = 0; pass < POI_SPREAD_PASSES; pass++) {
       for (let a = 0; a < placed.length; a++) {
@@ -942,8 +976,8 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
             continue
           }
           if (away < 0.01) {
-            dx = Math.cos(a + b)
-            dy = Math.sin(a + b)
+            dx = 0
+            dy = 1
           } else {
             dx /= away
             dy /= away
@@ -1008,7 +1042,10 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
         z = away <= reach ? heightAt(poi.x, poi.y) : null
         shown = z !== null && Math.hypot(away, eye[2] - z) <= reach
       }
-      shown = shown && !hiddenTypes.has(poi.type)
+      shown = shown && iconsOn && !hiddenTypes.has(poi.type)
+      if (shown && threeD && hiddenByTerrain(poi.x, poi.y, z)) {
+        shown = false
+      }
       if (shown !== poi.shown) {
         poi.shown = shown
         poi.hiddenAt = now
@@ -1603,6 +1640,16 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
       needsDraw = true
     },
     refresh() {
+      needsDraw = true
+    },
+    setFeatures({ modes: modesOn = true, readouts = true, compass: compassOn = true, icons = true }) {
+      modeToggle.hidden = !modesOn
+      if (!modesOn) {
+        setMode(false, true)
+      }
+      scaleBar.hidden = !readouts
+      compassFrame.hidden = !compassOn
+      iconsOn = icons
       needsDraw = true
     },
     setPoiShown(type, shown) {

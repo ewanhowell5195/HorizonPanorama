@@ -19,7 +19,7 @@ defineExpose({
   upload: image => sphere.upload(image),
   present: (texture, yaw, pitch) => sphere.present(texture, yaw, pitch),
   discard: texture => sphere.discard(texture),
-  setLocked: locked => sphere.setLocked(locked)
+  setControls: controls => sphere.setControls(controls)
 })
 </script>
 
