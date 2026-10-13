@@ -144,6 +144,16 @@ watch(() => props.hidden, () => open.value = false)
   pointer-events: auto;
 }
 
+.map :deep(.map-poi img) {
+  opacity: 0;
+  transition: opacity 0.15s ease 0.5s;
+}
+
+.guess:hover .map :deep(.map-poi img), .guess.open .map :deep(.map-poi img), .guess.resizing .map :deep(.map-poi img) {
+  opacity: 1;
+  transition-delay: 0s;
+}
+
 .size-toggle .shrink, .guess.large .size-toggle .grow {
   display: none;
 }

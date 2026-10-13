@@ -193,10 +193,10 @@ button.secondary {
 
 .map-poi {
   position: absolute;
-  left: -15px;
-  top: -15px;
-  width: 30px;
-  height: 30px;
+  left: -30px;
+  top: -30px;
+  width: 60px;
+  height: 60px;
   pointer-events: none;
   user-select: none;
   opacity: 0;
@@ -214,6 +214,32 @@ button.secondary {
   display: block;
   width: 100%;
   height: 100%;
+}
+
+.map-tooltip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 1;
+  display: none;
+  margin: 28px 0 0;
+  font-size: 23px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  color: #fff;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.9), 0 0 4px rgba(0, 0, 0, 0.9), 0 1px 6px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  user-select: none;
+  translate: -50% 0;
+}
+
+.map-tooltip.shown {
+  display: block;
+}
+
+.map-poi.hovered img {
+  scale: 1.15;
 }
 
 .map-scale {
@@ -321,4 +347,83 @@ button.secondary {
   color: #fff;
   background: rgba(0, 0, 0, 0.7);
   border-radius: 4px;
+}
+
+.compass {
+  position: relative;
+  width: 100%;
+  height: calc(21 * var(--u));
+  pointer-events: none;
+}
+
+.compass-bar {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  mask-image: url("/hud/compass-mask.png");
+  mask-size: 100% 100%;
+}
+
+.compass-ticks {
+  position: absolute;
+  top: 0;
+  left: calc(50% - 2048 * var(--u));
+  width: calc(4096 * var(--u));
+  height: 100%;
+  background: url("/hud/compass-strip.png") repeat-x;
+  background-size: calc(2048 * var(--u)) 100%;
+  background-position-x: calc(var(--x) * var(--u));
+}
+
+.compass-bar span {
+  position: absolute;
+  top: 50%;
+  left: calc(50% + var(--x) * var(--u));
+  transform: translate(-50%, -50%);
+  font-weight: 300;
+  font-size: calc(16.85 * var(--u));
+  line-height: 1;
+  color: #fff;
+}
+
+.compass-shadow, .compass-line {
+  position: absolute;
+  top: calc(-7 * var(--u));
+  left: calc(-3 * var(--u));
+  right: calc(-3 * var(--u));
+  height: calc(45 * var(--u));
+  background: url("/hud/compass-shadow.avif") no-repeat;
+  background-size: 100% 100%;
+}
+
+.compass-line {
+  background-image: url("/hud/compass-line.avif");
+}
+
+.compass-marks {
+  position: absolute;
+  inset: 0;
+  filter: drop-shadow(0 0 calc(1.5 * var(--u)) rgba(0, 0, 0, 0.6)) drop-shadow(0 0 calc(1.5 * var(--u)) rgba(0, 0, 0, 0.6));
+}
+
+.map-compass-frame {
+  position: absolute;
+  inset: 0;
+  container-type: inline-size;
+  pointer-events: none;
+}
+
+.map-compass {
+  --u: min(100vh / 1080, 65cqw / 630);
+  position: absolute;
+  top: calc(10px + 7 * var(--u));
+  left: 50%;
+  width: calc(630 * var(--u));
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.map-compass.shown {
+  opacity: 1;
 }

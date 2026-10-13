@@ -1,3 +1,5 @@
+import { createCompass } from "./compass.js"
+
 const UNIT_METRES = 256
 const HATCH_METRES = 128
 const FOV = 30 * Math.PI / 180
@@ -20,6 +22,10 @@ const MAP_WIDTH_METRES = 5760
 const ZOOM_LEVELS = [0, 1.4, 4]
 const POI_ZOOM = { "campfire": 1, "machine-site": 1 }
 const POI_MARGIN = 40
+const POI_HOVER_RADIUS = 24
+const POI_SPACING = 44
+const POI_SPREAD_PASSES = 4
+const POI_ZOOM_MIN = 5
 // covers the 0.3 s .map-poi opacity transition in styles.css
 const POI_FADE_MS = 350
 const SCALE_TARGET = 90
@@ -29,6 +35,13 @@ const DEPTH_METRES = 2048 / 3
 const MAX_TILT = 85 * Math.PI / 180
 const START_TILT = 55 * Math.PI / 180
 const ORBIT_SPEED = 0.006
+const CAMERA_CLEARANCE_METRES = 10
+const CAMERA_FLOOR_METRES = 1
+const SPIN_DECAY = 4
+const SPIN_MAX = 6
+const SPIN_STOP = 0.01
+const SPIN_HOLD_MS = 80
+const SPIN_CARRY = 0.5
 
 const vertexSource = `#version 300 es
   precision highp float;
@@ -39,15 +52,22 @@ const vertexSource = `#version 300 es
   uniform float uRelief;
   uniform float uSkirt;
   uniform sampler2D uDepth;
+  uniform sampler2D uBorder;
+  uniform vec4 uDomain;
   out vec2 vUv;
   out vec2 vWorld;
+  out float vSkirt;
   void main() {
     vec2 world = vec2(uRect.x + aGrid.x * uRect.z, uRect.y - aGrid.y * uRect.z);
     vec2 uv = uUv.xy + aGrid.xy * uUv.zw;
     vec2 grid = vec2(textureSize(uDepth, 0));
-    float height = textureLod(uDepth, (uv * (grid - 1.0) + 0.5) / grid, 0.0).r * uRelief - aGrid.z * uSkirt;
+    float depth = textureLod(uDepth, (uv * (grid - 1.0) + 0.5) / grid, 0.0).r;
+    float mask = textureLod(uBorder, vec2((world.x - uDomain.x) / uDomain.z, (uDomain.y - world.y) / uDomain.w), 0.0).r;
+    float edge = (clamp((mask - 0.5) / 0.3, 0.0, 1.0) + clamp((mask - 0.2) / 0.3, 0.0, 1.0)) * 0.5;
+    float height = depth * uRelief - aGrid.z * uSkirt * clamp((edge - 0.3) / 0.7, 0.0, 1.0);
     vUv = uv;
     vWorld = world;
+    vSkirt = aGrid.z;
     gl_Position = uViewProj * vec4(world, height, 1.0);
   }`
 
@@ -55,6 +75,8 @@ const fragmentSource = `#version 300 es
   precision highp float;
   in vec2 vUv;
   in vec2 vWorld;
+  in float vSkirt;
+  uniform float uSolid;
   uniform sampler2D uColor;
   uniform sampler2D uBorder;
   uniform sampler2D uHatch;
@@ -74,18 +96,23 @@ const fragmentSource = `#version 300 es
     if (alpha <= 0.0) {
       discard;
     }
-    outColor = vec4(texture(uColor, vUv).rgb * alpha, alpha);
+    float shade = 1.0 - uSolid * step(0.001, vSkirt);
+    outColor = gl_FrontFacing ? vec4(texture(uColor, vUv).rgb * alpha * shade, alpha) : vec4(0.0, 0.0, 0.0, 1.0);
   }`
 
 export const METRES_PER_UNIT = UNIT_METRES
 
-export async function createMap(container, { root, onPick, pois = false, scale = false, modes = false }) {
+export async function createMap(container, { root, onPick, onHover, onView, pois = false, scale = false, modes = false, minZoom = 0 }) {
   const canvas = document.createElement("canvas")
   const overlay = document.createElementNS("http://www.w3.org/2000/svg", "svg")
   const markerLayer = document.createElement("div")
   canvas.className = "map-canvas"
   overlay.setAttribute("class", "map-overlay")
   markerLayer.className = "map-markers"
+  const tooltip = document.createElement("div")
+  tooltip.className = "map-tooltip"
+  markerLayer.append(tooltip)
+  let tooltipPoi = null
   container.append(canvas, overlay, markerLayer)
   const scaleBar = document.createElement("div")
   if (scale) {
@@ -105,10 +132,22 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     })
     container.append(modeToggle)
   }
+  const compass = createCompass()
+  const compassHolder = document.createElement("div")
+  if (modes) {
+    const frame = document.createElement("div")
+    frame.className = "map-compass-frame"
+    compassHolder.className = "map-compass"
+    compassHolder.append(compass.element)
+    frame.append(compassHolder)
+    container.append(frame)
+  }
   if (scale) {
     container.append(scaleBar)
   }
   const pointsOfInterest = []
+  const hiddenTypes = new Set()
+  const tracksHover = Boolean(scale || onHover)
 
   const gl = canvas.getContext("webgl2", { antialias: true })
   if (!gl) {
@@ -117,7 +156,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
   const anisotropy = gl.getExtension("EXT_texture_filter_anisotropic")
   const program = createProgram(vertexSource, fragmentSource)
   const uniforms = {}
-  for (const name of ["uViewProj", "uRect", "uUv", "uRelief", "uSkirt", "uDepth", "uColor", "uBorder", "uHatch", "uOccupancy", "uDomain", "uGrid", "uOffset"]) {
+  for (const name of ["uViewProj", "uRect", "uUv", "uRelief", "uSkirt", "uSolid", "uDepth", "uColor", "uBorder", "uHatch", "uOccupancy", "uDomain", "uGrid", "uOffset"]) {
     uniforms[name] = gl.getUniformLocation(program, name)
   }
 
@@ -135,14 +174,16 @@ export async function createMap(container, { root, onPick, pois = false, scale =
   let lines = []
   let pendingFit = null
 
-  const camera = { x: 0, y: 0, distance: 60, target: 60, tilt: 0, tiltTarget: 0, heading: 0, headingTarget: 0 }
+  const camera = { x: 0, y: 0, z: null, lift: 0, distance: 60, target: 60, tilt: 0, tiltTarget: 0, heading: 0, headingTarget: 0 }
   const fullRelief = DEPTH_METRES / UNIT_METRES
   let threeD = false
   let relief = fullRelief / 2
   let hover = null
   let hoverMoved = false
   let orbit = null
+  let spin = { heading: 0, tilt: 0 }
   let panning = null
+  let pivotSet = false
   let games = {}
   let viewProj = new Float32Array(16)
   let inverse = new Float32Array(16)
@@ -267,6 +308,39 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     return { width: size, height: size, data }
   }
 
+  function fillMissing(heights, layer, level, i, j) {
+    const { width, data } = heights
+    const n = layer.domain.tiles
+    const perCell = MESH * 2 >> level
+    const valid = new Uint8Array(width * width)
+    const queue = []
+    for (let r = 0; r < width; r++) {
+      const row = Math.floor((j * MESH + r) / perCell)
+      for (let c = 0; c < width; c++) {
+        const col = Math.floor((i * MESH + c) / perCell)
+        if (row < n && col < n && layer.cells[row * n + col]) {
+          valid[r * width + c] = 1
+          queue.push(r * width + c)
+        }
+      }
+    }
+    if (!queue.length || queue.length === valid.length) {
+      return heights
+    }
+    for (let head = 0; head < queue.length; head++) {
+      const index = queue[head]
+      const r = Math.floor(index / width), c = index % width
+      for (const next of [r > 0 ? index - width : -1, r < width - 1 ? index + width : -1, c > 0 ? index - 1 : -1, c < width - 1 ? index + 1 : -1]) {
+        if (next >= 0 && !valid[next]) {
+          valid[next] = 1
+          data[next] = data[index]
+          queue.push(next)
+        }
+      }
+    }
+    return heights
+  }
+
   function uploadHeights(heights) {
     const texture = gl.createTexture()
     gl.bindTexture(gl.TEXTURE_2D, texture)
@@ -360,7 +434,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     inflight++
     const path = `${root}pyramids/${layer.id}/${level}/${i}_${j}`
     Promise.all([fetchBitmap(`${path}.avif`), fetchHeights(`${path}.bin`, MESH + 1)]).then(([bitmap, grid]) => {
-      entry.heights = grid
+      entry.heights = fillMissing(grid, layer, level, i, j)
       uploads.push({ entry, bitmap })
     }).catch(error => {
       console.warn(error)
@@ -478,12 +552,20 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     return out
   }
 
+  function orbitEye() {
+    const st = Math.sin(camera.tilt), ct = Math.cos(camera.tilt)
+    const sh = Math.sin(camera.heading), ch = Math.cos(camera.heading)
+    return [camera.x - sh * st * camera.distance, camera.y - ch * st * camera.distance, (camera.z ?? relief) + ct * camera.distance]
+  }
+
   function updateCamera() {
     const st = Math.sin(camera.tilt), ct = Math.cos(camera.tilt)
     const sh = Math.sin(camera.heading), ch = Math.cos(camera.heading)
-    const pivot = [camera.x, camera.y, relief]
-    eye = [pivot[0] - sh * st * camera.distance, pivot[1] - ch * st * camera.distance, pivot[2] + ct * camera.distance]
-    const near = camera.distance * (0.5 * ct + 0.01)
+    const pivot = [camera.x, camera.y, camera.z ?? relief]
+    eye = orbitEye()
+    eye[2] = Math.max(eye[2] + camera.lift, heightAt(eye[0], eye[1]) + CAMERA_FLOOR_METRES / UNIT_METRES)
+    const clearance = eye[2] - relief
+    const near = Math.max(Math.min(camera.distance * (0.5 * ct + 0.01), clearance * 0.9), camera.distance * 0.005)
     const far = camera.distance * (1 + 60 * st) + relief * 2 + 1
     const projection = perspective(FOV, canvas.width / canvas.height, near, far)
     viewProj = multiply(projection, lookAt(eye, pivot, [sh * ct, ch * ct, st]))
@@ -754,7 +836,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
 
   function limits() {
     const focal = canvas.height / (2 * Math.tan(FOV / 2))
-    return { min: focal / (2048 * 3), max: 240 }
+    return { min: focal / (2048 * 3), max: minZoom ? MAP_WIDTH_METRES / UNIT_METRES / minZoom * focal / Math.max(canvas.width, 1) - relief : 240 }
   }
 
   function clampCamera() {
@@ -780,6 +862,8 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     relief = approach(relief, threeD ? fullRelief : fullRelief / 2, ease, 1e-4)
     camera.tilt = approach(camera.tilt, camera.tiltTarget, ease, 1e-4)
     camera.heading = approach(camera.heading, camera.headingTarget, ease, 1e-4)
+    const base = orbitEye()
+    camera.lift = approach(camera.lift, Math.max(heightAt(base[0], base[1]) + CAMERA_CLEARANCE_METRES / UNIT_METRES - base[2], 0), ease, 1e-5)
     if (flight) {
       const t = Math.min((now - flight.start) / FLIGHT_MS, 1)
       const e = t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2
@@ -799,6 +883,11 @@ export async function createMap(container, { root, onPick, pois = false, scale =
       camera.distance = camera.target
       needsDraw = true
     }
+    if (!dragging && (spin.heading || spin.tilt)) {
+      turn(camera.heading + spin.heading * dt, camera.tilt + spin.tilt * dt)
+      const decay = Math.exp(-dt * SPIN_DECAY)
+      spin = Math.hypot(spin.heading, spin.tilt) * decay < SPIN_STOP ? { heading: 0, tilt: 0 } : { heading: spin.heading * decay, tilt: camera.tilt === 0 || camera.tilt === MAX_TILT ? 0 : spin.tilt * decay }
+    }
     if (!dragging && Math.hypot(velocity.x, velocity.y) > camera.distance * 0.002) {
       camera.x += velocity.x * dt
       camera.y += velocity.y * dt
@@ -816,6 +905,9 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     const aspect = canvas.width / (canvas.height * usable)
     const span = Math.max(box.maxY - box.minY, (box.maxX - box.minX) / aspect) * 1.2 / usable
     const to = { x: (box.minX + box.maxX) / 2, y: (box.minY + box.maxY) / 2 - span * (inset - top) / height / 2, distance: Math.max(span / 2 / Math.tan(FOV / 2), limits().min * 40) }
+    if (camera.z !== null) {
+      anchorPivot(false)
+    }
     velocity = { x: 0, y: 0 }
     if (snap) {
       flight = null
@@ -831,9 +923,68 @@ export async function createMap(container, { root, onPick, pois = false, scale =
 
   function position(item, point) {
     const transform = `translate(${point.x.toFixed(1)}px, ${point.y.toFixed(1)}px)`
+    item.screen = point
     if (item.transform !== transform) {
       item.transform = transform
       item.element.style.transform = transform
+    }
+  }
+
+  function spread(placed) {
+    for (let pass = 0; pass < POI_SPREAD_PASSES; pass++) {
+      for (let a = 0; a < placed.length; a++) {
+        const first = placed[a].point
+        for (let b = a + 1; b < placed.length; b++) {
+          const second = placed[b].point
+          let dx = second.x - first.x, dy = second.y - first.y
+          const away = Math.hypot(dx, dy)
+          if (away >= POI_SPACING) {
+            continue
+          }
+          if (away < 0.01) {
+            dx = Math.cos(a + b)
+            dy = Math.sin(a + b)
+          } else {
+            dx /= away
+            dy /= away
+          }
+          const push = (POI_SPACING - away) / 2
+          first.x -= dx * push
+          first.y -= dy * push
+          second.x += dx * push
+          second.y += dy * push
+        }
+      }
+    }
+  }
+
+  function updateTooltip() {
+    let nearest = null
+    let best = POI_HOVER_RADIUS
+    if (hover && !dragging) {
+      const rect = canvas.getBoundingClientRect()
+      const x = hover.x - rect.left, y = hover.y - rect.top
+      for (const poi of pointsOfInterest) {
+        if (poi.shown && poi.inside && poi.screen) {
+          const away = Math.hypot(poi.screen.x - x, poi.screen.y - y)
+          if (away < best) {
+            best = away
+            nearest = poi
+          }
+        }
+      }
+    }
+    if (nearest !== tooltipPoi) {
+      tooltipPoi?.element.classList.remove("hovered")
+      nearest?.element.classList.add("hovered")
+      tooltipPoi = nearest
+      tooltip.classList.toggle("shown", Boolean(nearest))
+      if (nearest) {
+        tooltip.textContent = nearest.label
+      }
+    }
+    if (nearest) {
+      tooltip.style.transform = `translate(${nearest.screen.x.toFixed(1)}px, ${nearest.screen.y.toFixed(1)}px)`
     }
   }
 
@@ -845,9 +996,19 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     const gameZoom = zoomPerPixel * unitPixels
     const focal = viewSize.height / (2 * Math.tan(FOV / 2))
     const now = performance.now()
+    const placed = []
     for (const poi of pointsOfInterest) {
-      const zoom = threeD ? zoomPerPixel * focal / Math.max(Math.hypot(eye[0] - poi.x, eye[1] - poi.y, eye[2] - relief / 2), 1e-4) : gameZoom
-      const shown = zoom >= ZOOM_LEVELS[POI_ZOOM[poi.type]]
+      const level = ZOOM_LEVELS[POI_ZOOM[poi.type]]
+      let z = null
+      const visibleZoom = Math.max(level, POI_ZOOM_MIN)
+      let shown = gameZoom >= visibleZoom
+      if (threeD) {
+        const reach = zoomPerPixel * focal / visibleZoom
+        const away = Math.hypot(eye[0] - poi.x, eye[1] - poi.y)
+        z = away <= reach ? heightAt(poi.x, poi.y) : null
+        shown = z !== null && Math.hypot(away, eye[2] - z) <= reach
+      }
+      shown = shown && !hiddenTypes.has(poi.type)
       if (shown !== poi.shown) {
         poi.shown = shown
         poi.hiddenAt = now
@@ -856,15 +1017,22 @@ export async function createMap(container, { root, onPick, pois = false, scale =
       if (!shown && now - poi.hiddenAt > POI_FADE_MS) {
         continue
       }
-      const rough = project(poi.x, poi.y, 0)
+      if (threeD && z === null) {
+        z = heightAt(poi.x, poi.y)
+      }
+      const rough = project(poi.x, poi.y, z ?? 0)
       const inside = rough.x > -POI_MARGIN && rough.y > -POI_MARGIN && rough.x < viewSize.width + POI_MARGIN && rough.y < viewSize.height + POI_MARGIN
       if (inside !== poi.inside) {
         poi.inside = inside
         poi.element.style.display = inside ? "" : "none"
       }
       if (inside) {
-        position(poi, project(poi.x, poi.y, heightAt(poi.x, poi.y)))
+        placed.push({ poi, point: threeD ? rough : project(poi.x, poi.y, heightAt(poi.x, poi.y)) })
       }
+    }
+    spread(placed)
+    for (const { poi, point } of placed) {
+      position(poi, point)
     }
     if (scale && unitPixels > 0) {
       const metresPerPixel = UNIT_METRES / unitPixels
@@ -882,6 +1050,10 @@ export async function createMap(container, { root, onPick, pois = false, scale =
       entry.element.setAttribute("x2", b.x)
       entry.element.setAttribute("y2", b.y)
     }
+    if (modes) {
+      compass.setHeading((camera.heading * 180 / Math.PI % 360 + 360) % 360)
+    }
+    return gameZoom
   }
 
   function render(now) {
@@ -898,7 +1070,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     processUploads()
     if (hoverMoved && !needsDraw) {
       hoverMoved = false
-      updateElevation()
+      updateHover()
     }
     if (!needsDraw) {
       return
@@ -919,6 +1091,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     boundMesh = null
     gl.uniformMatrix4fv(uniforms.uViewProj, false, viewProj)
     gl.uniform1f(uniforms.uRelief, relief)
+    gl.uniform1f(uniforms.uSolid, Math.min(Math.max(relief / fullRelief * 2 - 1, 0), 1))
     gl.uniform1i(uniforms.uColor, 0)
     gl.uniform1i(uniforms.uDepth, 1)
     gl.uniform1i(uniforms.uBorder, 2)
@@ -938,10 +1111,13 @@ export async function createMap(container, { root, onPick, pois = false, scale =
       gl.uniform2f(uniforms.uOffset, layer.offset[0], layer.offset[1])
       wanted.filter(node => node.layer === layer).forEach(drawNode)
     }
-    updateMarkers()
-    if (scale && hover) {
+    const gameZoom = updateMarkers()
+    if (onView) {
+      onView({ zoom: gameZoom, pending: inflight + uploads.length })
+    }
+    if (tracksHover && hover) {
       hoverMoved = false
-      updateElevation()
+      updateHover()
     }
     evict()
   }
@@ -966,11 +1142,13 @@ export async function createMap(container, { root, onPick, pois = false, scale =
 
   function setMode(on, instant = false) {
     threeD = on
+    spin = { heading: 0, tilt: 0 }
     if (on) {
       if (camera.tiltTarget === 0) {
         camera.tiltTarget = START_TILT
       }
     } else {
+      anchorPivot(false)
       camera.heading = Math.atan2(Math.sin(camera.heading), Math.cos(camera.heading))
       camera.headingTarget = 0
       camera.tiltTarget = 0
@@ -980,21 +1158,44 @@ export async function createMap(container, { root, onPick, pois = false, scale =
       camera.tilt = camera.tiltTarget
       camera.heading = camera.headingTarget
     }
+    compassHolder.classList.toggle("shown", on)
     for (const button of modeToggle.children) {
       button.classList.toggle("selected", (button.dataset.mode === "3d") === on)
     }
     needsDraw = true
   }
 
-  function updateElevation() {
-    const point = hover && pick(hover.x, hover.y)
-    const place = point && locate(point.x, point.y)
-    if (!place) {
-      elevationLabel.textContent = ""
+  function anchorPivot(ground) {
+    if (ground && pivotSet) {
       return
     }
-    const seaLevel = games[place.layer.game].seaLevel || 0
-    elevationLabel.textContent = `Elevation ${Math.round((point.z / relief * 255 - seaLevel) * DEPTH_METRES / 255)} m`
+    updateCamera()
+    const rect = canvas.getBoundingClientRect()
+    const x = rect.left + rect.width / 2, y = rect.top + rect.height / 2
+    const hit = ground ? pick(x, y) : planeHit(x, y, relief)
+    camera.z = ground && hit ? hit.z : null
+    pivotSet = camera.z !== null
+    if (!hit) {
+      return
+    }
+    camera.distance = camera.target = Math.hypot(eye[0] - hit.x, eye[1] - hit.y, eye[2] - hit.z)
+    camera.x = hit.x
+    camera.y = hit.y
+    velocity = { x: 0, y: 0 }
+    needsDraw = true
+  }
+
+  function updateHover() {
+    const point = hover && pick(hover.x, hover.y)
+    const place = point && locate(point.x, point.y)
+    const elevation = place && Math.round((point.z / relief * 255 - (games[place.layer.game].seaLevel || 0)) * DEPTH_METRES / 255)
+    if (scale) {
+      elevationLabel.textContent = place ? `Elevation ${elevation} m` : ""
+    }
+    if (onHover) {
+      onHover(place ? { game: place.layer.game, x: place.worldX, y: place.worldY, elevation } : null)
+    }
+    updateTooltip()
   }
 
   function startGrab(x, y) {
@@ -1014,6 +1215,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
       return
     }
     camera.x += grab.x - now.x
+    pivotSet = false
     camera.y += grab.y - now.y
     trackVelocity()
     camera.target = camera.distance
@@ -1023,8 +1225,9 @@ export async function createMap(container, { root, onPick, pois = false, scale =
   function panBy(dx, dy) {
     const k = camera.distance * 2 * Math.tan(FOV / 2) / Math.max(viewSize.height, 1)
     const sh = Math.sin(camera.heading), ch = Math.cos(camera.heading)
-    camera.x -= (dy * sh + dx * ch) * k
-    camera.y += (dx * sh - dy * ch) * k
+    camera.x += (dy * sh - dx * ch) * k
+    camera.y += (dx * sh + dy * ch) * k
+    pivotSet = false
     trackVelocity()
     camera.target = camera.distance
     needsDraw = true
@@ -1059,10 +1262,11 @@ export async function createMap(container, { root, onPick, pois = false, scale =
       return
     }
     flight = null
+    spin = { heading: 0, tilt: 0 }
     canvas.setPointerCapture(event.pointerId)
     if (threeD && event.pointerType === "mouse") {
       if (event.button === 0) {
-        orbit = { x: event.clientX, y: event.clientY, heading: camera.heading, tilt: camera.tilt }
+        orbit = { x: event.clientX, y: event.clientY, time: performance.now() }
         press = { x: event.clientX, y: event.clientY }
       } else {
         panning = { x: event.clientX, y: event.clientY }
@@ -1078,6 +1282,9 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     dragging = true
     canvas.classList.add("dragging")
     if (pointers.size === 2) {
+      if (threeD) {
+        anchorPivot(true)
+      }
       pinch = pinchState()
       startGrab(pinch.x, pinch.y)
     } else {
@@ -1086,12 +1293,29 @@ export async function createMap(container, { root, onPick, pois = false, scale =
   })
 
   canvas.addEventListener("pointermove", event => {
+    if (tracksHover && event.pointerType === "mouse") {
+      hover = { x: event.clientX, y: event.clientY }
+      hoverMoved = true
+    }
     if (orbit) {
       if (press && Math.hypot(event.clientX - press.x, event.clientY - press.y) > CLICK_DISTANCE) {
         press = null
+        anchorPivot(true)
       }
       if (!press) {
-        turn(orbit.heading + (event.clientX - orbit.x) * ORBIT_SPEED, orbit.tilt + (event.clientY - orbit.y) * ORBIT_SPEED)
+        const deltaHeading = (event.clientX - orbit.x) * ORBIT_SPEED, deltaTilt = -(event.clientY - orbit.y) * ORBIT_SPEED
+        turn(camera.heading + deltaHeading, camera.tilt + deltaTilt)
+        const time = performance.now()
+        const elapsed = (time - orbit.time) / 1000
+        if (elapsed > 0) {
+          const blend = Math.min(elapsed / 0.05, 1)
+          spin = { heading: spin.heading + (deltaHeading / elapsed - spin.heading) * blend, tilt: spin.tilt + (deltaTilt / elapsed - spin.tilt) * blend }
+          const speed = Math.hypot(spin.heading, spin.tilt)
+          if (speed > SPIN_MAX) {
+            spin = { heading: spin.heading * SPIN_MAX / speed, tilt: spin.tilt * SPIN_MAX / speed }
+          }
+        }
+        orbit = { x: event.clientX, y: event.clientY, time }
       }
       return
     }
@@ -1102,10 +1326,6 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     }
     const held = pointers.get(event.pointerId)
     if (!held) {
-      if (scale && event.pointerType === "mouse") {
-        hover = { x: event.clientX, y: event.clientY }
-        hoverMoved = true
-      }
       return
     }
     const previous = { x: held.x, y: held.y }
@@ -1116,7 +1336,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     }
     if (pointers.size === 2 && pinch && threeD) {
       const next = pinchState()
-      turn(camera.heading + (next.angle - pinch.angle), camera.tilt + (next.y - pinch.y) * ORBIT_SPEED)
+      turn(camera.heading + (next.angle - pinch.angle), camera.tilt - (next.y - pinch.y) * ORBIT_SPEED)
       camera.distance *= pinch.span / Math.max(next.span, 1)
       clampCamera()
       camera.target = camera.distance
@@ -1141,8 +1361,14 @@ export async function createMap(container, { root, onPick, pois = false, scale =
       if (orbit && press && event.type === "pointerup" && onPick) {
         pickAt(event.clientX, event.clientY)
       }
+      if (!orbit || performance.now() - orbit.time > SPIN_HOLD_MS) {
+        spin = { heading: 0, tilt: 0 }
+      } else {
+        spin = { heading: spin.heading * SPIN_CARRY, tilt: spin.tilt * SPIN_CARRY }
+      }
       orbit = null
       panning = null
+      grab = null
       press = null
       dragging = false
       canvas.classList.remove("dragging")
@@ -1174,7 +1400,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
   }
 
   canvas.addEventListener("pointerleave", () => {
-    if (scale) {
+    if (tracksHover) {
       hover = null
       hoverMoved = true
     }
@@ -1276,7 +1502,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
     const hidden = new Set(config.hidden.map(([i, j]) => `${i}_${j}`))
-    return { index, id: config.id, game: config.game, regions: config.regions, tiles: config.tiles, scale, offset, domain, levels: Math.log2(domain.tiles) + 2, occupancy, occupancyTexture, grid: [offset[0] + domain.minX * scale, offset[1] + (domain.maxY + 1) * scale, n * scale], hidden, borderTexture, border: [offset[0] + mask.left * scale, offset[1] + mask.top * scale, mask.width * scale, mask.height * scale] }
+    return { index, id: config.id, game: config.game, regions: config.regions, tiles: config.tiles, scale, offset, domain, levels: Math.log2(domain.tiles) + 2, cells: grid, occupancy, occupancyTexture, grid: [offset[0] + domain.minX * scale, offset[1] + (domain.maxY + 1) * scale, n * scale], hidden, borderTexture, border: [offset[0] + mask.left * scale, offset[1] + mask.top * scale, mask.width * scale, mask.height * scale] }
   }
 
   const world = await (await fetch(`${root}world.json`)).json()
@@ -1315,7 +1541,8 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     element.append(image)
     markerLayer.prepend(element)
     const point = place(game, marker.x, marker.y)
-    pointsOfInterest.push({ type, x: point.x, y: point.y, element })
+    const label = type === "campfire" ? "Campfire" : marker.name
+    pointsOfInterest.push({ type, label, x: point.x, y: point.y, element })
   }
 
   async function loadPointsOfInterest(games) {
@@ -1376,6 +1603,28 @@ export async function createMap(container, { root, onPick, pois = false, scale =
       needsDraw = true
     },
     refresh() {
+      needsDraw = true
+    },
+    setPoiShown(type, shown) {
+      if (shown) {
+        hiddenTypes.delete(type)
+      } else {
+        hiddenTypes.add(type)
+      }
+      needsDraw = true
+    },
+    nudge(x, y) {
+      pivotSet = false
+      const speed = camera.distance * 0.75
+      const sh = Math.sin(camera.heading), ch = Math.cos(camera.heading)
+      flight = null
+      velocity = { x: (x * ch + y * sh) * speed, y: (y * ch - x * sh) * speed }
+      needsDraw = true
+    },
+    zoomBy(factor) {
+      flight = null
+      camera.target *= factor
+      clampCamera()
       needsDraw = true
     }
   }
