@@ -2,6 +2,7 @@
 import { computed } from "vue"
 import { MAX_POINTS } from "../lib/game.js"
 import { LOCATIONS, locationNames, missingRules, modeOf } from "../lib/rules.js"
+import SlapTitle from "./SlapTitle.vue"
 
 const props = defineProps({ visible: Boolean, ready: Boolean, rules: Object, games: String, rounds: Number, score: Number, error: String })
 const emit = defineEmits(["play", "menu"])
@@ -31,7 +32,7 @@ function menu() {
     </header>
     <div class="challenge-main">
       <p class="eyebrow rise" style="--i: 1">Shared game</p>
-      <h1 class="title rise" style="--i: 2"><span>Horizon</span><span class="outline">Challenge</span></h1>
+      <SlapTitle :visible="visible" text="Challenge" />
       <p class="lede rise" style="--i: 3">Someone sent you this game. Same photospheres, same views, in the same order.</p>
       <div class="details rise" style="--i: 4">
         <div class="detail"><small>Rounds</small><strong>{{ rounds }}</strong><span>Up to {{ (rounds * MAX_POINTS).toLocaleString() }} points</span></div>
@@ -110,26 +111,6 @@ function menu() {
 .challenge-main {
   align-self: center;
   max-width: 680px;
-}
-
-.title {
-  margin: clamp(10px, 2vh, 22px) 0 0;
-  font-family: "Hunter", "Oita Norm", sans-serif;
-  font-weight: 400;
-  font-size: clamp(54px, min(9.2vw, 12vh), 136px);
-  line-height: 0.88;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-}
-
-.title span {
-  display: block;
-}
-
-.title .outline {
-  white-space: nowrap;
-  color: transparent;
-  -webkit-text-stroke: 1.5px var(--accent);
 }
 
 .lede {

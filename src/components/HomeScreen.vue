@@ -1,37 +1,9 @@
 <script setup>
-import { computed, ref, watch } from "vue"
-
-const TITLE = "Wayfinder"
-
-function between(min, max) {
-  return min + Math.random() * (max - min)
-}
-
-function scatterLetters() {
-  return Array.from(TITLE).map((char, n) => {
-    const angle = between(0, Math.PI * 2)
-    const distance = between(0.15, 0.6)
-    const style = {
-      "--spin": `${between(-28, 28).toFixed(1)}deg`,
-      "--grow": between(1.4, 2.3).toFixed(2),
-      "--from-x": `${(Math.cos(angle) * distance).toFixed(3)}em`,
-      "--from-y": `${(Math.sin(angle) * distance).toFixed(3)}em`,
-      "--duration": `${Math.round(between(340, 560))}ms`,
-      "--delay": `${Math.round(620 + n * 105 + between(-30, 30))}ms`
-    }
-    return { char, style }
-  })
-}
+import { computed } from "vue"
+import SlapTitle from "./SlapTitle.vue"
 
 const props = defineProps({ visible: Boolean, count: Number, ready: Boolean, best: Number, last: Number, average: Number })
 const emit = defineEmits(["play"])
-const pieces = ref(scatterLetters())
-
-watch(() => props.visible, visible => {
-  if (visible) {
-    pieces.value = scatterLetters()
-  }
-})
 
 const countLabel = computed(() => props.count ? `${props.count} locations` : "")
 const bestLabel = computed(() => props.best ? props.best.toLocaleString() : "None yet")
@@ -51,7 +23,7 @@ function play() {
     </header>
     <div class="home-main">
       <p class="eyebrow rise" style="--i: 1">Guess the location</p>
-      <h1 class="title" aria-label="Horizon Wayfinder"><span class="rise" style="--i: 2">Horizon</span><span class="pieces" aria-hidden="true"><span v-for="(piece, n) in pieces" :key="n" class="piece" :style="piece.style">{{ piece.char }}</span></span></h1>
+      <SlapTitle :visible="visible" text="Wayfinder" />
       <p class="lede rise" style="--i: 3">Each round puts you somewhere in Horizon Zero Dawn or Horizon Forbidden West. Have a look around, then drop a pin on the map where you think you are.</p>
       <div class="cta rise" style="--i: 4">
         <button class="play" type="button" :disabled="!ready" @click="play">Play<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4" /></svg></button>
@@ -119,50 +91,6 @@ function play() {
 .home-main {
   align-self: center;
   max-width: 640px;
-}
-
-.title {
-  margin: clamp(10px, 2vh, 22px) 0 0;
-  font-family: "Hunter", "Oita Norm", sans-serif;
-  font-weight: 400;
-  font-size: clamp(54px, min(9.2vw, 12vh), 136px);
-  line-height: 0.88;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-}
-
-.title > span {
-  display: block;
-}
-
-.pieces {
-  white-space: nowrap;
-  color: transparent;
-  -webkit-text-stroke: 1.5px var(--accent);
-}
-
-.piece {
-  display: inline-block;
-}
-
-.home.visible .piece {
-  animation: slap var(--duration) cubic-bezier(0.2, 1.5, 0.35, 1) var(--delay) both;
-}
-
-@keyframes slap {
-  from {
-    opacity: 0;
-    transform: translate(var(--from-x), var(--from-y)) rotate(var(--spin)) scale(var(--grow));
-  }
-
-  30% {
-    opacity: 1;
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
-  }
 }
 
 .lede {
