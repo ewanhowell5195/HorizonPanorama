@@ -23,5 +23,5 @@ function minifyJson() {
 
 export default defineConfig({
   plugins: [vue(), minifyJson()],
-  server: { port: 9123, strictPort: true }
+  server: { port: 9123, strictPort: true, hmr: false }
 })
