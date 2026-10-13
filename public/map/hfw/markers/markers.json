@@ -1,0 +1,3009 @@
+{
+ "game": "hfw",
+ "units": "world metres",
+ "markers": [
+  {
+   "type": "campfire",
+   "x": -4745.53,
+   "y": -1164.95,
+   "z": 266.52
+  },
+  {
+   "type": "campfire",
+   "x": -4540.98,
+   "y": -709.6,
+   "z": 287.84
+  },
+  {
+   "type": "campfire",
+   "x": -4526.55,
+   "y": -1461.02,
+   "z": 257.13
+  },
+  {
+   "type": "campfire",
+   "x": -4417.01,
+   "y": -895.83,
+   "z": 271.9
+  },
+  {
+   "type": "campfire",
+   "x": -4387.74,
+   "y": -1237.87,
+   "z": 276.46
+  },
+  {
+   "type": "campfire",
+   "x": -4375.71,
+   "y": -524.12,
+   "z": 255.88
+  },
+  {
+   "type": "campfire",
+   "x": -4247.05,
+   "y": -1007.2,
+   "z": 256.97
+  },
+  {
+   "type": "campfire",
+   "x": -4230.79,
+   "y": -1318.9,
+   "z": 256.63
+  },
+  {
+   "type": "campfire",
+   "x": -4140.7,
+   "y": -1015.96,
+   "z": 347.32
+  },
+  {
+   "type": "campfire",
+   "x": -4138.33,
+   "y": -1017.46,
+   "z": 409.28
+  },
+  {
+   "type": "campfire",
+   "x": -4123.97,
+   "y": -751.3,
+   "z": 257.53
+  },
+  {
+   "type": "campfire",
+   "x": -4065.12,
+   "y": -964.22,
+   "z": 265.35
+  },
+  {
+   "type": "campfire",
+   "x": -3884.41,
+   "y": -896.84,
+   "z": 258.9
+  },
+  {
+   "type": "campfire",
+   "x": -3053.38,
+   "y": -2258.76,
+   "z": 257.25
+  },
+  {
+   "type": "campfire",
+   "x": -2980.41,
+   "y": -2089.97,
+   "z": 293.47
+  },
+  {
+   "type": "campfire",
+   "x": -2674.67,
+   "y": -1676.19,
+   "z": 259.36
+  },
+  {
+   "type": "campfire",
+   "x": -2636.82,
+   "y": -2449.19,
+   "z": 302.36
+  },
+  {
+   "type": "campfire",
+   "x": -2546.88,
+   "y": -547.02,
+   "z": 269.36
+  },
+  {
+   "type": "campfire",
+   "x": -2535.41,
+   "y": -399.66,
+   "z": 257.6
+  },
+  {
+   "type": "campfire",
+   "x": -2501.22,
+   "y": -832.95,
+   "z": 274.33
+  },
+  {
+   "type": "campfire",
+   "x": -2460.47,
+   "y": 415.05,
+   "z": 339.23
+  },
+  {
+   "type": "campfire",
+   "x": -2416.06,
+   "y": -695.26,
+   "z": 272.04
+  },
+  {
+   "type": "campfire",
+   "x": -2388.17,
+   "y": -2392.81,
+   "z": 321.87
+  },
+  {
+   "type": "campfire",
+   "x": -2372.31,
+   "y": -462.37,
+   "z": 278.57
+  },
+  {
+   "type": "campfire",
+   "x": -2318.28,
+   "y": -813.72,
+   "z": 281.12
+  },
+  {
+   "type": "campfire",
+   "x": -2305.0,
+   "y": -2175.06,
+   "z": 283.42
+  },
+  {
+   "type": "campfire",
+   "x": -2287.41,
+   "y": -1243.65,
+   "z": 259.17
+  },
+  {
+   "type": "campfire",
+   "x": -2263.73,
+   "y": -1883.13,
+   "z": 258.29
+  },
+  {
+   "type": "campfire",
+   "x": -2167.7,
+   "y": -354.61,
+   "z": 295.16
+  },
+  {
+   "type": "campfire",
+   "x": -2158.99,
+   "y": -2051.04,
+   "z": 256.35
+  },
+  {
+   "type": "campfire",
+   "x": -2153.82,
+   "y": -621.52,
+   "z": 300.53
+  },
+  {
+   "type": "campfire",
+   "x": -2149.22,
+   "y": -109.88,
+   "z": 363.3
+  },
+  {
+   "type": "campfire",
+   "x": -2142.17,
+   "y": -1453.96,
+   "z": 256.88
+  },
+  {
+   "type": "campfire",
+   "x": -2123.59,
+   "y": 344.19,
+   "z": 353.11
+  },
+  {
+   "type": "campfire",
+   "x": -2110.05,
+   "y": -1694.19,
+   "z": 256.07
+  },
+  {
+   "type": "campfire",
+   "x": -2037.53,
+   "y": -863.82,
+   "z": 341.52
+  },
+  {
+   "type": "campfire",
+   "x": -1969.39,
+   "y": -2263.86,
+   "z": 259.16
+  },
+  {
+   "type": "campfire",
+   "x": -1955.76,
+   "y": 352.96,
+   "z": 359.97
+  },
+  {
+   "type": "campfire",
+   "x": -1954.38,
+   "y": -680.48,
+   "z": 342.77
+  },
+  {
+   "type": "campfire",
+   "x": -1911.03,
+   "y": -1738.76,
+   "z": 275.3
+  },
+  {
+   "type": "campfire",
+   "x": -1898.71,
+   "y": -2120.3,
+   "z": 257.05
+  },
+  {
+   "type": "campfire",
+   "x": -1897.48,
+   "y": -1930.98,
+   "z": 256.08
+  },
+  {
+   "type": "campfire",
+   "x": -1891.87,
+   "y": -864.78,
+   "z": 391.31
+  },
+  {
+   "type": "campfire",
+   "x": -1884.63,
+   "y": -1444.69,
+   "z": 337.32
+  },
+  {
+   "type": "campfire",
+   "x": -1872.45,
+   "y": -1251.62,
+   "z": 385.86
+  },
+  {
+   "type": "campfire",
+   "x": -1853.37,
+   "y": 449.59,
+   "z": 361.42
+  },
+  {
+   "type": "campfire",
+   "x": -1781.28,
+   "y": -1618.6,
+   "z": 301.11
+  },
+  {
+   "type": "campfire",
+   "x": -1750.79,
+   "y": -1920.42,
+   "z": 275.75
+  },
+  {
+   "type": "campfire",
+   "x": -1717.29,
+   "y": 388.93,
+   "z": 403.75
+  },
+  {
+   "type": "campfire",
+   "x": -1684.37,
+   "y": -456.6,
+   "z": 464.05
+  },
+  {
+   "type": "campfire",
+   "x": -1679.42,
+   "y": -1789.18,
+   "z": 282.43
+  },
+  {
+   "type": "campfire",
+   "x": -1675.87,
+   "y": -1597.11,
+   "z": 309.99
+  },
+  {
+   "type": "campfire",
+   "x": -1675.73,
+   "y": 560.51,
+   "z": 375.6
+  },
+  {
+   "type": "campfire",
+   "x": -1637.2,
+   "y": -2064.59,
+   "z": 271.98
+  },
+  {
+   "type": "campfire",
+   "x": -1594.5,
+   "y": -1709.57,
+   "z": 285.91
+  },
+  {
+   "type": "campfire",
+   "x": -1549.97,
+   "y": -501.17,
+   "z": 593.64
+  },
+  {
+   "type": "campfire",
+   "x": -1520.32,
+   "y": 556.66,
+   "z": 385.4
+  },
+  {
+   "type": "campfire",
+   "x": -1500.26,
+   "y": -823.79,
+   "z": 541.32
+  },
+  {
+   "type": "campfire",
+   "x": -1457.98,
+   "y": -1964.08,
+   "z": 298.31
+  },
+  {
+   "type": "campfire",
+   "x": -1440.02,
+   "y": 645.15,
+   "z": 392.26
+  },
+  {
+   "type": "campfire",
+   "x": -1419.49,
+   "y": -1441.3,
+   "z": 324.53
+  },
+  {
+   "type": "campfire",
+   "x": -1417.88,
+   "y": -250.7,
+   "z": 563.77
+  },
+  {
+   "type": "campfire",
+   "x": -1410.99,
+   "y": -1610.09,
+   "z": 306.86
+  },
+  {
+   "type": "campfire",
+   "x": -1356.46,
+   "y": 404.4,
+   "z": 405.6
+  },
+  {
+   "type": "campfire",
+   "x": -1315.19,
+   "y": 545.03,
+   "z": 504.07
+  },
+  {
+   "type": "campfire",
+   "x": -1294.46,
+   "y": 287.23,
+   "z": 521.45
+  },
+  {
+   "type": "campfire",
+   "x": -1288.58,
+   "y": 83.74,
+   "z": 534.65
+  },
+  {
+   "type": "campfire",
+   "x": -1280.23,
+   "y": -1687.65,
+   "z": 307.41
+  },
+  {
+   "type": "campfire",
+   "x": -1233.38,
+   "y": -1234.61,
+   "z": 372.7
+  },
+  {
+   "type": "campfire",
+   "x": -1226.35,
+   "y": -1470.48,
+   "z": 352.74
+  },
+  {
+   "type": "campfire",
+   "x": -1209.27,
+   "y": -1379.68,
+   "z": 353.7
+  },
+  {
+   "type": "campfire",
+   "x": -1178.93,
+   "y": -333.22,
+   "z": 544.52
+  },
+  {
+   "type": "campfire",
+   "x": -1163.13,
+   "y": 482.19,
+   "z": 521.08
+  },
+  {
+   "type": "campfire",
+   "x": -1121.12,
+   "y": 149.79,
+   "z": 506.6
+  },
+  {
+   "type": "campfire",
+   "x": -1104.54,
+   "y": -1469.51,
+   "z": 358.17
+  },
+  {
+   "type": "campfire",
+   "x": -1076.55,
+   "y": -2304.28,
+   "z": 381.29
+  },
+  {
+   "type": "campfire",
+   "x": -1061.8,
+   "y": -2536.8,
+   "z": 289.5
+  },
+  {
+   "type": "campfire",
+   "x": -1044.91,
+   "y": -1835.49,
+   "z": 365.23
+  },
+  {
+   "type": "campfire",
+   "x": -1040.75,
+   "y": -50.93,
+   "z": 504.58
+  },
+  {
+   "type": "campfire",
+   "x": -1022.82,
+   "y": -282.68,
+   "z": 517.0
+  },
+  {
+   "type": "campfire",
+   "x": -1011.91,
+   "y": -431.8,
+   "z": 550.37
+  },
+  {
+   "type": "campfire",
+   "x": -1008.67,
+   "y": -1018.94,
+   "z": 400.34
+  },
+  {
+   "type": "campfire",
+   "x": -1001.97,
+   "y": 519.65,
+   "z": 521.53
+  },
+  {
+   "type": "campfire",
+   "x": -981.5,
+   "y": -1438.21,
+   "z": 372.58
+  },
+  {
+   "type": "campfire",
+   "x": -902.62,
+   "y": -1640.02,
+   "z": 381.37
+  },
+  {
+   "type": "campfire",
+   "x": -873.6,
+   "y": -2666.12,
+   "z": 370.31
+  },
+  {
+   "type": "campfire",
+   "x": -858.4,
+   "y": -1780.67,
+   "z": 380.07
+  },
+  {
+   "type": "campfire",
+   "x": -853.06,
+   "y": -113.39,
+   "z": 452.46
+  },
+  {
+   "type": "campfire",
+   "x": -794.73,
+   "y": -1011.57,
+   "z": 431.27
+  },
+  {
+   "type": "campfire",
+   "x": -793.67,
+   "y": 295.39,
+   "z": 484.52
+  },
+  {
+   "type": "campfire",
+   "x": -788.33,
+   "y": -1843.28,
+   "z": 386.68
+  },
+  {
+   "type": "campfire",
+   "x": -703.12,
+   "y": 793.0,
+   "z": 494.57
+  },
+  {
+   "type": "campfire",
+   "x": -670.6,
+   "y": 1001.94,
+   "z": 488.5
+  },
+  {
+   "type": "campfire",
+   "x": -656.64,
+   "y": -311.45,
+   "z": 452.55
+  },
+  {
+   "type": "campfire",
+   "x": -632.11,
+   "y": 594.36,
+   "z": 487.25
+  },
+  {
+   "type": "campfire",
+   "x": -630.97,
+   "y": 38.58,
+   "z": 452.62
+  },
+  {
+   "type": "campfire",
+   "x": -596.29,
+   "y": 359.57,
+   "z": 496.17
+  },
+  {
+   "type": "campfire",
+   "x": -534.3,
+   "y": -648.58,
+   "z": 415.75
+  },
+  {
+   "type": "campfire",
+   "x": -491.89,
+   "y": -818.65,
+   "z": 413.06
+  },
+  {
+   "type": "campfire",
+   "x": -486.01,
+   "y": 1076.15,
+   "z": 496.48
+  },
+  {
+   "type": "campfire",
+   "x": -400.84,
+   "y": -2096.18,
+   "z": 378.06
+  },
+  {
+   "type": "campfire",
+   "x": -280.85,
+   "y": -532.36,
+   "z": 446.43
+  },
+  {
+   "type": "campfire",
+   "x": -275.09,
+   "y": -1682.64,
+   "z": 404.99
+  },
+  {
+   "type": "campfire",
+   "x": -261.98,
+   "y": 944.58,
+   "z": 490.62
+  },
+  {
+   "type": "campfire",
+   "x": -201.14,
+   "y": 625.59,
+   "z": 514.07
+  },
+  {
+   "type": "campfire",
+   "x": -174.29,
+   "y": 503.51,
+   "z": 512.84
+  },
+  {
+   "type": "campfire",
+   "x": -136.93,
+   "y": -384.03,
+   "z": 425.82
+  },
+  {
+   "type": "campfire",
+   "x": -107.07,
+   "y": 800.56,
+   "z": 504.36
+  },
+  {
+   "type": "campfire",
+   "x": -104.14,
+   "y": -1025.95,
+   "z": 394.79
+  },
+  {
+   "type": "campfire",
+   "x": -97.99,
+   "y": 429.27,
+   "z": 484.38
+  },
+  {
+   "type": "campfire",
+   "x": -59.76,
+   "y": -160.31,
+   "z": 422.3
+  },
+  {
+   "type": "campfire",
+   "x": -38.02,
+   "y": 703.36,
+   "z": 506.39
+  },
+  {
+   "type": "campfire",
+   "x": -37.98,
+   "y": -1155.99,
+   "z": 384.22
+  },
+  {
+   "type": "campfire",
+   "x": -36.8,
+   "y": -1507.77,
+   "z": 376.73
+  },
+  {
+   "type": "campfire",
+   "x": -28.06,
+   "y": -535.31,
+   "z": 408.02
+  },
+  {
+   "type": "campfire",
+   "x": -23.63,
+   "y": -746.01,
+   "z": 397.41
+  },
+  {
+   "type": "campfire",
+   "x": 3.71,
+   "y": 260.68,
+   "z": 452.21
+  },
+  {
+   "type": "campfire",
+   "x": 10.85,
+   "y": 113.2,
+   "z": 427.52
+  },
+  {
+   "type": "campfire",
+   "x": 16.55,
+   "y": -1587.54,
+   "z": 381.68
+  },
+  {
+   "type": "campfire",
+   "x": 24.05,
+   "y": 511.01,
+   "z": 0.0
+  },
+  {
+   "type": "campfire",
+   "x": 24.47,
+   "y": -5171.61,
+   "z": 256.37
+  },
+  {
+   "type": "campfire",
+   "x": 27.52,
+   "y": -1729.5,
+   "z": 383.26
+  },
+  {
+   "type": "campfire",
+   "x": 29.97,
+   "y": 510.55,
+   "z": 0.0
+  },
+  {
+   "type": "campfire",
+   "x": 41.55,
+   "y": -1885.95,
+   "z": 377.66
+  },
+  {
+   "type": "campfire",
+   "x": 69.68,
+   "y": -5966.78,
+   "z": 262.58
+  },
+  {
+   "type": "campfire",
+   "x": 84.91,
+   "y": -1333.3,
+   "z": 386.15
+  },
+  {
+   "type": "campfire",
+   "x": 86.46,
+   "y": -256.94,
+   "z": 411.36
+  },
+  {
+   "type": "campfire",
+   "x": 92.73,
+   "y": 497.18,
+   "z": 485.5
+  },
+  {
+   "type": "campfire",
+   "x": 93.71,
+   "y": -601.25,
+   "z": 423.24
+  },
+  {
+   "type": "campfire",
+   "x": 103.96,
+   "y": -1070.48,
+   "z": 391.78
+  },
+  {
+   "type": "campfire",
+   "x": 137.09,
+   "y": -2075.31,
+   "z": 377.69
+  },
+  {
+   "type": "campfire",
+   "x": 150.41,
+   "y": -48.32,
+   "z": 409.78
+  },
+  {
+   "type": "campfire",
+   "x": 168.77,
+   "y": -1362.83,
+   "z": 384.9
+  },
+  {
+   "type": "campfire",
+   "x": 180.51,
+   "y": -1899.52,
+   "z": 378.61
+  },
+  {
+   "type": "campfire",
+   "x": 190.4,
+   "y": 162.96,
+   "z": 439.84
+  },
+  {
+   "type": "campfire",
+   "x": 202.07,
+   "y": -1744.13,
+   "z": 374.55
+  },
+  {
+   "type": "campfire",
+   "x": 228.69,
+   "y": -5198.93,
+   "z": 257.66
+  },
+  {
+   "type": "campfire",
+   "x": 234.88,
+   "y": -1652.67,
+   "z": 372.91
+  },
+  {
+   "type": "campfire",
+   "x": 245.81,
+   "y": -5461.24,
+   "z": 256.52
+  },
+  {
+   "type": "campfire",
+   "x": 247.39,
+   "y": -1267.38,
+   "z": 388.79
+  },
+  {
+   "type": "campfire",
+   "x": 311.83,
+   "y": -853.39,
+   "z": 500.3
+  },
+  {
+   "type": "campfire",
+   "x": 329.04,
+   "y": -1489.47,
+   "z": 375.25
+  },
+  {
+   "type": "campfire",
+   "x": 329.81,
+   "y": -5820.56,
+   "z": 258.18
+  },
+  {
+   "type": "campfire",
+   "x": 350.88,
+   "y": -1805.44,
+   "z": 370.35
+  },
+  {
+   "type": "campfire",
+   "x": 361.78,
+   "y": 558.67,
+   "z": 477.14
+  },
+  {
+   "type": "campfire",
+   "x": 396.77,
+   "y": 267.5,
+   "z": 482.77
+  },
+  {
+   "type": "campfire",
+   "x": 408.06,
+   "y": -40.21,
+   "z": 461.45
+  },
+  {
+   "type": "campfire",
+   "x": 421.4,
+   "y": -5969.61,
+   "z": 259.67
+  },
+  {
+   "type": "campfire",
+   "x": 433.45,
+   "y": -735.43,
+   "z": 494.09
+  },
+  {
+   "type": "campfire",
+   "x": 448.73,
+   "y": -920.76,
+   "z": 513.77
+  },
+  {
+   "type": "campfire",
+   "x": 460.66,
+   "y": -4950.11,
+   "z": 258.17
+  },
+  {
+   "type": "campfire",
+   "x": 474.46,
+   "y": 370.66,
+   "z": 485.44
+  },
+  {
+   "type": "campfire",
+   "x": 501.01,
+   "y": 978.09,
+   "z": 587.86
+  },
+  {
+   "type": "campfire",
+   "x": 533.99,
+   "y": -1697.93,
+   "z": 384.55
+  },
+  {
+   "type": "campfire",
+   "x": 535.76,
+   "y": -703.0,
+   "z": 479.45
+  },
+  {
+   "type": "campfire",
+   "x": 545.25,
+   "y": -1272.29,
+   "z": 406.99
+  },
+  {
+   "type": "campfire",
+   "x": 628.24,
+   "y": 299.03,
+   "z": 487.26
+  },
+  {
+   "type": "campfire",
+   "x": 645.16,
+   "y": -5630.4,
+   "z": 258.24
+  },
+  {
+   "type": "campfire",
+   "x": 647.36,
+   "y": -369.26,
+   "z": 495.44
+  },
+  {
+   "type": "campfire",
+   "x": 649.56,
+   "y": -1966.84,
+   "z": 393.9
+  },
+  {
+   "type": "campfire",
+   "x": 651.36,
+   "y": -4240.9,
+   "z": 364.8
+  },
+  {
+   "type": "campfire",
+   "x": 652.05,
+   "y": -410.01,
+   "z": 507.38
+  },
+  {
+   "type": "campfire",
+   "x": 682.83,
+   "y": -924.82,
+   "z": 446.28
+  },
+  {
+   "type": "campfire",
+   "x": 709.53,
+   "y": -4298.97,
+   "z": 348.28
+  },
+  {
+   "type": "campfire",
+   "x": 711.17,
+   "y": 363.2,
+   "z": 482.96
+  },
+  {
+   "type": "campfire",
+   "x": 713.83,
+   "y": -89.01,
+   "z": 490.98
+  },
+  {
+   "type": "campfire",
+   "x": 721.95,
+   "y": -4518.0,
+   "z": 257.05
+  },
+  {
+   "type": "campfire",
+   "x": 740.18,
+   "y": -247.57,
+   "z": 480.07
+  },
+  {
+   "type": "campfire",
+   "x": 740.44,
+   "y": -1091.3,
+   "z": 418.2
+  },
+  {
+   "type": "campfire",
+   "x": 811.78,
+   "y": -5239.32,
+   "z": 259.3
+  },
+  {
+   "type": "campfire",
+   "x": 847.44,
+   "y": -674.37,
+   "z": 460.81
+  },
+  {
+   "type": "campfire",
+   "x": 851.85,
+   "y": 466.75,
+   "z": 516.59
+  },
+  {
+   "type": "campfire",
+   "x": 864.63,
+   "y": -972.75,
+   "z": 440.45
+  },
+  {
+   "type": "campfire",
+   "x": 868.41,
+   "y": -5169.88,
+   "z": 275.02
+  },
+  {
+   "type": "campfire",
+   "x": 910.57,
+   "y": 151.26,
+   "z": 505.97
+  },
+  {
+   "type": "campfire",
+   "x": 988.94,
+   "y": -5796.17,
+   "z": 258.53
+  },
+  {
+   "type": "campfire",
+   "x": 1009.6,
+   "y": -180.82,
+   "z": 572.05
+  },
+  {
+   "type": "campfire",
+   "x": 1040.28,
+   "y": 274.59,
+   "z": 508.56
+  },
+  {
+   "type": "campfire",
+   "x": 1146.47,
+   "y": -5658.6,
+   "z": 262.05
+  },
+  {
+   "type": "campfire",
+   "x": 1152.96,
+   "y": -5328.85,
+   "z": 318.56
+  },
+  {
+   "type": "campfire",
+   "x": 1165.67,
+   "y": -5492.46,
+   "z": 283.43
+  },
+  {
+   "type": "campfire",
+   "x": 1176.97,
+   "y": -5137.63,
+   "z": 291.89
+  },
+  {
+   "type": "campfire",
+   "x": 1178.74,
+   "y": -132.1,
+   "z": 596.22
+  },
+  {
+   "type": "campfire",
+   "x": 1227.1,
+   "y": -4226.05,
+   "z": 271.16
+  },
+  {
+   "type": "campfire",
+   "x": 1308.24,
+   "y": -5078.43,
+   "z": 363.49
+  },
+  {
+   "type": "campfire",
+   "x": 1330.93,
+   "y": -1116.26,
+   "z": 449.95
+  },
+  {
+   "type": "campfire",
+   "x": 1399.81,
+   "y": -5627.03,
+   "z": 325.43
+  },
+  {
+   "type": "campfire",
+   "x": 1411.95,
+   "y": 367.59,
+   "z": 479.32
+  },
+  {
+   "type": "campfire",
+   "x": 1460.35,
+   "y": -4405.01,
+   "z": 282.98
+  },
+  {
+   "type": "campfire",
+   "x": 1468.28,
+   "y": -5493.45,
+   "z": 341.55
+  },
+  {
+   "type": "campfire",
+   "x": 1476.18,
+   "y": -83.13,
+   "z": 537.2
+  },
+  {
+   "type": "campfire",
+   "x": 1482.41,
+   "y": -909.38,
+   "z": 457.13
+  },
+  {
+   "type": "campfire",
+   "x": 1537.81,
+   "y": -722.88,
+   "z": 494.41
+  },
+  {
+   "type": "campfire",
+   "x": 1576.16,
+   "y": -4414.8,
+   "z": 314.27
+  },
+  {
+   "type": "campfire",
+   "x": 1583.92,
+   "y": -1100.25,
+   "z": 401.33
+  },
+  {
+   "type": "campfire",
+   "x": 1612.96,
+   "y": 404.25,
+   "z": 478.16
+  },
+  {
+   "type": "campfire",
+   "x": 1624.73,
+   "y": 228.88,
+   "z": 459.85
+  },
+  {
+   "type": "campfire",
+   "x": 1629.4,
+   "y": -5492.97,
+   "z": 261.84
+  },
+  {
+   "type": "campfire",
+   "x": 1664.9,
+   "y": 68.34,
+   "z": 453.99
+  },
+  {
+   "type": "campfire",
+   "x": 1684.61,
+   "y": -5419.37,
+   "z": 257.49
+  },
+  {
+   "type": "campfire",
+   "x": 1725.98,
+   "y": -4240.5,
+   "z": 332.7
+  },
+  {
+   "type": "campfire",
+   "x": 1754.95,
+   "y": -5247.25,
+   "z": 290.46
+  },
+  {
+   "type": "campfire",
+   "x": 1758.4,
+   "y": -161.5,
+   "z": 467.98
+  },
+  {
+   "type": "campfire",
+   "x": 1797.1,
+   "y": -652.1,
+   "z": 445.51
+  },
+  {
+   "type": "campfire",
+   "x": 1849.73,
+   "y": -4888.28,
+   "z": 258.96
+  },
+  {
+   "type": "campfire",
+   "x": 1868.04,
+   "y": 469.34,
+   "z": 467.47
+  },
+  {
+   "type": "campfire",
+   "x": 1872.77,
+   "y": -895.6,
+   "z": 398.34
+  },
+  {
+   "type": "campfire",
+   "x": 1900.97,
+   "y": 123.33,
+   "z": 449.66
+  },
+  {
+   "type": "campfire",
+   "x": 1930.6,
+   "y": 838.15,
+   "z": 517.39
+  },
+  {
+   "type": "campfire",
+   "x": 1945.24,
+   "y": -155.94,
+   "z": 458.38
+  },
+  {
+   "type": "campfire",
+   "x": 1955.66,
+   "y": -528.84,
+   "z": 433.12
+  },
+  {
+   "type": "campfire",
+   "x": 1977.86,
+   "y": 371.84,
+   "z": 456.66
+  },
+  {
+   "type": "campfire",
+   "x": 1983.54,
+   "y": -4437.27,
+   "z": 269.87
+  },
+  {
+   "type": "campfire",
+   "x": 1990.09,
+   "y": -4716.21,
+   "z": 263.91
+  },
+  {
+   "type": "campfire",
+   "x": 2087.07,
+   "y": -5061.54,
+   "z": 257.17
+  },
+  {
+   "type": "campfire",
+   "x": 2089.43,
+   "y": -253.34,
+   "z": 450.36
+  },
+  {
+   "type": "campfire",
+   "x": 2094.09,
+   "y": -72.8,
+   "z": 446.17
+  },
+  {
+   "type": "campfire",
+   "x": 2107.94,
+   "y": -333.6,
+   "z": 440.07
+  },
+  {
+   "type": "campfire",
+   "x": 2178.95,
+   "y": -426.82,
+   "z": 445.16
+  },
+  {
+   "type": "campfire",
+   "x": 2184.78,
+   "y": -5670.77,
+   "z": 279.06
+  },
+  {
+   "type": "campfire",
+   "x": 2191.36,
+   "y": -4558.08,
+   "z": 345.2
+  },
+  {
+   "type": "campfire",
+   "x": 2197.9,
+   "y": -536.24,
+   "z": 430.07
+  },
+  {
+   "type": "campfire",
+   "x": 2228.38,
+   "y": -114.85,
+   "z": 426.25
+  },
+  {
+   "type": "campfire",
+   "x": 2280.53,
+   "y": -4988.28,
+   "z": 318.98
+  },
+  {
+   "type": "campfire",
+   "x": 2376.89,
+   "y": -152.78,
+   "z": 409.06
+  },
+  {
+   "type": "campfire",
+   "x": 2380.48,
+   "y": -1011.88,
+   "z": 400.74
+  },
+  {
+   "type": "campfire",
+   "x": 2394.52,
+   "y": -575.44,
+   "z": 405.03
+  },
+  {
+   "type": "campfire",
+   "x": 2402.68,
+   "y": -438.78,
+   "z": 402.43
+  },
+  {
+   "type": "campfire",
+   "x": 2478.05,
+   "y": 58.74,
+   "z": 431.71
+  },
+  {
+   "type": "campfire",
+   "x": 2518.07,
+   "y": -5613.9,
+   "z": 258.17
+  },
+  {
+   "type": "campfire",
+   "x": 2575.12,
+   "y": -321.59,
+   "z": 402.19
+  },
+  {
+   "type": "campfire",
+   "x": 2603.71,
+   "y": 404.58,
+   "z": 665.75
+  },
+  {
+   "type": "campfire",
+   "x": 2678.17,
+   "y": -196.41,
+   "z": 412.23
+  },
+  {
+   "type": "campfire",
+   "x": 2793.4,
+   "y": -123.59,
+   "z": 441.84
+  },
+  {
+   "type": "campfire",
+   "x": 3038.06,
+   "y": 20.04,
+   "z": 465.72
+  },
+  {
+   "type": "campfire",
+   "x": 3218.72,
+   "y": 69.62,
+   "z": 482.08
+  },
+  {
+   "type": "campfire",
+   "x": 3225.87,
+   "y": 269.52,
+   "z": 489.47
+  },
+  {
+   "type": "campfire",
+   "x": 3260.15,
+   "y": 533.39,
+   "z": 534.56
+  },
+  {
+   "type": "campfire",
+   "x": 3274.33,
+   "y": 576.4,
+   "z": 614.52
+  },
+  {
+   "type": "campfire",
+   "x": 3317.7,
+   "y": 411.42,
+   "z": 477.5
+  },
+  {
+   "type": "campfire",
+   "x": 3345.82,
+   "y": -158.9,
+   "z": 532.94
+  },
+  {
+   "type": "campfire",
+   "x": 3391.97,
+   "y": 380.12,
+   "z": 476.24
+  },
+  {
+   "type": "campfire",
+   "x": 3505.33,
+   "y": 631.86,
+   "z": 495.79
+  },
+  {
+   "type": "campfire",
+   "x": 3785.25,
+   "y": 843.92,
+   "z": 509.29
+  },
+  {
+   "type": "campfire",
+   "x": 4035.2,
+   "y": 820.36,
+   "z": 497.34
+  },
+  {
+   "type": "machine-site",
+   "x": -4883.11,
+   "y": -755.58,
+   "z": 251.01,
+   "machine": "sunwing"
+  },
+  {
+   "type": "machine-site",
+   "x": -4699.0,
+   "y": -1282.64,
+   "z": 244.81,
+   "machine": "slaughterspine"
+  },
+  {
+   "type": "machine-site",
+   "x": -4673.78,
+   "y": -799.61,
+   "z": 249.47,
+   "machine": "snapmaw"
+  },
+  {
+   "type": "machine-site",
+   "x": -4665.33,
+   "y": -592.38,
+   "z": 257.67,
+   "machine": "stormbird"
+  },
+  {
+   "type": "machine-site",
+   "x": -4539.93,
+   "y": -1055.25,
+   "z": 251.98,
+   "machine": "fire-fanghorn"
+  },
+  {
+   "type": "machine-site",
+   "x": -4497.08,
+   "y": -750.89,
+   "z": 280.92,
+   "machine": "charger"
+  },
+  {
+   "type": "machine-site",
+   "x": -4487.81,
+   "y": -859.08,
+   "z": 266.67,
+   "machine": "redeye-watcher"
+  },
+  {
+   "type": "machine-site",
+   "x": -4468.55,
+   "y": -1370.44,
+   "z": 270.75,
+   "machine": "clawstrider"
+  },
+  {
+   "type": "machine-site",
+   "x": -4396.02,
+   "y": -1054.46,
+   "z": 253.77,
+   "machine": "fire-clamberjaw"
+  },
+  {
+   "type": "machine-site",
+   "x": -4322.03,
+   "y": -1380.14,
+   "z": 261.0,
+   "machine": "stalker"
+  },
+  {
+   "type": "machine-site",
+   "x": -4272.38,
+   "y": -928.08,
+   "z": 237.94,
+   "machine": "widemaw"
+  },
+  {
+   "type": "machine-site",
+   "x": -4189.76,
+   "y": -630.99,
+   "z": 244.41,
+   "machine": "clawstrider"
+  },
+  {
+   "type": "machine-site",
+   "x": -4104.45,
+   "y": -506.87,
+   "z": 265.11,
+   "machine": "sunwing"
+  },
+  {
+   "type": "machine-site",
+   "x": -4032.41,
+   "y": -1065.6,
+   "z": 250.6,
+   "machine": "charger"
+  },
+  {
+   "type": "machine-site",
+   "x": -2992.4,
+   "y": -1532.76,
+   "z": 231.49,
+   "machine": "slaughterspine"
+  },
+  {
+   "type": "machine-site",
+   "x": -2887.2,
+   "y": -1751.74,
+   "z": 273.62,
+   "machine": "acid-bristleback"
+  },
+  {
+   "type": "machine-site",
+   "x": -2761.09,
+   "y": -1905.8,
+   "z": 308.07,
+   "machine": "rollerback"
+  },
+  {
+   "type": "machine-site",
+   "x": -2759.38,
+   "y": -2450.7,
+   "z": 190.82,
+   "machine": "tideripper"
+  },
+  {
+   "type": "machine-site",
+   "x": -2646.07,
+   "y": -561.96,
+   "z": 247.74,
+   "machine": "snapmaw"
+  },
+  {
+   "type": "machine-site",
+   "x": -2545.87,
+   "y": 266.74,
+   "z": 295.03,
+   "machine": "clawstrider"
+  },
+  {
+   "type": "machine-site",
+   "x": -2537.09,
+   "y": 88.69,
+   "z": 266.79,
+   "machine": "charger"
+  },
+  {
+   "type": "machine-site",
+   "x": -2468.84,
+   "y": -2567.85,
+   "z": 246.0,
+   "machine": "widemaw"
+  },
+  {
+   "type": "machine-site",
+   "x": -2467.78,
+   "y": -2082.5,
+   "z": 291.34,
+   "machine": "charger"
+  },
+  {
+   "type": "machine-site",
+   "x": -2354.62,
+   "y": 430.15,
+   "z": 336.76,
+   "machine": "tracker-burrower"
+  },
+  {
+   "type": "machine-site",
+   "x": -2339.64,
+   "y": -1150.97,
+   "z": 237.51,
+   "machine": "clawstrider"
+  },
+  {
+   "type": "machine-site",
+   "x": -2251.94,
+   "y": -637.85,
+   "z": 254.79,
+   "machine": "fire-clamberjaw"
+  },
+  {
+   "type": "machine-site",
+   "x": -2208.15,
+   "y": -174.19,
+   "z": 267.04,
+   "machine": "charger"
+  },
+  {
+   "type": "machine-site",
+   "x": -2205.24,
+   "y": -2434.21,
+   "z": 311.85,
+   "machine": "fire-clamberjaw"
+  },
+  {
+   "type": "machine-site",
+   "x": -2190.25,
+   "y": -2174.99,
+   "z": 272.12,
+   "machine": "acid-bristleback"
+  },
+  {
+   "type": "machine-site",
+   "x": -2182.88,
+   "y": 365.01,
+   "z": 339.87,
+   "machine": "snapmaw"
+  },
+  {
+   "type": "machine-site",
+   "x": -2143.29,
+   "y": -853.42,
+   "z": 302.58,
+   "machine": "plowhorn"
+  },
+  {
+   "type": "machine-site",
+   "x": -2137.39,
+   "y": -491.51,
+   "z": 314.0,
+   "machine": "acid-bristleback"
+  },
+  {
+   "type": "machine-site",
+   "x": -2079.68,
+   "y": -1834.39,
+   "z": 251.52,
+   "machine": "fireclaw"
+  },
+  {
+   "type": "machine-site",
+   "x": -2042.52,
+   "y": 392.92,
+   "z": 345.52,
+   "machine": "scorcher"
+  },
+  {
+   "type": "machine-site",
+   "x": -2025.23,
+   "y": 70.08,
+   "z": 513.34,
+   "machine": "frostclaw"
+  },
+  {
+   "type": "machine-site",
+   "x": -1914.01,
+   "y": -2063.51,
+   "z": 250.95,
+   "machine": "fireclaw"
+  },
+  {
+   "type": "machine-site",
+   "x": -1910.54,
+   "y": -1837.48,
+   "z": 251.2,
+   "machine": "sunwing"
+  },
+  {
+   "type": "machine-site",
+   "x": -1902.83,
+   "y": -1006.52,
+   "z": 376.54,
+   "machine": "clawstrider"
+  },
+  {
+   "type": "machine-site",
+   "x": -1901.58,
+   "y": -161.75,
+   "z": 415.24,
+   "machine": "sunwing"
+  },
+  {
+   "type": "machine-site",
+   "x": -1863.95,
+   "y": -2284.47,
+   "z": 245.03,
+   "machine": "widemaw"
+  },
+  {
+   "type": "machine-site",
+   "x": -1861.11,
+   "y": 521.16,
+   "z": 352.91,
+   "machine": "charger"
+  },
+  {
+   "type": "machine-site",
+   "x": -1843.18,
+   "y": -1201.87,
+   "z": 384.97,
+   "machine": "fire-bellowback"
+  },
+  {
+   "type": "machine-site",
+   "x": -1841.69,
+   "y": -1909.7,
+   "z": 237.94,
+   "machine": "charger"
+  },
+  {
+   "type": "machine-site",
+   "x": -1820.94,
+   "y": -510.53,
+   "z": 362.04,
+   "machine": "charger"
+  },
+  {
+   "type": "machine-site",
+   "x": -1760.7,
+   "y": -1311.91,
+   "z": 360.13,
+   "machine": "clawstrider"
+  },
+  {
+   "type": "machine-site",
+   "x": -1689.93,
+   "y": 627.68,
+   "z": 364.57,
+   "machine": "frostclaw"
+  },
+  {
+   "type": "machine-site",
+   "x": -1580.35,
+   "y": -636.69,
+   "z": 498.83,
+   "machine": "thunderjaw"
+  },
+  {
+   "type": "machine-site",
+   "x": -1553.45,
+   "y": -2040.32,
+   "z": 252.51,
+   "machine": "behemoth"
+  },
+  {
+   "type": "machine-site",
+   "x": -1483.05,
+   "y": 1.57,
+   "z": 571.85,
+   "machine": "fire-bellowback"
+  },
+  {
+   "type": "machine-site",
+   "x": -1457.5,
+   "y": 599.75,
+   "z": 368.78,
+   "machine": "charger"
+  },
+  {
+   "type": "machine-site",
+   "x": -1453.43,
+   "y": -178.43,
+   "z": 552.49,
+   "machine": "thunderjaw"
+  },
+  {
+   "type": "machine-site",
+   "x": -1453.43,
+   "y": -178.43,
+   "z": 552.49,
+   "machine": "tremortusk"
+  },
+  {
+   "type": "machine-site",
+   "x": -1444.67,
+   "y": -1538.95,
+   "z": 306.0,
+   "machine": "acid-bristleback"
+  },
+  {
+   "type": "machine-site",
+   "x": -1389.0,
+   "y": -1778.59,
+   "z": 285.45,
+   "machine": "redeye-watcher"
+  },
+  {
+   "type": "machine-site",
+   "x": -1343.24,
+   "y": -224.92,
+   "z": 539.65,
+   "machine": "clawstrider"
+  },
+  {
+   "type": "machine-site",
+   "x": -1332.03,
+   "y": -759.93,
+   "z": 541.13,
+   "machine": "dreadwing"
+  },
+  {
+   "type": "machine-site",
+   "x": -1303.78,
+   "y": -537.12,
+   "z": 530.36,
+   "machine": "slaughterspine"
+  },
+  {
+   "type": "machine-site",
+   "x": -1302.17,
+   "y": -283.94,
+   "z": 523.21,
+   "machine": "scorcher"
+  },
+  {
+   "type": "machine-site",
+   "x": -1277.46,
+   "y": -1943.85,
+   "z": 321.89,
+   "machine": "acid-bristleback"
+  },
+  {
+   "type": "machine-site",
+   "x": -1244.58,
+   "y": 123.94,
+   "z": 525.9,
+   "machine": "clawstrider"
+  },
+  {
+   "type": "machine-site",
+   "x": -1243.09,
+   "y": 813.42,
+   "z": 448.64,
+   "machine": "tracker-burrower"
+  },
+  {
+   "type": "machine-site",
+   "x": -1134.01,
+   "y": 718.01,
+   "z": 510.57,
+   "machine": "shell-walker"
+  },
+  {
+   "type": "machine-site",
+   "x": -1111.9,
+   "y": 536.74,
+   "z": 531.98,
+   "machine": "fire-fanghorn"
+  },
+  {
+   "type": "machine-site",
+   "x": -1071.51,
+   "y": -2453.8,
+   "z": 257.52,
+   "machine": "fire-clamberjaw"
+  },
+  {
+   "type": "machine-site",
+   "x": -1047.65,
+   "y": -1082.68,
+   "z": 394.07,
+   "machine": "fire-bellowback"
+  },
+  {
+   "type": "machine-site",
+   "x": -996.24,
+   "y": 825.73,
+   "z": 533.46,
+   "machine": "tremortusk"
+  },
+  {
+   "type": "machine-site",
+   "x": -947.46,
+   "y": -1718.62,
+   "z": 381.39,
+   "machine": "acid-bristleback"
+  },
+  {
+   "type": "machine-site",
+   "x": -923.49,
+   "y": -301.91,
+   "z": 464.16,
+   "machine": "ravager"
+  },
+  {
+   "type": "machine-site",
+   "x": -894.78,
+   "y": 735.6,
+   "z": 516.13,
+   "machine": "sunwing"
+  },
+  {
+   "type": "machine-site",
+   "x": -894.44,
+   "y": 204.11,
+   "z": 472.34,
+   "machine": "acid-bristleback"
+  },
+  {
+   "type": "machine-site",
+   "x": -889.33,
+   "y": -6.53,
+   "z": 453.09,
+   "machine": "clawstrider"
+  },
+  {
+   "type": "machine-site",
+   "x": -876.08,
+   "y": -656.94,
+   "z": 424.62,
+   "machine": "redeye-watcher"
+  },
+  {
+   "type": "machine-site",
+   "x": -826.14,
+   "y": -1270.89,
+   "z": 400.49,
+   "machine": "acid-bristleback"
+  },
+  {
+   "type": "machine-site",
+   "x": -819.6,
+   "y": 600.97,
+   "z": 474.38,
+   "machine": "charger"
+  },
+  {
+   "type": "machine-site",
+   "x": -751.76,
+   "y": -17.48,
+   "z": 446.88,
+   "machine": "thunderjaw"
+  },
+  {
+   "type": "machine-site",
+   "x": -725.05,
+   "y": 915.47,
+   "z": 467.75,
+   "machine": "charger"
+  },
+  {
+   "type": "machine-site",
+   "x": -718.36,
+   "y": 435.86,
+   "z": 488.29,
+   "machine": "rollerback"
+  },
+  {
+   "type": "machine-site",
+   "x": -703.97,
+   "y": -1159.5,
+   "z": 420.02,
+   "machine": "stalker"
+  },
+  {
+   "type": "machine-site",
+   "x": -611.29,
+   "y": 505.31,
+   "z": 477.02,
+   "machine": "charger"
+  },
+  {
+   "type": "machine-site",
+   "x": -581.96,
+   "y": -10.25,
+   "z": 438.54,
+   "machine": "charger"
+  },
+  {
+   "type": "machine-site",
+   "x": -572.63,
+   "y": -541.54,
+   "z": 417.1,
+   "machine": "acid-bristleback"
+  },
+  {
+   "type": "machine-site",
+   "x": -566.19,
+   "y": 1065.43,
+   "z": 484.16,
+   "machine": "frost-glinthawk"
+  },
+  {
+   "type": "machine-site",
+   "x": -531.18,
+   "y": -884.66,
+   "z": 403.59,
+   "machine": "clawstrider"
+  },
+  {
+   "type": "machine-site",
+   "x": -519.19,
+   "y": 237.01,
+   "z": 480.89,
+   "machine": "sunwing"
+  },
+  {
+   "type": "machine-site",
+   "x": -431.43,
+   "y": -260.22,
+   "z": 469.64,
+   "machine": "sunwing"
+  },
+  {
+   "type": "machine-site",
+   "x": -391.58,
+   "y": 701.33,
+   "z": 484.14,
+   "machine": "snapmaw"
+  },
+  {
+   "type": "machine-site",
+   "x": -340.24,
+   "y": 994.26,
+   "z": 475.42,
+   "machine": "widemaw"
+  },
+  {
+   "type": "machine-site",
+   "x": -313.37,
+   "y": -1285.41,
+   "z": 408.68,
+   "machine": "sunwing"
+  },
+  {
+   "type": "machine-site",
+   "x": -298.77,
+   "y": -1192.57,
+   "z": 412.65,
+   "machine": "skydrifter"
+  },
+  {
+   "type": "machine-site",
+   "x": -276.93,
+   "y": -82.77,
+   "z": 2.6,
+   "machine": "sunwing"
+  },
+  {
+   "type": "machine-site",
+   "x": -276.93,
+   "y": -82.77,
+   "z": 2.6,
+   "machine": "waterwing"
+  },
+  {
+   "type": "machine-site",
+   "x": -226.64,
+   "y": 869.83,
+   "z": 470.64,
+   "machine": "charger"
+  },
+  {
+   "type": "machine-site",
+   "x": -195.89,
+   "y": -794.63,
+   "z": 420.94,
+   "machine": "acid-bristleback"
+  },
+  {
+   "type": "machine-site",
+   "x": -163.25,
+   "y": 473.97,
+   "z": 492.77,
+   "machine": "skydrifter"
+  },
+  {
+   "type": "machine-site",
+   "x": -147.74,
+   "y": 197.99,
+   "z": 443.17,
+   "machine": "sunwing"
+  },
+  {
+   "type": "machine-site",
+   "x": -111.08,
+   "y": -1671.99,
+   "z": 373.17,
+   "machine": "tremortusk"
+  },
+  {
+   "type": "machine-site",
+   "x": -107.64,
+   "y": -1677.52,
+   "z": 374.32,
+   "machine": "thunderjaw"
+  },
+  {
+   "type": "machine-site",
+   "x": -78.7,
+   "y": -604.7,
+   "z": 390.96,
+   "machine": "thunderjaw"
+  },
+  {
+   "type": "machine-site",
+   "x": -68.5,
+   "y": -983.69,
+   "z": 397.7,
+   "machine": "acid-bristleback"
+  },
+  {
+   "type": "machine-site",
+   "x": -55.15,
+   "y": 35.19,
+   "z": 421.09,
+   "machine": "charger"
+  },
+  {
+   "type": "machine-site",
+   "x": -50.63,
+   "y": -5185.25,
+   "z": 247.06,
+   "machine": "stormbird"
+  },
+  {
+   "type": "machine-site",
+   "x": -41.18,
+   "y": -1090.94,
+   "z": 381.69,
+   "machine": "scrounger"
+  },
+  {
+   "type": "machine-site",
+   "x": -0.41,
+   "y": 166.68,
+   "z": 2.5,
+   "machine": "sunwing"
+  },
+  {
+   "type": "machine-site",
+   "x": -0.41,
+   "y": 166.68,
+   "z": 2.5,
+   "machine": "waterwing"
+  },
+  {
+   "type": "machine-site",
+   "x": 2.26,
+   "y": 553.48,
+   "z": 478.12,
+   "machine": "thunderjaw"
+  },
+  {
+   "type": "machine-site",
+   "x": 27.19,
+   "y": 347.22,
+   "z": 451.77,
+   "machine": "plowhorn"
+  },
+  {
+   "type": "machine-site",
+   "x": 57.66,
+   "y": -1649.9,
+   "z": 373.82,
+   "machine": "acid-bristleback"
+  },
+  {
+   "type": "machine-site",
+   "x": 72.03,
+   "y": -350.47,
+   "z": 391.05,
+   "machine": "charger"
+  },
+  {
+   "type": "machine-site",
+   "x": 96.54,
+   "y": 655.69,
+   "z": 514.87,
+   "machine": "acid-bristleback"
+  },
+  {
+   "type": "machine-site",
+   "x": 103.31,
+   "y": -659.82,
+   "z": 399.72,
+   "machine": "tracker-burrower"
+  },
+  {
+   "type": "machine-site",
+   "x": 128.08,
+   "y": 200.28,
+   "z": 427.03,
+   "machine": "slitherfang"
+  },
+  {
+   "type": "machine-site",
+   "x": 132.91,
+   "y": -1228.54,
+   "z": 378.43,
+   "machine": "slitherfang"
+  },
+  {
+   "type": "machine-site",
+   "x": 216.29,
+   "y": -1137.63,
+   "z": 382.1,
+   "machine": "spikesnout"
+  },
+  {
+   "type": "machine-site",
+   "x": 220.15,
+   "y": 151.22,
+   "z": 436.44,
+   "machine": "acid-bristleback"
+  },
+  {
+   "type": "machine-site",
+   "x": 263.18,
+   "y": -5302.36,
+   "z": 249.92,
+   "machine": "widemaw"
+  },
+  {
+   "type": "machine-site",
+   "x": 269.91,
+   "y": 428.93,
+   "z": 470.47,
+   "machine": "charger"
+  },
+  {
+   "type": "machine-site",
+   "x": 296.12,
+   "y": -1440.53,
+   "z": 360.07,
+   "machine": "acid-bristleback"
+  },
+  {
+   "type": "machine-site",
+   "x": 311.42,
+   "y": -5542.63,
+   "z": 262.68,
+   "machine": "clawstrider"
+  },
+  {
+   "type": "machine-site",
+   "x": 361.87,
+   "y": -68.66,
+   "z": -68.12,
+   "machine": "charger"
+  },
+  {
+   "type": "machine-site",
+   "x": 373.27,
+   "y": -5225.44,
+   "z": 256.66,
+   "machine": "tremortusk"
+  },
+  {
+   "type": "machine-site",
+   "x": 390.08,
+   "y": 44.17,
+   "z": 3.53,
+   "machine": "sunwing"
+  },
+  {
+   "type": "machine-site",
+   "x": 390.08,
+   "y": 44.17,
+   "z": 3.53,
+   "machine": "waterwing"
+  },
+  {
+   "type": "machine-site",
+   "x": 400.05,
+   "y": -349.22,
+   "z": 449.94,
+   "machine": "acid-bristleback"
+  },
+  {
+   "type": "machine-site",
+   "x": 425.21,
+   "y": 275.68,
+   "z": 467.1,
+   "machine": "lancehorn"
+  },
+  {
+   "type": "machine-site",
+   "x": 425.39,
+   "y": -5629.07,
+   "z": 250.98,
+   "machine": "tideripper"
+  },
+  {
+   "type": "machine-site",
+   "x": 428.48,
+   "y": -1593.99,
+   "z": 366.31,
+   "machine": "acid-bristleback"
+  },
+  {
+   "type": "machine-site",
+   "x": 451.05,
+   "y": 63.62,
+   "z": 475.14,
+   "machine": "sunwing"
+  },
+  {
+   "type": "machine-site",
+   "x": 471.91,
+   "y": -1537.67,
+   "z": 356.98,
+   "machine": "tracker-burrower"
+  },
+  {
+   "type": "machine-site",
+   "x": 484.9,
+   "y": -281.7,
+   "z": 473.09,
+   "machine": "tracker-burrower"
+  },
+  {
+   "type": "machine-site",
+   "x": 496.22,
+   "y": -550.62,
+   "z": 463.42,
+   "machine": "longleg"
+  },
+  {
+   "type": "machine-site",
+   "x": 507.78,
+   "y": 841.24,
+   "z": 542.29,
+   "machine": "charger"
+  },
+  {
+   "type": "machine-site",
+   "x": 525.65,
+   "y": -6029.57,
+   "z": 245.39,
+   "machine": "ravager"
+  },
+  {
+   "type": "machine-site",
+   "x": 530.3,
+   "y": -5509.72,
+   "z": 301.42,
+   "machine": "sunwing"
+  },
+  {
+   "type": "machine-site",
+   "x": 530.51,
+   "y": -5263.37,
+   "z": 238.18,
+   "machine": "waterwing"
+  },
+  {
+   "type": "machine-site",
+   "x": 530.51,
+   "y": -5263.37,
+   "z": 238.18,
+   "machine": "sunwing"
+  },
+  {
+   "type": "machine-site",
+   "x": 543.68,
+   "y": -2028.31,
+   "z": 377.1,
+   "machine": "rockbreaker"
+  },
+  {
+   "type": "machine-site",
+   "x": 547.79,
+   "y": -916.81,
+   "z": 471.05,
+   "machine": "sunwing"
+  },
+  {
+   "type": "machine-site",
+   "x": 547.84,
+   "y": -1191.95,
+   "z": 385.82,
+   "machine": "shellsnapper"
+  },
+  {
+   "type": "machine-site",
+   "x": 547.84,
+   "y": -1191.95,
+   "z": 385.82,
+   "machine": "tracker-burrower"
+  },
+  {
+   "type": "machine-site",
+   "x": 593.14,
+   "y": 306.45,
+   "z": 474.92,
+   "machine": "fire-fanghorn"
+  },
+  {
+   "type": "machine-site",
+   "x": 619.41,
+   "y": -631.64,
+   "z": 474.57,
+   "machine": "spikesnout"
+  },
+  {
+   "type": "machine-site",
+   "x": 624.72,
+   "y": -1700.29,
+   "z": 384.88,
+   "machine": "rockbreaker"
+  },
+  {
+   "type": "machine-site",
+   "x": 644.69,
+   "y": -4772.62,
+   "z": 248.54,
+   "machine": "widemaw"
+  },
+  {
+   "type": "machine-site",
+   "x": 676.76,
+   "y": 465.39,
+   "z": 477.16,
+   "machine": "plowhorn"
+  },
+  {
+   "type": "machine-site",
+   "x": 684.07,
+   "y": 459.48,
+   "z": 480.06,
+   "machine": "plowhorn"
+  },
+  {
+   "type": "machine-site",
+   "x": 695.57,
+   "y": -1146.4,
+   "z": 416.96,
+   "machine": "acid-bristleback"
+  },
+  {
+   "type": "machine-site",
+   "x": 770.25,
+   "y": 248.56,
+   "z": 471.26,
+   "machine": "charger"
+  },
+  {
+   "type": "machine-site",
+   "x": 772.15,
+   "y": -67.83,
+   "z": 484.42,
+   "machine": "ravager"
+  },
+  {
+   "type": "machine-site",
+   "x": 813.29,
+   "y": 69.0,
+   "z": 489.04,
+   "machine": "shellsnapper"
+  },
+  {
+   "type": "machine-site",
+   "x": 813.98,
+   "y": -442.0,
+   "z": 469.62,
+   "machine": "acid-bristleback"
+  },
+  {
+   "type": "machine-site",
+   "x": 858.04,
+   "y": -835.12,
+   "z": 435.88,
+   "machine": "fire-bellowback"
+  },
+  {
+   "type": "machine-site",
+   "x": 968.35,
+   "y": 122.19,
+   "z": 498.61,
+   "machine": "charger"
+  },
+  {
+   "type": "machine-site",
+   "x": 968.81,
+   "y": -176.19,
+   "z": 522.07,
+   "machine": "acid-bristleback"
+  },
+  {
+   "type": "machine-site",
+   "x": 969.38,
+   "y": -5806.33,
+   "z": 262.44,
+   "machine": "fire-clamberjaw"
+  },
+  {
+   "type": "machine-site",
+   "x": 1058.65,
+   "y": -5520.87,
+   "z": 254.58,
+   "machine": "bilegut"
+  },
+  {
+   "type": "machine-site",
+   "x": 1080.54,
+   "y": -4986.15,
+   "z": 225.92,
+   "machine": "waterwing"
+  },
+  {
+   "type": "machine-site",
+   "x": 1080.54,
+   "y": -4986.15,
+   "z": 225.92,
+   "machine": "sunwing"
+  },
+  {
+   "type": "machine-site",
+   "x": 1097.69,
+   "y": -4341.14,
+   "z": 235.7,
+   "machine": "snapmaw"
+  },
+  {
+   "type": "machine-site",
+   "x": 1112.52,
+   "y": -226.99,
+   "z": 617.79,
+   "machine": "sunwing"
+  },
+  {
+   "type": "machine-site",
+   "x": 1124.65,
+   "y": -6061.16,
+   "z": 226.89,
+   "machine": "waterwing"
+  },
+  {
+   "type": "machine-site",
+   "x": 1124.65,
+   "y": -6061.16,
+   "z": 226.89,
+   "machine": "sunwing"
+  },
+  {
+   "type": "machine-site",
+   "x": 1141.26,
+   "y": -4639.14,
+   "z": 214.07,
+   "machine": "sunwing"
+  },
+  {
+   "type": "machine-site",
+   "x": 1215.89,
+   "y": 355.06,
+   "z": 481.15,
+   "machine": "acid-bristleback"
+  },
+  {
+   "type": "machine-site",
+   "x": 1221.67,
+   "y": -5395.85,
+   "z": 313.31,
+   "machine": "slaughterspine"
+  },
+  {
+   "type": "machine-site",
+   "x": 1254.29,
+   "y": -4301.42,
+   "z": 262.97,
+   "machine": "fire-clamberjaw"
+  },
+  {
+   "type": "machine-site",
+   "x": 1264.52,
+   "y": -5452.34,
+   "z": 314.16,
+   "machine": "thunderjaw"
+  },
+  {
+   "type": "machine-site",
+   "x": 1292.21,
+   "y": -5130.83,
+   "z": 285.83,
+   "machine": "bilegut"
+  },
+  {
+   "type": "machine-site",
+   "x": 1297.58,
+   "y": -5034.29,
+   "z": 308.12,
+   "machine": "fire-clamberjaw"
+  },
+  {
+   "type": "machine-site",
+   "x": 1305.89,
+   "y": -4128.75,
+   "z": 273.18,
+   "machine": "clawstrider"
+  },
+  {
+   "type": "machine-site",
+   "x": 1318.4,
+   "y": -5613.15,
+   "z": 299.57,
+   "machine": "fire-bellowback"
+  },
+  {
+   "type": "machine-site",
+   "x": 1357.55,
+   "y": 520.42,
+   "z": 478.85,
+   "machine": "grazer"
+  },
+  {
+   "type": "machine-site",
+   "x": 1377.37,
+   "y": -5080.4,
+   "z": 297.05,
+   "machine": "lancehorn"
+  },
+  {
+   "type": "machine-site",
+   "x": 1405.8,
+   "y": -5428.44,
+   "z": 325.72,
+   "machine": "sunwing"
+  },
+  {
+   "type": "machine-site",
+   "x": 1436.37,
+   "y": -45.51,
+   "z": 507.55,
+   "machine": "sunwing"
+  },
+  {
+   "type": "machine-site",
+   "x": 1465.3,
+   "y": -4496.27,
+   "z": 255.27,
+   "machine": "bilegut"
+  },
+  {
+   "type": "machine-site",
+   "x": 1468.29,
+   "y": -970.18,
+   "z": 431.31,
+   "machine": "dreadwing"
+  },
+  {
+   "type": "machine-site",
+   "x": 1485.18,
+   "y": -1293.05,
+   "z": 387.13,
+   "machine": "frost-glinthawk"
+  },
+  {
+   "type": "machine-site",
+   "x": 1494.36,
+   "y": -1162.36,
+   "z": 402.41,
+   "machine": "acid-canister-leaplasher"
+  },
+  {
+   "type": "machine-site",
+   "x": 1499.52,
+   "y": -4244.28,
+   "z": 282.91,
+   "machine": "lancehorn"
+  },
+  {
+   "type": "machine-site",
+   "x": 1519.37,
+   "y": -548.78,
+   "z": 497.14,
+   "machine": "acid-bristleback"
+  },
+  {
+   "type": "machine-site",
+   "x": 1567.78,
+   "y": -5668.39,
+   "z": 252.77,
+   "machine": "dreadwing"
+  },
+  {
+   "type": "machine-site",
+   "x": 1580.12,
+   "y": -5251.89,
+   "z": 261.58,
+   "machine": "stalker"
+  },
+  {
+   "type": "machine-site",
+   "x": 1607.03,
+   "y": -1045.75,
+   "z": 396.1,
+   "machine": "charger"
+  },
+  {
+   "type": "machine-site",
+   "x": 1635.08,
+   "y": -765.96,
+   "z": 433.28,
+   "machine": "longleg"
+  },
+  {
+   "type": "machine-site",
+   "x": 1659.84,
+   "y": 713.58,
+   "z": 488.3,
+   "machine": "sunwing"
+  },
+  {
+   "type": "machine-site",
+   "x": 1681.58,
+   "y": -141.38,
+   "z": 458.05,
+   "machine": "charger"
+  },
+  {
+   "type": "machine-site",
+   "x": 1687.86,
+   "y": -4802.27,
+   "z": 271.44,
+   "machine": "rollerback"
+  },
+  {
+   "type": "machine-site",
+   "x": 1821.09,
+   "y": -5005.58,
+   "z": 243.48,
+   "machine": "clawstrider"
+  },
+  {
+   "type": "machine-site",
+   "x": 1854.11,
+   "y": -205.05,
+   "z": 451.8,
+   "machine": "skydrifter"
+  },
+  {
+   "type": "machine-site",
+   "x": 1869.16,
+   "y": -991.45,
+   "z": 397.45,
+   "machine": "acid-canister-leaplasher"
+  },
+  {
+   "type": "machine-site",
+   "x": 1883.16,
+   "y": -1239.05,
+   "z": 392.83,
+   "machine": "widemaw"
+  },
+  {
+   "type": "machine-site",
+   "x": 1886.64,
+   "y": 408.83,
+   "z": 438.66,
+   "machine": "clawstrider"
+  },
+  {
+   "type": "machine-site",
+   "x": 1886.95,
+   "y": -4526.48,
+   "z": 254.03,
+   "machine": "lancehorn"
+  },
+  {
+   "type": "machine-site",
+   "x": 1904.69,
+   "y": -4135.36,
+   "z": 264.77,
+   "machine": "slitherfang"
+  },
+  {
+   "type": "machine-site",
+   "x": 1968.5,
+   "y": -5274.1,
+   "z": 281.04,
+   "machine": "sunwing"
+  },
+  {
+   "type": "machine-site",
+   "x": 1968.5,
+   "y": -5274.1,
+   "z": 281.04,
+   "machine": "waterwing"
+  },
+  {
+   "type": "machine-site",
+   "x": 1982.82,
+   "y": -428.34,
+   "z": 427.91,
+   "machine": "acid-canister-leaplasher"
+  },
+  {
+   "type": "machine-site",
+   "x": 2063.46,
+   "y": -557.28,
+   "z": 420.27,
+   "machine": "acid-canister-leaplasher"
+  },
+  {
+   "type": "machine-site",
+   "x": 2090.04,
+   "y": 483.43,
+   "z": 466.61,
+   "machine": "grazer"
+  },
+  {
+   "type": "machine-site",
+   "x": 2184.73,
+   "y": 139.25,
+   "z": 429.14,
+   "machine": "charger"
+  },
+  {
+   "type": "machine-site",
+   "x": 2208.29,
+   "y": -383.42,
+   "z": 410.86,
+   "machine": "charger"
+  },
+  {
+   "type": "machine-site",
+   "x": 2236.38,
+   "y": -4771.97,
+   "z": 317.41,
+   "machine": "sunwing"
+  },
+  {
+   "type": "machine-site",
+   "x": 2247.81,
+   "y": 23.82,
+   "z": 404.47,
+   "machine": "skydrifter"
+  },
+  {
+   "type": "machine-site",
+   "x": 2250.72,
+   "y": -5096.44,
+   "z": 253.97,
+   "machine": "scorcher"
+  },
+  {
+   "type": "machine-site",
+   "x": 2273.67,
+   "y": -765.12,
+   "z": 402.06,
+   "machine": "thunderjaw"
+  },
+  {
+   "type": "machine-site",
+   "x": 2379.61,
+   "y": -397.2,
+   "z": 393.47,
+   "machine": "scrapper"
+  },
+  {
+   "type": "machine-site",
+   "x": 2402.27,
+   "y": -687.87,
+   "z": 394.94,
+   "machine": "widemaw"
+  },
+  {
+   "type": "machine-site",
+   "x": 2478.67,
+   "y": -177.75,
+   "z": 405.69,
+   "machine": "skydrifter"
+  },
+  {
+   "type": "machine-site",
+   "x": 2608.19,
+   "y": -1358.97,
+   "z": 393.86,
+   "machine": "tideripper"
+  },
+  {
+   "type": "machine-site",
+   "x": 2659.6,
+   "y": -940.79,
+   "z": 392.72,
+   "machine": "frost-glinthawk"
+  },
+  {
+   "type": "machine-site",
+   "x": 2688.83,
+   "y": -293.27,
+   "z": 402.59,
+   "machine": "charger"
+  },
+  {
+   "type": "machine-site",
+   "x": 3154.56,
+   "y": 196.82,
+   "z": 461.33,
+   "machine": "charger"
+  },
+  {
+   "type": "machine-site",
+   "x": 3374.93,
+   "y": 490.25,
+   "z": 470.65,
+   "machine": "charger"
+  },
+  {
+   "type": "machine-site",
+   "x": 3408.28,
+   "y": 237.2,
+   "z": 473.14,
+   "machine": "scrounger"
+  },
+  {
+   "type": "machine-site",
+   "x": 3735.91,
+   "y": 785.11,
+   "z": 488.11,
+   "machine": "tracker-burrower"
+  },
+  {
+   "type": "machine-site",
+   "x": 3797.91,
+   "y": 1149.26,
+   "z": 508.23,
+   "machine": "tracker-burrower"
+  },
+  {
+   "type": "machine-site",
+   "x": 3837.02,
+   "y": 741.72,
+   "z": 491.61,
+   "machine": "fire-fanghorn"
+  },
+  {
+   "type": "machine-site",
+   "x": 3883.31,
+   "y": 969.95,
+   "z": 487.18,
+   "machine": "charger"
+  },
+  {
+   "type": "machine-site",
+   "x": 4003.24,
+   "y": 966.12,
+   "z": 494.7,
+   "machine": "tracker-burrower"
+  }
+ ]
+}

@@ -1,0 +1,279 @@
+@font-face {
+  font-family: "Oita Norm";
+  src: url("/map/fonts/OitaNormRegular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Oita Norm";
+  src: url("/map/fonts/OitaNormDemi.woff2") format("woff2");
+  font-weight: 600;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Hunter";
+  src: url("/fonts/HunterRegular.woff2") format("woff2");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Hunter Condensed";
+  src: url("/fonts/HunterCondensed.woff2") format("woff2");
+  font-display: swap;
+}
+
+:root {
+  --bg: #07090c;
+  --panel: rgba(10, 12, 16, 0.78);
+  --text: #e8eaed;
+  --muted: #9aa0a6;
+  --accent: #f2a541;
+  --answer: #4fc3f7;
+  --border: rgba(255, 255, 255, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.4 "Oita Norm", system-ui, -apple-system, "Segoe UI", sans-serif;
+  overflow: hidden;
+}
+
+button {
+  user-select: none;
+  font: inherit;
+  font-weight: 600;
+  color: #111;
+  background: var(--accent);
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 22px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+button:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+button:disabled {
+  cursor: default;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+button.secondary {
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}
+
+.card {
+  position: fixed;
+  z-index: 6;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  width: min(560px, calc(100vw - 32px));
+  padding: 18px 22px;
+  text-align: center;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.card h2 {
+  margin: 0 0 4px;
+  font-size: 26px;
+  font-variant-numeric: tabular-nums;
+}
+
+.card p {
+  margin: 0 0 12px;
+  color: var(--muted);
+}
+
+.bar {
+  height: 8px;
+  margin: 0 0 16px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.bar div {
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  transition: width 0.6s ease;
+}
+
+.card-enter-active, .card-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.card-enter-from, .card-leave-to {
+  opacity: 0;
+}
+
+.map-host {
+  position: absolute;
+  inset: 0;
+}
+
+.map-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.map-canvas.dragging {
+  cursor: grabbing;
+}
+
+.map-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.map-line {
+  stroke: #fff;
+  stroke-width: 2.5;
+  stroke-dasharray: 6 6;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
+}
+
+.map-markers {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.map-poi {
+  position: absolute;
+  left: -15px;
+  top: -15px;
+  width: 30px;
+  height: 30px;
+  pointer-events: none;
+  user-select: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0s linear 0.3s;
+}
+
+.map-poi.shown {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.3s ease;
+}
+
+.map-poi img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.map-scale {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  display: grid;
+  justify-items: start;
+  gap: 3px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.map-scale-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+}
+
+.map-scale-bar {
+  height: 5px;
+  border: 2px solid #fff;
+  border-top: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+.marker {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.marker svg {
+  position: absolute;
+  left: -12px;
+  top: -31px;
+  display: block;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6));
+}
+
+.marker.removable svg {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.marker.answer .dot {
+  position: absolute;
+  left: -8px;
+  top: -8px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--answer);
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.marker .tag {
+  position: absolute;
+  left: 12px;
+  top: -10px;
+  padding: 1px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 4px;
+}

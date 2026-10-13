@@ -1,0 +1,12 @@
+{
+ "games": {
+  "hfw": { "tileMetres": 256, "border": { "mask": "border/border_full.png", "left": -32, "top": 32, "width": 64, "height": 64 } },
+  "hzd": { "tileMetres": 512, "border": { "mask": "border/border_dlc.png", "left": -6, "top": 8, "width": 16, "height": 16 } }
+ },
+ "layers": [
+  { "id": "hfw-main", "game": "hfw", "name": "Forbidden West", "regions": [[-21, -14, 17, 5], [-7, -15, -5, -15]], "offsetMetres": [0, 0] },
+  { "id": "hfw-shores", "game": "hfw", "name": "Burning Shores", "regions": [[-3, -27, 11, -16], [6, -15, 7, -15]], "offsetMetres": [-101, 800] },
+  { "id": "hfw-east", "game": "hfw", "name": "Forbidden West", "regions": [[21, -15, 27, -10]], "offsetMetres": [-2866, 463] },
+  { "id": "hzd", "game": "hzd", "name": "Zero Dawn", "regions": [[-40, -40, 40, 40]], "offsetMetres": [6162, -573] }
+ ]
+}
