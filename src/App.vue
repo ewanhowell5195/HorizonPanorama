@@ -24,6 +24,7 @@ const MAP_DELAY_MS = 1200
 const SWAP_FADE_MS = 200
 const SCREEN_PATHS = { home: "", setup: "setup", challenge: "challenge", game: "game" }
 const SECRET = "horizon-panorama"
+const SAVED_GAME = "savedGame"
 const GAME_SUFFIXES = { both: "", hzd: "ZeroDawn", hfw: "ForbiddenWest" }
 const GAME_TITLES = { hzd: "Horizon Zero Dawn Remastered", hfw: "Horizon Forbidden West" }
 const COMBINATIONS = [false, true].flatMap(isHard => Object.keys(GAME_SUFFIXES).map(which => [isHard, which]))
@@ -44,6 +45,7 @@ const games = ref(Object.hasOwn(GAME_SUFFIXES, readStore("games")) ? readStore("
 const intro = ref(false)
 const setup = ref(false)
 const swapped = ref(false)
+const restoring = ref(false)
 const swapFading = ref(false)
 const pool = ref([])
 const mapsReady = ref(false)
@@ -162,8 +164,14 @@ function leaveTo(screen) {
 
 function show(screen) {
   if (screen === "game") {
-    if (game && game.seed === new URLSearchParams(location.search).get("seed")) {
+    const params = gameParams()
+    if (game && game.seed === params.seed && game.id === params.id) {
       resumeGame()
+      return
+    }
+    const saved = savedGame(params)
+    if (saved) {
+      restoreGame(saved)
       return
     }
     replaceScreen("challenge", screenUrl("challenge") + location.search)
@@ -394,6 +402,71 @@ function removeGuess() {
   guessMarker = null
   game.guess = null
   hasGuess.value = false
+  saveGame()
+}
+
+function saveGame() {
+  try {
+    sessionStorage.setItem(SAVED_GAME, JSON.stringify({
+      id: game.id,
+      seed: game.seed,
+      hard: game.hard,
+      games: game.games,
+      index: game.index,
+      total: game.total,
+      state: game.state,
+      results: game.results,
+      guess: game.guess && { x: game.guess.x, y: game.guess.y },
+      rounds: game.rounds.map(({ name, game: which, x, y, z, code }) => ({ name, game: which, x, y, z, code }))
+    }))
+  } catch {}
+}
+
+function gameParams() {
+  const params = new URLSearchParams(location.search)
+  return { seed: params.get("seed"), id: params.get("id") }
+}
+
+function savedGame({ seed, id }) {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(SAVED_GAME))
+    return saved && saved.seed === seed && saved.id === id ? saved : null
+  } catch {
+    return null
+  }
+}
+
+async function restoreGame(saved) {
+  restoring.value = true
+  paused = null
+  challenge.value = null
+  setup.value = false
+  game = { rounds: saved.rounds, index: saved.index, total: saved.total, results: saved.results, state: saved.state, guess: null, hard: saved.hard, games: saved.games, seed: saved.seed, id: saved.id }
+  gameHard.value = game.hard
+  status.index = game.index + 1
+  status.count = game.rounds.length
+  status.total = game.total
+  if (game.state === "round") {
+    const current = game
+    preload(current.index)
+    startRound()
+    restoring.value = false
+    if (saved.guess) {
+      await loadMaps()
+      if (game === current && game.state === "round") {
+        placeGuess({ x: saved.guess.x, y: saved.guess.y })
+      }
+    }
+    return
+  }
+  backdrop.value.cycle(false)
+  await loadMaps()
+  restoring.value = false
+  if (game.state === "result") {
+    await showResult(game.results[game.index])
+  } else {
+    await showSummary(false)
+  }
 }
 
 function placeGuess(place) {
@@ -411,6 +484,7 @@ function placeGuess(place) {
     guessMarker = minimap.value.addMarker(element, place.x, place.y)
   }
   hasGuess.value = true
+  saveGame()
 }
 
 async function submitGuess() {
@@ -423,33 +497,42 @@ async function submitGuess() {
   const metres = Math.hypot(guess.x - answer.x, guess.y - answer.y) * METRES_PER_UNIT
   const score = points(metres)
   game.total += score
-  game.results.push({ guess, answer: { x: answer.x, y: answer.y }, metres, score })
+  const entry = { guess, answer: { x: answer.x, y: answer.y }, metres, score }
+  game.results.push(entry)
   game.state = "result"
-  status.total = game.total
-  resultMarkers.push(bigmap.value.addMarker(pin("var(--accent)"), guess.x, guess.y), bigmap.value.addMarker(answerMarker(), answer.x, answer.y))
-  bigmap.value.setLines([[guess, answer]])
-  result.value = { key: game.index, score, distance: formatDistance(metres), lastRound: game.index + 1 >= game.rounds.length }
-  phase.value = "result"
-  await nextTick()
-  bigmap.value.fit([guess, answer], { inset: (resultCard.value?.$el.offsetHeight || 0) + 40, start: { x: guess.x, y: guess.y, zoom: 0.35 } })
+  saveGame()
+  await showResult(entry)
 }
 
-async function showSummary() {
+async function showResult(entry) {
+  status.total = game.total
+  resultMarkers.push(bigmap.value.addMarker(pin("var(--accent)"), entry.guess.x, entry.guess.y), bigmap.value.addMarker(answerMarker(), entry.answer.x, entry.answer.y))
+  bigmap.value.setLines([[entry.guess, entry.answer]])
+  result.value = { key: game.index, score: entry.score, distance: formatDistance(entry.metres), lastRound: game.index + 1 >= game.rounds.length }
+  phase.value = "result"
+  await nextTick()
+  bigmap.value.fit([entry.guess, entry.answer], { inset: (resultCard.value?.$el.offsetHeight || 0) + 40, start: { x: entry.guess.x, y: entry.guess.y, zoom: 0.35 } })
+}
+
+async function showSummary(record = true) {
   game.state = "summary"
+  saveGame()
   clearMarkers()
   game.results.forEach((entry, n) => {
     resultMarkers.push(bigmap.value.addMarker(pin("var(--accent)", n + 1), entry.guess.x, entry.guess.y), bigmap.value.addMarker(answerMarker(n + 1), entry.answer.x, entry.answer.y))
   })
   bigmap.value.setLines(game.results.map(entry => [entry.guess, entry.answer]))
-  const key = name => scoreKey(name, game.hard, game.games)
-  writeStore(key("lastScore"), game.total)
-  writeStore("lastScoreOverall", game.total)
-  if (game.total > (storedScore(key("bestScore")) || 0)) {
-    writeStore(key("bestScore"), game.total)
+  if (record) {
+    const key = name => scoreKey(name, game.hard, game.games)
+    writeStore(key("lastScore"), game.total)
+    writeStore("lastScoreOverall", game.total)
+    if (game.total > (storedScore(key("bestScore")) || 0)) {
+      writeStore(key("bestScore"), game.total)
+    }
+    writeStore(key("gamesPlayed"), (storedScore(key("gamesPlayed")) || 0) + 1)
+    writeStore(key("scoreSum"), (storedScore(key("scoreSum")) || 0) + game.total)
+    refreshScores()
   }
-  writeStore(key("gamesPlayed"), (storedScore(key("gamesPlayed")) || 0) + 1)
-  writeStore(key("scoreSum"), (storedScore(key("scoreSum")) || 0) + game.total)
-  refreshScores()
   summary.value = { seed: game.seed, total: game.total, max: game.rounds.length * MAX_POINTS, results: game.results.map(entry => ({ distance: formatDistance(entry.metres), score: entry.score })) }
   phase.value = "summary"
   await nextTick()
@@ -464,6 +547,8 @@ function next() {
   if (game.index + 1 < game.rounds.length) {
     game.index++
     game.state = "round"
+    game.guess = null
+    saveGame()
     startRound()
     return
   }
@@ -541,7 +626,8 @@ function begin(rounds, isHard, which) {
   paused = null
   game = { rounds, index: 0, total: 0, results: [], state: "round", guess: null, hard: isHard, games: which }
   game.seed = encodeSeed(game)
-  const url = `${screenUrl("game")}?seed=${game.seed}`
+  game.id = Math.random().toString(36).slice(2, 8)
+  const url = `${screenUrl("game")}?seed=${game.seed}&id=${game.id}`
   if (history.state?.screen === "game") {
     replaceScreen("game", url)
   } else {
@@ -550,6 +636,7 @@ function begin(rounds, isHard, which) {
   challenge.value = null
   setup.value = false
   gameHard.value = isHard
+  saveGame()
   preload(0)
   startRound()
 }
@@ -620,19 +707,27 @@ function onKey(event) {
 onMounted(async () => {
   window.addEventListener("keydown", onKey)
   window.addEventListener("popstate", onHistory)
-  if (challenge.value) {
+  const resumable = screenFromPath() === "game" && savedGame(gameParams())
+  if (resumable) {
+    replaceScreen("game", location.href)
+    challenge.value = null
+    restoring.value = true
+  } else if (challenge.value) {
     replaceScreen("challenge", screenUrl("challenge") + location.search)
   } else {
     replaceScreen(["setup", "game"].includes(screenFromPath()) ? "setup" : "home")
   }
   setup.value = history.state.screen === "setup"
   loadPool()
-  if (!previewGame.value) {
+  if (!previewGame.value && !resumable) {
     backdrop.value.next()
     backdrop.value.cycle(true)
   }
   backdrop.value.preload(3)
   await backdrop.value.ready.catch(error => console.warn(error))
+  if (resumable) {
+    restoreGame(resumable)
+  }
   await wait(MAP_DELAY_MS)
   loadMaps()
 })
@@ -684,7 +779,7 @@ onBeforeUnmount(() => {
   </Transition>
   <SlideBackdrop ref="backdrop" :active="isMenu || intro" :timer="isMenu" />
   <ChallengeScreen :visible="isMenu && Boolean(challenge)" :ready="canPlay" :hard="challenge?.seed.hard" :games="challenge?.seed.games" :rounds="challenge?.seed.rounds.length || 0" :score="challenge?.score" :error="seedError" @play="playChallenge" @menu="goHome" />
-  <HomeScreen :visible="isMenu && !challenge && !setup" :count="pool.length" :ready="canPlay" :best="overall.best" :last="overall.last" :average="overall.average" @play="goSetup" />
+  <HomeScreen :visible="isMenu && !challenge && !setup && !restoring" :count="pool.length" :ready="canPlay" :best="overall.best" :last="overall.last" :average="overall.average" @play="goSetup" />
   <SetupScreen :visible="isMenu && !challenge && setup" :ready="canPlay" :counts="counts" :rounds="roundCount" :games="games" :mode="mode" :best="best" :last="last" :average="average" :seed="seedInput" :seed-error="seedError" @start="newGame" @back="goHome" @games="setGames" @mode="setMode" @seed="openChallenge" />
   <RoundIntro :visible="intro" :number="status.index" :count="status.count" :progress="status.progress" :label="status.label" :tip="status.tip" :hard="gameHard" :countdown="status.countdown" :steps="COUNTDOWN" :waiting="status.waiting" />
 </template>
