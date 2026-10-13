@@ -2,7 +2,7 @@
 import { onMounted, ref, watch } from "vue"
 import { createSphere } from "../lib/sphere.js"
 
-const props = defineProps({ active: Boolean, boxed: Boolean })
+const props = defineProps({ active: Boolean, boxed: Boolean, faded: Boolean })
 const emit = defineEmits(["heading"])
 const canvas = ref(null)
 let sphere = null
@@ -24,7 +24,7 @@ defineExpose({
 </script>
 
 <template>
-  <canvas ref="canvas" class="sphere" :class="{ boxed }"></canvas>
+  <canvas ref="canvas" class="sphere" :class="{ boxed, faded }"></canvas>
 </template>
 
 <style scoped>
@@ -36,6 +36,11 @@ defineExpose({
   height: 100%;
   cursor: grab;
   touch-action: none;
+  transition: opacity 0.2s ease;
+}
+
+.sphere.faded {
+  opacity: 0;
 }
 
 .sphere.boxed {

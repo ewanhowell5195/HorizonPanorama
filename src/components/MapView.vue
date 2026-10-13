@@ -2,7 +2,7 @@
 import { ref } from "vue"
 import { createMap } from "../lib/map.js"
 
-const props = defineProps({ pickable: Boolean, pois: Boolean, scale: Boolean })
+const props = defineProps({ pickable: Boolean, pois: Boolean, scale: Boolean, faded: Boolean })
 const emit = defineEmits(["pick"])
 const host = ref(null)
 let map = null
@@ -23,7 +23,7 @@ defineExpose({
 </script>
 
 <template>
-  <div class="map-view">
+  <div class="map-view" :class="{ faded }">
     <div ref="host" class="map-host"></div>
   </div>
 </template>
@@ -32,5 +32,10 @@ defineExpose({
 .map-view {
   position: absolute;
   inset: 0;
+  transition: opacity 0.2s ease;
+}
+
+.map-view.faded {
+  opacity: 0;
 }
 </style>

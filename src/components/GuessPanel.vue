@@ -11,6 +11,7 @@ const large = ref(readStore("largeMap") === "1")
 const resizing = ref(false)
 const open = ref(false)
 const sizeTitle = computed(() => large.value ? "Shrink map" : "Enlarge map")
+const swapTitle = computed(() => props.swapped ? "Swap back: photosphere full screen" : "Swap: map full screen")
 const guessLabel = computed(() => props.hasGuess ? "Guess" : "Place your guess")
 let resizeTimer = 0
 
@@ -34,13 +35,13 @@ watch(() => props.hidden, () => open.value = false)
     <div class="map">
       <slot />
       <div id="sphere-box" class="sphere-box"></div>
+      <button class="swap-toggle" type="button" :title="swapTitle" :aria-label="swapTitle" @click="emit('swap')"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 5.5h10M10 3l2.5 2.5L10 8M13.5 10.5h-10M6 8l-2.5 2.5L6 13" /></svg></button>
       <button class="size-toggle" type="button" :title="sizeTitle" @click="toggleSize">
         <svg class="grow" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2.5h4v4M13.5 2.5 9 7M6.5 13.5h-4v-4M2.5 13.5 7 9" /></svg>
         <svg class="shrink" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 6.5h-4v-4M9.5 6.5 14 2M2.5 9.5h4v4M6.5 9.5 2 14" /></svg>
       </button>
     </div>
     <div class="actions">
-      <button class="secondary swap" type="button" :title="swapped ? 'Show the map small' : 'Show the map full screen'" :aria-label="swapped ? 'Show the map small' : 'Show the map full screen'" @click="emit('swap')"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 5.5h10M10 3l2.5 2.5L10 8M13.5 10.5h-10M6 8l-2.5 2.5L6 13" /></svg></button>
       <button class="secondary map-toggle" type="button" @click="open = !open">{{ swapped ? "View" : "Map" }}</button>
       <button type="button" :disabled="!hasGuess" @click="guess">{{ guessLabel }}</button>
     </div>
@@ -95,7 +96,7 @@ watch(() => props.hidden, () => open.value = false)
   height: min(880px, calc(100vh - 110px));
 }
 
-.size-toggle {
+.size-toggle, .swap-toggle {
   position: absolute;
   top: 8px;
   right: 8px;
@@ -113,12 +114,16 @@ watch(() => props.hidden, () => open.value = false)
   transition: opacity 0.15s ease 0.5s;
 }
 
-.size-toggle:hover:not(:disabled) {
+.swap-toggle {
+  right: 48px;
+}
+
+.size-toggle:hover:not(:disabled), .swap-toggle:hover:not(:disabled) {
   color: var(--accent);
   filter: none;
 }
 
-.guess:hover .size-toggle, .guess.resizing .size-toggle {
+.guess:hover .size-toggle, .guess.resizing .size-toggle, .guess:hover .swap-toggle, .guess.resizing .swap-toggle, .guess.open .swap-toggle {
   opacity: 1;
   pointer-events: auto;
   transition-delay: 0s;
@@ -151,18 +156,12 @@ watch(() => props.hidden, () => open.value = false)
   flex: 1;
 }
 
-.actions .swap {
-  flex: 0 0 auto;
-  display: grid;
-  place-items: center;
-  padding: 0 14px;
-}
-
 .sphere-box {
   display: none;
   position: absolute;
   inset: 0;
   z-index: 1;
+  container-type: size;
 }
 
 .guess.swapped .sphere-box {

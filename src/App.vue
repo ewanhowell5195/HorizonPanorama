@@ -21,6 +21,7 @@ const COUNTDOWN = 3
 // after RoundIntro's per tick ring step (0.45 s) and pulse (0.7 s) have finished
 const QUIET_MS = 700
 const MAP_DELAY_MS = 1200
+const SWAP_FADE_MS = 200
 const SCREEN_PATHS = { home: "", setup: "setup", challenge: "challenge", game: "game" }
 const SECRET = "horizon-panorama"
 const GAME_SUFFIXES = { both: "", hfw: "ForbiddenWest", hzd: "ZeroDawn" }
@@ -42,6 +43,7 @@ const games = ref(Object.hasOwn(GAME_SUFFIXES, readStore("games")) ? readStore("
 const intro = ref(false)
 const setup = ref(false)
 const swapped = ref(false)
+const swapFading = ref(false)
 const pool = ref([])
 const mapsReady = ref(false)
 let mapsLoading = null
@@ -319,6 +321,7 @@ async function startRound() {
   const current = game
   const round = current.rounds[current.index]
   swapped.value = false
+  swapFading.value = false
   prepare(round, current)
   clearMarkers()
   current.guess = null
@@ -543,6 +546,18 @@ async function playSeed(input) {
   begin(seed.rounds.map(round => Object.assign({}, byName.get(round.name), { view: round.view })), seed.hard, seed.games)
 }
 
+async function toggleSwap() {
+  if (swapFading.value) {
+    return
+  }
+  swapFading.value = true
+  await wait(SWAP_FADE_MS)
+  swapped.value = !swapped.value
+  await nextTick()
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+  swapFading.value = false
+}
+
 function enterGame() {
   if (history.state?.screen !== "game") {
     enter("game")
@@ -602,13 +617,13 @@ onBeforeUnmount(() => {
 
 <template>
   <Teleport to="#sphere-box" defer :disabled="!swapView">
-    <PhotoSphere ref="sphere" :active="sphereActive" :boxed="swapView" @heading="setHeading" />
+    <PhotoSphere ref="sphere" :active="sphereActive" :boxed="swapView" :faded="swapFading" @heading="setHeading" />
   </Teleport>
   <div id="map-full" class="map-full" :class="{ shown: swapView }"></div>
-  <GameHud :round="status.index" :count="status.count" :score="status.total" :heading="heading" :hidden="!isRound" :hard="gameHard" />
-  <GuessPanel :hidden="!isRound" :has-guess="hasGuess" :swapped="swapView" @guess="submitGuess" @swap="swapped = !swapped">
+  <GameHud :round="status.index" :count="status.count" :score="status.total" :heading="heading" :hidden="!isRound" :hard="gameHard" :swapped="swapView" :faded="swapFading" />
+  <GuessPanel :hidden="!isRound" :has-guess="hasGuess" :swapped="swapView" @guess="submitGuess" @swap="toggleSwap">
     <Teleport to="#map-full" defer :disabled="!swapView">
-      <MapView ref="minimap" pickable pois scale @pick="placeGuess" />
+      <MapView ref="minimap" pickable pois scale :faded="swapFading" @pick="placeGuess" />
     </Teleport>
   </GuessPanel>
   <div class="bigmap" :class="{ shown: showsMap }">
@@ -641,7 +656,6 @@ onBeforeUnmount(() => {
 }
 
 .map-full.shown {
-  background: #000;
   pointer-events: auto;
 }
 
