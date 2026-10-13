@@ -1,5 +1,5 @@
 {
-  "name": "horizon-panorama",
+  "name": "horizon-wayfinder",
   "type": "module",
   "scripts": {
     "dev": "vite",
