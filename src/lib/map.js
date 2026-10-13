@@ -1069,7 +1069,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
   }
 
   const world = await (await fetch(`${root}world.json`)).json()
-  hatchTexture = await loadOverlay(`${root}hatch.png`, gl.REPEAT, 0)
+  hatchTexture = await loadOverlay(`${root}hatch.avif`, gl.REPEAT, 0)
   const masks = new Map()
   layers = await Promise.all(world.layers.map(config => loadLayer(config, world.games, masks)))
   extent = tileExtent()
@@ -1095,7 +1095,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     const element = document.createElement("div")
     element.className = "map-poi"
     const image = document.createElement("img")
-    image.src = `${root}icons/${icon}.png`
+    image.src = `${root}icons/${icon}.avif`
     image.alt = ""
     element.append(image)
     markerLayer.prepend(element)

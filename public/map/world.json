@@ -6,7 +6,7 @@
     },
     "hzd": {
       "tileMetres": 512,
-      "border": { "mask": "border/border_dlc.png", "left": -6, "top": 8, "size": 16 }
+      "border": { "mask": "border/border_dlc.avif", "left": -6, "top": 8, "size": 16 }
     }
   },
   "layers": [
