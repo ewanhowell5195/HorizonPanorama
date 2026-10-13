@@ -1091,29 +1091,36 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     loadPointsOfInterest(Object.keys(world.games))
   }
 
+  function addPointOfInterest(game, type, icon, marker) {
+    const element = document.createElement("div")
+    element.className = "map-poi"
+    const image = document.createElement("img")
+    image.src = `${root}icons/${icon}.png`
+    image.alt = ""
+    element.append(image)
+    markerLayer.prepend(element)
+    const point = place(game, marker.x, marker.y)
+    pointsOfInterest.push({ type, x: point.x, y: point.y, element })
+  }
+
   async function loadPointsOfInterest(games) {
-    for (const game of games) {
-      try {
-        const response = await fetch(`${root}${game}/markers/markers.json`)
-        if (!response.ok) {
-          continue
-        }
-        const { markers: list } = await response.json()
-        for (const marker of list) {
-          const element = document.createElement("div")
-          element.className = "map-poi"
-          const image = document.createElement("img")
-          image.src = `${root}${game}/markers/icons/${marker.machine || marker.type}.png`
-          image.alt = ""
-          element.append(image)
-          markerLayer.prepend(element)
-          const point = place(game, marker.x, marker.y)
-          pointsOfInterest.push({ type: marker.type, x: point.x, y: point.y, element })
-        }
-        needsDraw = true
-      } catch (error) {
-        console.warn(error)
+    try {
+      const response = await fetch(`${root}icons/markers.json`)
+      if (!response.ok) {
+        return
       }
+      const data = await response.json()
+      for (const game of games.filter(game => data[game])) {
+        for (const marker of data[game].campfires) {
+          addPointOfInterest(game, "campfire", "campfire", marker)
+        }
+        for (const marker of data[game].machines) {
+          addPointOfInterest(game, "machine-site", marker.machine, marker)
+        }
+      }
+      needsDraw = true
+    } catch (error) {
+      console.warn(error)
     }
   }
 
