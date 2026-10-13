@@ -1,5 +1,9 @@
 const MIN_FOV = 15
 const MAX_FOV = 110
+const SPIN_DECAY = 4
+const SPIN_MAX = 6
+const SPIN_STOP = 0.01
+const SPIN_HOLD_MS = 80
 
 const vertexSource = `#version 300 es
   in vec2 position;
@@ -44,6 +48,9 @@ export function createSphere(canvas, { onHeading } = {}) {
   let needsDraw = true
   let active = true
   let locked = false
+  let spin = { yaw: 0, pitch: 0 }
+  let lastMove = 0
+  let lastFrame = performance.now()
 
   function compile(type, source) {
     const shader = gl.createShader(type)
@@ -136,8 +143,15 @@ export function createSphere(canvas, { onHeading } = {}) {
     }
   }
 
-  function draw() {
+  function draw(now) {
     requestAnimationFrame(draw)
+    const dt = Math.min((now - lastFrame) / 1000, 0.1)
+    lastFrame = now
+    if (!pointers.size && (spin.yaw || spin.pitch)) {
+      look(spin.yaw * dt, spin.pitch * dt)
+      const decay = Math.exp(-dt * SPIN_DECAY)
+      spin = Math.hypot(spin.yaw, spin.pitch) * decay < SPIN_STOP ? { yaw: 0, pitch: 0 } : { yaw: spin.yaw * decay, pitch: spin.pitch * decay }
+    }
     resize()
     if (!needsDraw || !texture || !canvas.width) {
       return
@@ -182,6 +196,8 @@ export function createSphere(canvas, { onHeading } = {}) {
     }
     canvas.setPointerCapture(event.pointerId)
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
+    spin = { yaw: 0, pitch: 0 }
+    lastMove = performance.now()
     canvas.classList.add("dragging")
     if (pointers.size === 2) {
       pinchDistance = pinchSpan()
@@ -202,11 +218,28 @@ export function createSphere(canvas, { onHeading } = {}) {
       return
     }
     const step = 2 * Math.tan(view.fov * Math.PI / 360) / canvas.clientHeight
-    look(-(current.x - previous.x) * step, (current.y - previous.y) * step)
+    const deltaYaw = -(current.x - previous.x) * step, deltaPitch = (current.y - previous.y) * step
+    look(deltaYaw, deltaPitch)
+    const time = performance.now()
+    const elapsed = (time - lastMove) / 1000
+    if (elapsed > 0) {
+      const blend = Math.min(elapsed / 0.05, 1)
+      spin = { yaw: spin.yaw + (deltaYaw / elapsed - spin.yaw) * blend, pitch: spin.pitch + (deltaPitch / elapsed - spin.pitch) * blend }
+      const speed = Math.hypot(spin.yaw, spin.pitch)
+      if (speed > SPIN_MAX) {
+        spin = { yaw: spin.yaw * SPIN_MAX / speed, pitch: spin.pitch * SPIN_MAX / speed }
+      }
+      lastMove = time
+    }
   })
 
   function endPointer(event) {
+    const wasPinch = pointers.size > 1
     pointers.delete(event.pointerId)
+    if (wasPinch || performance.now() - lastMove > SPIN_HOLD_MS) {
+      spin = { yaw: 0, pitch: 0 }
+    }
+    lastMove = performance.now()
     if (!pointers.size) {
       canvas.classList.remove("dragging")
     }
@@ -255,6 +288,7 @@ export function createSphere(canvas, { onHeading } = {}) {
       view.yaw = yaw
       view.pitch = pitch
       view.fov = 75
+      spin = { yaw: 0, pitch: 0 }
       needsDraw = true
     },
     discard(unused) {
@@ -265,6 +299,7 @@ export function createSphere(canvas, { onHeading } = {}) {
     },
     setLocked(value) {
       locked = value
+      spin = { yaw: 0, pitch: 0 }
       pointers.clear()
       canvas.classList.remove("dragging")
       canvas.classList.toggle("locked", value)
