@@ -5,8 +5,8 @@ import { readStore, writeStore } from "../lib/game.js"
 // covers the 0.4 s .guess and .map size transitions below
 const RESIZE_MS = 450
 
-const props = defineProps({ hidden: Boolean, hasGuess: Boolean })
-const emit = defineEmits(["guess"])
+const props = defineProps({ hidden: Boolean, hasGuess: Boolean, swapped: Boolean })
+const emit = defineEmits(["guess", "swap"])
 const large = ref(readStore("largeMap") === "1")
 const resizing = ref(false)
 const open = ref(false)
@@ -30,16 +30,18 @@ watch(() => props.hidden, () => open.value = false)
 </script>
 
 <template>
-  <div class="guess" :class="{ large, resizing, open, hidden }">
+  <div class="guess" :class="{ large, resizing, open, hidden, swapped }">
     <div class="map">
       <slot />
+      <div id="sphere-box" class="sphere-box"></div>
       <button class="size-toggle" type="button" :title="sizeTitle" @click="toggleSize">
         <svg class="grow" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2.5h4v4M13.5 2.5 9 7M6.5 13.5h-4v-4M2.5 13.5 7 9" /></svg>
         <svg class="shrink" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 6.5h-4v-4M9.5 6.5 14 2M2.5 9.5h4v4M6.5 9.5 2 14" /></svg>
       </button>
     </div>
     <div class="actions">
-      <button class="secondary map-toggle" type="button" @click="open = !open">Map</button>
+      <button class="secondary swap" type="button" :title="swapped ? 'Show the map small' : 'Show the map full screen'" :aria-label="swapped ? 'Show the map small' : 'Show the map full screen'" @click="emit('swap')"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 5.5h10M10 3l2.5 2.5L10 8M13.5 10.5h-10M6 8l-2.5 2.5L6 13" /></svg></button>
+      <button class="secondary map-toggle" type="button" @click="open = !open">{{ swapped ? "View" : "Map" }}</button>
       <button type="button" :disabled="!hasGuess" @click="guess">{{ guessLabel }}</button>
     </div>
   </div>
@@ -147,6 +149,24 @@ watch(() => props.hidden, () => open.value = false)
 
 .actions button {
   flex: 1;
+}
+
+.actions .swap {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  padding: 0 14px;
+}
+
+.sphere-box {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.guess.swapped .sphere-box {
+  display: block;
 }
 
 .map-toggle {

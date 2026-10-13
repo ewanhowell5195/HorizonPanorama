@@ -39,6 +39,7 @@ const mode = ref(readStore("mode") === "hard" ? "hard" : "normal")
 const games = ref(Object.hasOwn(GAME_SUFFIXES, readStore("games")) ? readStore("games") : "both")
 const intro = ref(false)
 const setup = ref(false)
+const swapped = ref(false)
 const pool = ref([])
 const mapsReady = ref(false)
 let mapsLoading = null
@@ -69,6 +70,7 @@ const isMenu = computed(() => phase.value === "menu")
 const isRound = computed(() => phase.value === "round")
 const showsMap = computed(() => (phase.value === "result" || phase.value === "summary") && !viewing.value)
 const playing = computed(() => isRound.value && !intro.value)
+const swapView = computed(() => swapped.value && playing.value)
 const sphereActive = computed(() => playing.value || Boolean(viewing.value && !viewing.value.loading))
 const choices = computed(() => games.value === "both" ? pool.value : pool.value.filter(round => round.game === games.value))
 const counts = computed(() => ({ both: pool.value.length, hfw: pool.value.filter(round => round.game === "hfw").length, hzd: pool.value.filter(round => round.game === "hzd").length }))
@@ -235,6 +237,7 @@ function loadMaps() {
 async function startRound() {
   const current = game
   const round = current.rounds[current.index]
+  swapped.value = false
   prepare(round, current)
   clearMarkers()
   current.guess = null
@@ -503,10 +506,15 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey))
 </script>
 
 <template>
-  <PhotoSphere ref="sphere" :active="sphereActive" @heading="setHeading" />
+  <Teleport to="#sphere-box" defer :disabled="!swapView">
+    <PhotoSphere ref="sphere" :active="sphereActive" :boxed="swapView" @heading="setHeading" />
+  </Teleport>
+  <div id="map-full" class="map-full" :class="{ shown: swapView }"></div>
   <GameHud :round="status.index" :count="status.count" :score="status.total" :heading="heading" :hidden="!isRound" :hard="gameHard" />
-  <GuessPanel :hidden="!isRound" :has-guess="hasGuess" @guess="submitGuess">
-    <MapView ref="minimap" pickable pois scale @pick="placeGuess" />
+  <GuessPanel :hidden="!isRound" :has-guess="hasGuess" :swapped="swapView" @guess="submitGuess" @swap="swapped = !swapped">
+    <Teleport to="#map-full" defer :disabled="!swapView">
+      <MapView ref="minimap" pickable pois scale @pick="placeGuess" />
+    </Teleport>
   </GuessPanel>
   <div class="bigmap" :class="{ shown: showsMap }">
     <MapView ref="bigmap" />
@@ -531,6 +539,17 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey))
 </template>
 
 <style scoped>
+.map-full {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.map-full.shown {
+  background: #000;
+  pointer-events: auto;
+}
+
 .bigmap {
   position: fixed;
   inset: 0;
