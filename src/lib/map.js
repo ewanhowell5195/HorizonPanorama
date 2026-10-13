@@ -2,6 +2,7 @@ const UNIT_METRES = 256
 const HATCH_METRES = 128
 const FOV = 30 * Math.PI / 180
 const MESH = 128
+const TILE_PIXELS = 1024
 const MAX_INFLIGHT = 6
 const MAX_TILES = 96
 const KEEP_LEVELS = 3
@@ -324,8 +325,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     cache.set(id, entry)
     inflight++
     const path = `${root}pyramids/${layer.id}/${level}/${i}_${j}`
-    const { version, format, heights } = layer.manifest
-    Promise.all([fetchBitmap(`${path}.${format}?v=${version}`), fetchHeights(`${path}.${heights.format}?v=${version}`, heights.grid)]).then(([bitmap, grid]) => {
+    Promise.all([fetchBitmap(`${path}.avif`), fetchHeights(`${path}.bin`, MESH + 1)]).then(([bitmap, grid]) => {
       entry.heights = grid
       uploads.push({ entry, bitmap })
     }).catch(error => {
@@ -352,7 +352,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
   }
 
   function evict() {
-    const ready = Array.from(cache.values()).filter(entry => entry.state === "ready" && entry.level < entry.layer.manifest.levels - KEEP_LEVELS && entry.used < frame)
+    const ready = Array.from(cache.values()).filter(entry => entry.state === "ready" && entry.level < entry.layer.levels - KEEP_LEVELS && entry.used < frame)
     let excess = ready.length - MAX_TILES
     if (excess <= 0) {
       return
@@ -549,7 +549,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
         return
       }
       const pixels = box.size * focal / distanceTo(box)
-      if (level > 0 && pixels > layer.manifest.tileSize * LOD_SCALE) {
+      if (level > 0 && pixels > TILE_PIXELS * LOD_SCALE) {
         for (let b = 0; b < 2; b++) {
           for (let a = 0; a < 2; a++) {
             visit(layer, level - 1, i * 2 + a, j * 2 + b)
@@ -560,7 +560,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
       wanted.push({ layer, level, i, j, box })
     }
     for (const layer of layers) {
-      const top = layer.manifest.levels - 1
+      const top = layer.levels - 1
       const count = Math.ceil(layer.domain.tiles / tileSize(top))
       for (let j = 0; j < count; j++) {
         for (let i = 0; i < count; i++) {
@@ -578,7 +578,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
 
   function schedule(wanted) {
     const missing = wanted.filter(node => !ready(node.layer, node.level, node.i, node.j)).sort((a, b) => focusDistance(a) - focusDistance(b))
-    const parents = wanted.filter(node => node.level < node.layer.manifest.levels - 1).map(node => ({ layer: node.layer, level: node.level + 1, i: node.i >> 1, j: node.j >> 1 }))
+    const parents = wanted.filter(node => node.level < node.layer.levels - 1).map(node => ({ layer: node.layer, level: node.level + 1, i: node.i >> 1, j: node.j >> 1 }))
     const children = []
     const neighbours = []
     const seen = new Set(wanted.map(node => key(node.layer, node.level, node.i, node.j)))
@@ -660,7 +660,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
         return
       }
     }
-    for (let level = node.level + 1; level < layer.manifest.levels; level++) {
+    for (let level = node.level + 1; level < layer.levels; level++) {
       const shift = level - node.level
       const i = node.i >> shift, j = node.j >> shift
       const parent = ready(layer, level, i, j)
@@ -1046,7 +1046,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
       throw new Error(`Could not load pyramids/${config.id}/pyramid.json`)
     }
     const manifest = await response.json()
-    const domain = manifest.domain
+    const domain = { minX: border.left, maxY: border.top - 1, tiles: border.size }
     const n = domain.tiles
     const occupancy = new Uint32Array((n + 1) * (n + 1))
     const grid = new Uint8Array(n * n)
@@ -1065,7 +1065,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
     const hidden = new Set(manifest.hidden.map(([i, j]) => `${i}_${j}`))
-    return { id: config.id, game: config.game, name: config.name, regions: config.regions, scale, offset, manifest, domain, occupancy, occupancyTexture, grid: [offset[0] + domain.minX * scale, offset[1] + (domain.maxY + 1) * scale, n * scale], hidden, borderTexture, border: [offset[0] + border.left * scale, offset[1] + border.top * scale, border.width * scale, border.height * scale] }
+    return { id: config.id, game: config.game, regions: config.regions, scale, offset, manifest, domain, levels: Math.log2(domain.tiles) + 2, occupancy, occupancyTexture, grid: [offset[0] + domain.minX * scale, offset[1] + (domain.maxY + 1) * scale, n * scale], hidden, borderTexture, border: [offset[0] + border.left * scale, offset[1] + border.top * scale, border.size * scale, border.size * scale] }
   }
 
   const world = await (await fetch(`${root}world.json`)).json()
@@ -1074,7 +1074,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
   layers = await Promise.all(world.layers.map(config => loadLayer(config, world.games, masks)))
   extent = tileExtent()
   for (const layer of layers) {
-    for (let level = layer.manifest.levels - 1; level >= layer.manifest.levels - KEEP_LEVELS; level--) {
+    for (let level = layer.levels - 1; level >= layer.levels - KEEP_LEVELS; level--) {
       const count = Math.ceil(layer.domain.tiles / tileSize(level))
       for (let j = 0; j < count; j++) {
         for (let i = 0; i < count; i++) {

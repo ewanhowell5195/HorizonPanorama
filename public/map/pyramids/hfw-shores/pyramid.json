@@ -1,10 +1,4 @@
 {
-  "levels": 8,
-  "tileSize": 1024,
-  "format": "avif",
-  "heights": { "format": "bin", "grid": 129 },
-  "version": 1791854593,
-  "domain": { "minX": -32, "maxY": 31, "tiles": 64 },
   "tiles": [
     [29, 53],
     [29, 54],
