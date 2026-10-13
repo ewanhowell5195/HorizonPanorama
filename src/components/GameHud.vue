@@ -1,18 +1,17 @@
 <script setup>
 import { computed } from "vue"
 
-const PIXELS_PER_DEGREE = 3
-const LABELS = { 0: "N", 45: "NE", 90: "E", 135: "SE", 180: "S", 225: "SW", 270: "W", 315: "NW" }
+const COMPASS_WIDTH = 2048
+const CARDINALS = [["N", 0], ["E", 512], ["S", 1024], ["W", 1536]]
 
 const props = defineProps({ round: Number, count: Number, score: Number, heading: Number, hidden: Boolean, hard: Boolean })
 
-const marks = []
-for (let degrees = -360; degrees <= 720; degrees += 15) {
-  const heading = ((degrees % 360) + 360) % 360
-  marks.push({ degrees, label: LABELS[heading] || "·", cardinal: heading % 90 === 0, left: `${(degrees + 360) * PIXELS_PER_DEGREE}px` })
-}
-
-const strip = computed(() => ({ transform: `translateX(${-(props.heading + 360) * PIXELS_PER_DEGREE}px)` }))
+const position = computed(() => props.heading * COMPASS_WIDTH / 360)
+const ticks = computed(() => ({ "--x": COMPASS_WIDTH - position.value }))
+const cardinals = computed(() => CARDINALS.map(([text, offset]) => {
+  const x = ((offset - position.value + COMPASS_WIDTH / 2) % COMPASS_WIDTH + COMPASS_WIDTH) % COMPASS_WIDTH - COMPASS_WIDTH / 2
+  return { text, style: { "--x": x } }
+}))
 </script>
 
 <template>
@@ -23,8 +22,13 @@ const strip = computed(() => ({ transform: `translateX(${-(props.heading + 360) 
       <div v-if="hard" class="stat"><span>Mode</span><strong class="hard">Hard</strong></div>
     </div>
     <div class="compass">
-      <div class="compass-strip" :style="strip">
-        <span v-for="mark in marks" :key="mark.degrees" :class="{ cardinal: mark.cardinal }" :style="{ left: mark.left }">{{ mark.label }}</span>
+      <div class="compass-shadow"></div>
+      <div class="compass-marks">
+        <div class="compass-bar">
+          <div class="compass-ticks" :style="ticks"></div>
+          <span v-for="cardinal in cardinals" :key="cardinal.text" :style="cardinal.style">{{ cardinal.text }}</span>
+        </div>
+        <div class="compass-line"></div>
       </div>
     </div>
   </div>
@@ -77,45 +81,70 @@ const strip = computed(() => ({ transform: `translateX(${-(props.heading + 360) 
 }
 
 .compass {
-  position: relative;
-  width: min(360px, 50vw);
-  height: 32px;
-  overflow: hidden;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  backdrop-filter: blur(6px);
+  --u: calc(100vh / 1080);
+  position: absolute;
+  top: calc(28.5px - 10.5 * var(--u));
+  left: 50%;
+  width: calc(630 * var(--u));
+  height: calc(21 * var(--u));
+  transform: translateX(-50%);
 }
 
-.compass-strip {
+.compass-bar {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  mask-image: url("/hud/compass-mask.png");
+  mask-size: 100% 100%;
+}
+
+.compass-ticks {
   position: absolute;
   top: 0;
-  left: 50%;
+  left: calc(50% - 2048 * var(--u));
+  width: calc(4096 * var(--u));
   height: 100%;
-  white-space: nowrap;
+  background: url("/hud/compass-strip.png") repeat-x;
+  background-size: calc(2048 * var(--u)) 100%;
+  background-position-x: calc(var(--x) * var(--u));
 }
 
-.compass-strip span {
+.compass-bar span {
   position: absolute;
-  top: 6px;
-  transform: translateX(-50%);
-  font-weight: 600;
-  color: var(--muted);
+  top: 50%;
+  left: calc(50% + var(--x) * var(--u));
+  transform: translate(-50%, -50%);
+  font-weight: 300;
+  font-size: calc(16.85 * var(--u));
+  line-height: 1;
+  color: #fff;
 }
 
-.compass-strip span.cardinal {
-  color: var(--text);
-}
-
-.compass::after {
-  content: "";
+.compass-shadow, .compass-line {
   position: absolute;
-  left: 50%;
-  bottom: 0;
-  width: 2px;
-  height: 8px;
-  background: var(--accent);
-  transform: translateX(-50%);
+  top: calc(-7 * var(--u));
+  left: calc(-3 * var(--u));
+  right: calc(-3 * var(--u));
+  height: calc(45 * var(--u));
+  background: url("/hud/compass-shadow.avif") no-repeat;
+  background-size: 100% 100%;
+}
+
+.compass-line {
+  background-image: url("/hud/compass-line.avif");
+}
+
+.compass-marks {
+  position: absolute;
+  inset: 0;
+  filter: drop-shadow(0 0 calc(1.5 * var(--u)) rgba(0, 0, 0, 0.6)) drop-shadow(0 0 calc(1.5 * var(--u)) rgba(0, 0, 0, 0.6));
+}
+
+@media (max-width: 1100px), (max-aspect-ratio: 4/3) {
+  .compass {
+    top: 76px;
+    width: min(630 * var(--u), 100%);
+  }
 }
 
 @media (hover: none), (max-width: 640px) {
@@ -125,7 +154,7 @@ const strip = computed(() => ({ transform: `translateX(${-(props.heading + 360) 
   }
 
   .compass {
-    width: 40vw;
+    top: 64px;
   }
 }
 </style>

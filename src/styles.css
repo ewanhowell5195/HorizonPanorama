@@ -1,5 +1,12 @@
 @font-face {
   font-family: "Oita Norm";
+  src: url("/map/fonts/OitaNormBook.woff2") format("woff2");
+  font-weight: 300;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Oita Norm";
   src: url("/map/fonts/OitaNormRegular.woff2") format("woff2");
   font-weight: 400;
   font-display: swap;
