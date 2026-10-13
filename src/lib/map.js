@@ -2,12 +2,14 @@ const UNIT_METRES = 256
 const HATCH_METRES = 128
 const FOV = 30 * Math.PI / 180
 const MESH = 128
+const MESH_SIZES = [8, 16, 32, 64, 128]
+const QUAD_PIXELS = { flat: 16, relief: 8 }
 const TILE_PIXELS = 1024
 const MAX_INFLIGHT = 6
 const MAX_TILES = 96
 const KEEP_LEVELS = 3
 const LOD_SCALE = 0.85
-const UPLOADS_PER_FRAME = 2
+const UPLOAD_BUDGET_MS = 4
 const PREFETCH_CHILDREN = 16
 const PREFETCH_NEIGHBOURS = 16
 const CLICK_DISTANCE = 6
@@ -119,11 +121,13 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     uniforms[name] = gl.getUniformLocation(program, name)
   }
 
-  const mesh = createMesh(MESH)
+  const meshes = MESH_SIZES.map(createMesh)
+  let boundMesh = null
   const cache = new Map()
   const uploads = []
   const markers = new Set()
   let inflight = 0
+  let evictable = 0
   let frame = 0
   let layers = []
   let extent
@@ -147,6 +151,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
   let velocity = { x: 0, y: 0 }
   let lastTime = performance.now()
   let drawn = []
+  let lastTile = null
   let flight = null
   const viewSize = { width: 0, height: 0 }
 
@@ -201,7 +206,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer())
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW)
     gl.bindVertexArray(null)
-    return { vao, count: indices.length }
+    return { vao, count: indices.length, size }
   }
 
   function placeholderTexture(value) {
@@ -219,7 +224,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     if (single) {
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, gl.RED, gl.UNSIGNED_BYTE, bitmap)
     } else {
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB8, gl.RGB, gl.UNSIGNED_BYTE, bitmap)
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, bitmap)
     }
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, wrap)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, wrap)
@@ -286,11 +291,11 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     return (top + (bottom - top) * fy) / 255
   }
 
-  function surfaceHeight({ box, entry, uv }, x, y) {
-    const gx = (x - box.x) / box.size * MESH, gy = (box.y - y) / box.size * MESH
-    const c = Math.min(Math.max(Math.floor(gx), 0), MESH - 1), r = Math.min(Math.max(Math.floor(gy), 0), MESH - 1)
+  function surfaceHeight({ box, entry, uv, quads }, x, y) {
+    const gx = (x - box.x) / box.size * quads, gy = (box.y - y) / box.size * quads
+    const c = Math.min(Math.max(Math.floor(gx), 0), quads - 1), r = Math.min(Math.max(Math.floor(gy), 0), quads - 1)
     const fx = gx - c, fy = gy - r
-    const at = (col, row) => sampleDepth(entry.heights, uv[0] + col / MESH * uv[2], uv[1] + row / MESH * uv[2])
+    const at = (col, row) => sampleDepth(entry.heights, uv[0] + col / quads * uv[2], uv[1] + row / quads * uv[2])
     if (fx + fy <= 1) {
       const origin = at(c, r)
       return origin + (at(c + 1, r) - origin) * fx + (at(c, r + 1) - origin) * fy
@@ -299,13 +304,15 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     return corner + (at(c, r + 1) - corner) * (1 - fx) + (at(c + 1, r) - corner) * (1 - fy)
   }
 
+  function covers(tile, x, y) {
+    return x >= tile.box.x && x <= tile.box.x + tile.box.size && y <= tile.box.y && y >= tile.box.y - tile.box.size
+  }
+
   function heightAt(x, y) {
-    for (const tile of drawn) {
-      if (x >= tile.box.x && x <= tile.box.x + tile.box.size && y <= tile.box.y && y >= tile.box.y - tile.box.size) {
-        return surfaceHeight(tile, x, y) * relief
-      }
+    if (!lastTile || !covers(lastTile, x, y)) {
+      lastTile = drawn.find(tile => covers(tile, x, y))
     }
-    return 0
+    return lastTile ? surfaceHeight(lastTile, x, y) * relief : 0
   }
 
   function tileSize(level) {
@@ -313,7 +320,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
   }
 
   function key(layer, level, i, j) {
-    return `${layer.id}/${level}/${i}/${j}`
+    return ((layer.index * 16 + level) * 8192 + j) * 8192 + i
   }
 
   function exists(layer, level, i, j) {
@@ -365,7 +372,8 @@ export async function createMap(container, { root, onPick, pois = false, scale =
   }
 
   function processUploads() {
-    for (let n = 0; n < UPLOADS_PER_FRAME && uploads.length; n++) {
+    const start = performance.now()
+    while (uploads.length && performance.now() - start < UPLOAD_BUDGET_MS) {
       const { entry, bitmap } = uploads.shift()
       if (cache.get(key(entry.layer, entry.level, entry.i, entry.j)) !== entry) {
         bitmap.close()
@@ -374,11 +382,17 @@ export async function createMap(container, { root, onPick, pois = false, scale =
       entry.color = uploadTexture(bitmap, { single: false, mipmaps: true, wrap: gl.CLAMP_TO_EDGE })
       entry.depth = uploadHeights(entry.heights)
       entry.state = "ready"
+      if (entry.level < entry.layer.levels - KEEP_LEVELS) {
+        evictable++
+      }
       needsDraw = true
     }
   }
 
   function evict() {
+    if (evictable <= MAX_TILES) {
+      return
+    }
     const ready = Array.from(cache.values()).filter(entry => entry.state === "ready" && entry.level < entry.layer.levels - KEEP_LEVELS && entry.used < frame)
     let excess = ready.length - MAX_TILES
     if (excess <= 0) {
@@ -392,6 +406,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
       gl.deleteTexture(entry.color)
       gl.deleteTexture(entry.depth)
       cache.delete(key(entry.layer, entry.level, entry.i, entry.j))
+      evictable--
     }
   }
 
@@ -590,7 +605,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
         }
         return
       }
-      wanted.push({ layer, level, i, j, box })
+      wanted.push({ layer, level, i, j, box, pixels })
     }
     for (const layer of layers) {
       const top = layer.levels - 1
@@ -610,6 +625,15 @@ export async function createMap(container, { root, onPick, pois = false, scale =
   }
 
   function schedule(wanted) {
+    for (const node of wanted) {
+      const entry = cache.get(key(node.layer, node.level, node.i, node.j))
+      if (entry) {
+        entry.used = frame
+      }
+    }
+    if (inflight >= MAX_INFLIGHT) {
+      return
+    }
     const missing = wanted.filter(node => !ready(node.layer, node.level, node.i, node.j)).sort((a, b) => focusDistance(a) - focusDistance(b))
     const parents = wanted.filter(node => node.level < node.layer.levels - 1).map(node => ({ layer: node.layer, level: node.level + 1, i: node.i >> 1, j: node.j >> 1 }))
     const children = []
@@ -651,9 +675,19 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     }
   }
 
-  function drawTile(box, entry, uv) {
+  function meshFor(pixels) {
+    const target = pixels / (threeD ? QUAD_PIXELS.relief : QUAD_PIXELS.flat)
+    return meshes.find(mesh => mesh.size >= target / Math.SQRT2) || meshes[meshes.length - 1]
+  }
+
+  function drawTile(box, entry, uv, pixels) {
+    const mesh = meshFor(pixels)
+    if (mesh !== boundMesh) {
+      gl.bindVertexArray(mesh.vao)
+      boundMesh = mesh
+    }
     entry.used = frame
-    drawn.push({ box, entry, uv })
+    drawn.push({ box, entry, uv, quads: mesh.size })
     gl.activeTexture(gl.TEXTURE0)
     gl.bindTexture(gl.TEXTURE_2D, entry.color)
     gl.activeTexture(gl.TEXTURE1)
@@ -668,7 +702,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     const layer = node.layer
     const own = ready(layer, node.level, node.i, node.j)
     if (own) {
-      drawTile(node.box, own, [0, 0, 1])
+      drawTile(node.box, own, [0, 0, 1], node.pixels)
       return
     }
     if (node.level > 0) {
@@ -689,7 +723,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
         }
       }
       if (complete && children.length) {
-        children.forEach(([box, child]) => drawTile(box, child, [0, 0, 1]))
+        children.forEach(([box, child]) => drawTile(box, child, [0, 0, 1], node.pixels / 2))
         return
       }
     }
@@ -699,7 +733,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
       const parent = ready(layer, level, i, j)
       if (parent) {
         const scale = 1 / 2 ** shift
-        drawTile(node.box, parent, [(node.i - (i << shift)) * scale, (node.j - (j << shift)) * scale, scale])
+        drawTile(node.box, parent, [(node.i - (i << shift)) * scale, (node.j - (j << shift)) * scale, scale], node.pixels)
         return
       }
     }
@@ -795,6 +829,14 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     needsDraw = true
   }
 
+  function position(item, point) {
+    const transform = `translate(${point.x.toFixed(1)}px, ${point.y.toFixed(1)}px)`
+    if (item.transform !== transform) {
+      item.transform = transform
+      item.element.style.transform = transform
+    }
+  }
+
   function updateMarkers() {
     const origin = project(camera.x, camera.y, 0)
     const across = project(camera.x + 1, camera.y, 0)
@@ -821,8 +863,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
         poi.element.style.display = inside ? "" : "none"
       }
       if (inside) {
-        const point = project(poi.x, poi.y, heightAt(poi.x, poi.y))
-        poi.element.style.transform = `translate(${point.x}px, ${point.y}px)`
+        position(poi, project(poi.x, poi.y, heightAt(poi.x, poi.y)))
       }
     }
     if (scale && unitPixels > 0) {
@@ -832,8 +873,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
       scaleLabel.textContent = metres < 1000 ? `${metres} m` : `${metres / 1000} km`
     }
     for (const marker of markers) {
-      const point = project(marker.x, marker.y, heightAt(marker.x, marker.y))
-      marker.element.style.transform = `translate(${point.x}px, ${point.y}px)`
+      position(marker, project(marker.x, marker.y, heightAt(marker.x, marker.y)))
     }
     for (const entry of lines) {
       const [a, b] = entry.ends.map(end => project(end.x, end.y, heightAt(end.x, end.y)))
@@ -860,7 +900,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
       hoverMoved = false
       updateElevation()
     }
-    if (!needsDraw && !uploads.length && !inflight) {
+    if (!needsDraw) {
       return
     }
     needsDraw = false
@@ -876,7 +916,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     gl.enable(gl.BLEND)
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
     gl.useProgram(program)
-    gl.bindVertexArray(mesh.vao)
+    boundMesh = null
     gl.uniformMatrix4fv(uniforms.uViewProj, false, viewProj)
     gl.uniform1f(uniforms.uRelief, relief)
     gl.uniform1i(uniforms.uColor, 0)
@@ -887,6 +927,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     gl.activeTexture(gl.TEXTURE3)
     gl.bindTexture(gl.TEXTURE_2D, hatchTexture)
     drawn = []
+    lastTile = null
     for (const layer of layers) {
       gl.uniform4f(uniforms.uDomain, layer.border[0], layer.border[1], layer.border[2], layer.border[3])
       gl.activeTexture(gl.TEXTURE2)
@@ -1206,7 +1247,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     }
   }
 
-  async function loadLayer(config, games, masks) {
+  async function loadLayer(config, games, masks, index) {
     const game = games[config.game]
     const scale = game.tileMetres / UNIT_METRES
     const offset = [config.offsetMetres[0] / UNIT_METRES, config.offsetMetres[1] / UNIT_METRES]
@@ -1235,14 +1276,14 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
     const hidden = new Set(config.hidden.map(([i, j]) => `${i}_${j}`))
-    return { id: config.id, game: config.game, regions: config.regions, tiles: config.tiles, scale, offset, domain, levels: Math.log2(domain.tiles) + 2, occupancy, occupancyTexture, grid: [offset[0] + domain.minX * scale, offset[1] + (domain.maxY + 1) * scale, n * scale], hidden, borderTexture, border: [offset[0] + mask.left * scale, offset[1] + mask.top * scale, mask.width * scale, mask.height * scale] }
+    return { index, id: config.id, game: config.game, regions: config.regions, tiles: config.tiles, scale, offset, domain, levels: Math.log2(domain.tiles) + 2, occupancy, occupancyTexture, grid: [offset[0] + domain.minX * scale, offset[1] + (domain.maxY + 1) * scale, n * scale], hidden, borderTexture, border: [offset[0] + mask.left * scale, offset[1] + mask.top * scale, mask.width * scale, mask.height * scale] }
   }
 
   const world = await (await fetch(`${root}world.json`)).json()
   games = world.games
   hatchTexture = await loadOverlay(`${root}hatch.avif`, gl.REPEAT, 0)
   const masks = new Map()
-  layers = await Promise.all(world.layers.map(config => loadLayer(config, world.games, masks)))
+  layers = await Promise.all(world.layers.map((config, index) => loadLayer(config, world.games, masks, index)))
   extent = tileExtent()
   for (const layer of layers) {
     for (let level = layer.levels - 1; level >= layer.levels - KEEP_LEVELS; level--) {
