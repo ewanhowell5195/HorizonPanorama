@@ -18,9 +18,6 @@ function scatterLetters() {
     const angle = between(0, Math.PI * 2)
     const distance = between(0.15, 0.6)
     const style = {
-      "--tilt": `${between(-4, 4).toFixed(1)}deg`,
-      "--lift": `${between(-0.06, 0.06).toFixed(3)}em`,
-      "--scale": between(0.94, 1.06).toFixed(3),
       "--spin": `${between(-28, 28).toFixed(1)}deg`,
       "--grow": between(1.4, 2.3).toFixed(2),
       "--from-x": `${(Math.cos(angle) * distance).toFixed(3)}em`,
@@ -176,7 +173,6 @@ function playSeed() {
 
 .piece {
   display: inline-block;
-  transform: translateY(var(--lift)) rotate(var(--tilt)) scale(var(--scale));
 }
 
 .home.visible .piece {
@@ -186,7 +182,7 @@ function playSeed() {
 @keyframes slap {
   from {
     opacity: 0;
-    transform: translate(var(--from-x), calc(var(--lift) + var(--from-y))) rotate(calc(var(--tilt) + var(--spin))) scale(calc(var(--scale) * var(--grow)));
+    transform: translate(var(--from-x), var(--from-y)) rotate(var(--spin)) scale(var(--grow));
   }
 
   30% {
@@ -195,7 +191,7 @@ function playSeed() {
 
   to {
     opacity: 1;
-    transform: translateY(var(--lift)) rotate(var(--tilt)) scale(var(--scale));
+    transform: none;
   }
 }
 
