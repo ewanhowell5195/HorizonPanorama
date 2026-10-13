@@ -37,6 +37,7 @@ const mode = ref(readStore("mode") === "hard" ? "hard" : "normal")
 const intro = ref(false)
 const pool = ref([])
 const mapsReady = ref(false)
+let mapsLoading = null
 const best = ref(storedScore(scoreKey("bestScore")))
 const last = ref(storedScore(scoreKey("lastScore")))
 const average = ref(averageScore())
@@ -66,7 +67,7 @@ const showsMap = computed(() => (phase.value === "result" || phase.value === "su
 const playing = computed(() => isRound.value && !intro.value)
 const sphereActive = computed(() => playing.value || Boolean(viewing.value && !viewing.value.loading))
 const roundCount = computed(() => Math.min(ROUNDS, pool.value.length))
-const canPlay = computed(() => mapsReady.value && pool.value.length > 0)
+const canPlay = computed(() => pool.value.length > 0)
 const hard = computed(() => mode.value === "hard")
 const gameHard = ref(false)
 
@@ -206,6 +207,15 @@ async function countDown(current, round) {
   }
 }
 
+function loadMaps() {
+  mapsLoading ??= (async () => {
+    await minimap.value.load()
+    await bigmap.value.load()
+    mapsReady.value = true
+  })()
+  return mapsLoading
+}
+
 async function startRound() {
   const current = game
   const round = current.rounds[current.index]
@@ -224,7 +234,7 @@ async function startRound() {
   status.tip = tips[Math.floor(Math.random() * tips.length)]
   phase.value = "round"
   intro.value = true
-  minimap.value.fit(null, { snap: true })
+  loadMaps().then(() => minimap.value.fit(null, { snap: true }))
   backdrop.value.cycle(false)
   backdrop.value.next()
   preload(current.index)
@@ -233,6 +243,10 @@ async function startRound() {
     status.label = status.progress < 1 ? `Loading photosphere ${Math.round(status.progress * 100)}%` : "Ready"
   }, 60)
   await countDown(current, round)
+  if (!mapsReady.value && game === current) {
+    status.waiting = true
+    await loadMaps()
+  }
   if (!round.prepared && !round.bitmap && game === current) {
     status.waiting = true
     try {
@@ -463,9 +477,7 @@ onMounted(async () => {
   backdrop.value.preload(3)
   await backdrop.value.ready.catch(error => console.warn(error))
   await wait(MAP_DELAY_MS)
-  await minimap.value.load()
-  await bigmap.value.load()
-  mapsReady.value = true
+  loadMaps()
 })
 
 onBeforeUnmount(() => window.removeEventListener("keydown", onKey))
