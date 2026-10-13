@@ -4,8 +4,8 @@ import { MAX_POINTS } from "../lib/game.js"
 
 const GAMES = [
   { id: "both", name: "Both games" },
-  { id: "hfw", name: "Forbidden West" },
-  { id: "hzd", name: "Zero Dawn" }
+  { id: "hzd", name: "Zero Dawn" },
+  { id: "hfw", name: "Forbidden West" }
 ]
 const MODES = [
   { id: "normal", name: "Normal", detail: "Look around freely" },

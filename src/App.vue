@@ -24,7 +24,7 @@ const MAP_DELAY_MS = 1200
 const SWAP_FADE_MS = 200
 const SCREEN_PATHS = { home: "", setup: "setup", challenge: "challenge", game: "game" }
 const SECRET = "horizon-panorama"
-const GAME_SUFFIXES = { both: "", hfw: "ForbiddenWest", hzd: "ZeroDawn" }
+const GAME_SUFFIXES = { both: "", hzd: "ZeroDawn", hfw: "ForbiddenWest" }
 const COMBINATIONS = [false, true].flatMap(isHard => Object.keys(GAME_SUFFIXES).map(which => [isHard, which]))
 const TIPS = [
   "Hover the map in the corner to open it. The button in its corner makes it bigger.",
@@ -78,7 +78,7 @@ const playing = computed(() => isRound.value && !intro.value)
 const swapView = computed(() => swapped.value && playing.value)
 const sphereActive = computed(() => playing.value || Boolean(viewing.value && !viewing.value.loading))
 const choices = computed(() => games.value === "both" ? pool.value : pool.value.filter(round => round.game === games.value))
-const counts = computed(() => ({ both: pool.value.length, hfw: pool.value.filter(round => round.game === "hfw").length, hzd: pool.value.filter(round => round.game === "hzd").length }))
+const counts = computed(() => ({ both: pool.value.length, hzd: pool.value.filter(round => round.game === "hzd").length, hfw: pool.value.filter(round => round.game === "hfw").length }))
 const roundCount = computed(() => Math.min(ROUNDS, choices.value.length))
 const canPlay = computed(() => pool.value.length > 0)
 const hard = computed(() => mode.value === "hard")

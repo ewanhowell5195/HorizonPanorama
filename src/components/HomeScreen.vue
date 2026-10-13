@@ -52,7 +52,7 @@ function play() {
     <div class="home-main">
       <p class="eyebrow rise" style="--i: 1">Guess the location</p>
       <h1 class="title" aria-label="Horizon Panorama"><span class="rise" style="--i: 2">Horizon</span><span class="pieces" aria-hidden="true"><span v-for="(piece, n) in pieces" :key="n" class="piece" :style="piece.style">{{ piece.char }}</span></span></h1>
-      <p class="lede rise" style="--i: 3">Each round puts you somewhere in Horizon Forbidden West or Horizon Zero Dawn. Have a look around, then drop a pin on the map where you think you are.</p>
+      <p class="lede rise" style="--i: 3">Each round puts you somewhere in Horizon Zero Dawn or Horizon Forbidden West. Have a look around, then drop a pin on the map where you think you are.</p>
       <div class="cta rise" style="--i: 4">
         <button class="play" type="button" :disabled="!ready" @click="play">Play<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4" /></svg></button>
       </div>

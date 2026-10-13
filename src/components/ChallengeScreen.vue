@@ -8,8 +8,8 @@ const emit = defineEmits(["play", "menu"])
 const hasScore = computed(() => props.score !== null && props.score !== undefined)
 const modeName = computed(() => props.hard ? "Hard" : "Normal")
 const modeDetail = computed(() => props.hard ? "Fixed view, no zoom" : "Look around freely")
-const gameName = computed(() => ({ hfw: "Forbidden West", hzd: "Zero Dawn" })[props.games] || "Both games")
-const gameDetail = computed(() => props.games === "hfw" || props.games === "hzd" ? `Horizon ${gameName.value} only` : "Forbidden West and Zero Dawn")
+const gameName = computed(() => ({ hzd: "Zero Dawn", hfw: "Forbidden West" })[props.games] || "Both games")
+const gameDetail = computed(() => props.games === "hzd" || props.games === "hfw" ? `Horizon ${gameName.value} only` : "Zero Dawn and Forbidden West")
 
 function play() {
   emit("play")

@@ -3,7 +3,7 @@ const EPOCH = Date.UTC(2020, 0, 1) / 1000
 const TIME_DIGITS = 6
 const VIEW_DIGITS = 3
 const YAW_STEP = 2
-const MODES = { n: [false, "both"], h: [true, "both"], f: [false, "hfw"], g: [true, "hfw"], z: [false, "hzd"], y: [true, "hzd"] }
+const MODES = { n: [false, "both"], h: [true, "both"], z: [false, "hzd"], y: [true, "hzd"], f: [false, "hfw"], g: [true, "hfw"] }
 
 function checksum(text) {
   let sum = 0

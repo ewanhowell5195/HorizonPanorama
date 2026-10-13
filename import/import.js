@@ -12,8 +12,8 @@ const INBOX = path.join(HERE, "captures")
 const STEAM = "C:/Program Files (x86)/Steam/steamapps/common"
 const SOURCES = [
   [INBOX, "hfw"],
-  [`${STEAM}/Horizon Forbidden West Complete Edition/nativemods/Photosphere/photospheres`, "hfw"],
-  [`${STEAM}/Horizon Zero Dawn Remastered/nativemods/Photosphere/photospheres`, "hzd"]
+  [`${STEAM}/Horizon Zero Dawn Remastered/nativemods/Photosphere/photospheres`, "hzd"],
+  [`${STEAM}/Horizon Forbidden West Complete Edition/nativemods/Photosphere/photospheres`, "hfw"]
 ]
 const OUT = path.join(ROOT, "public", "photospheres")
 const INDEX = path.join(OUT, "photospheres.json")
