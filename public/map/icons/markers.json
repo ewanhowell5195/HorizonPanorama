@@ -298,7 +298,6 @@
       { "x": -1553.45, "y": -2040.32, "z": 252.51, "machine": "behemoth", "name": "Behemoth Site" },
       { "x": -1483.05, "y": 1.57, "z": 571.85, "machine": "fire-bellowback", "name": "Fire Bellowback Site" },
       { "x": -1457.5, "y": 599.75, "z": 368.78, "machine": "charger", "name": "Charger Site" },
-      { "x": -1453.43, "y": -178.43, "z": 552.49, "machine": "thunderjaw", "name": "Thunderjaw Site" },
       { "x": -1453.43, "y": -178.43, "z": 552.49, "machine": "tremortusk", "name": "Tremortusk Site" },
       { "x": -1444.67, "y": -1538.95, "z": 306.0, "machine": "acid-bristleback", "name": "Acid Bristleback Site" },
       { "x": -1389.0, "y": -1778.59, "z": 285.45, "machine": "redeye-watcher", "name": "Redeye Watcher Site" },
