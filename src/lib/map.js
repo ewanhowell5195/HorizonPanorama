@@ -1011,7 +1011,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
   function tileExtent() {
     const box = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity }
     for (const layer of layers) {
-      for (const [col, row] of layer.manifest.tiles) {
+      for (const [col, row] of layer.tiles) {
         const x = layer.offset[0] + (layer.domain.minX + col) * layer.scale
         const y = layer.offset[1] + (layer.domain.maxY - row) * layer.scale
         box.minX = Math.min(box.minX, x)
@@ -1041,16 +1041,12 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     if (!masks.has(maskUrl)) {
       masks.set(maskUrl, loadOverlay(maskUrl, gl.CLAMP_TO_EDGE, 255))
     }
-    const [response, borderTexture] = await Promise.all([fetch(`${root}pyramids/${config.id}/pyramid.json`), masks.get(maskUrl)])
-    if (!response.ok) {
-      throw new Error(`Could not load pyramids/${config.id}/pyramid.json`)
-    }
-    const manifest = await response.json()
+    const borderTexture = await masks.get(maskUrl)
     const domain = { minX: game.domain.left, maxY: game.domain.top - 1, tiles: game.domain.size }
     const n = domain.tiles
     const occupancy = new Uint32Array((n + 1) * (n + 1))
     const grid = new Uint8Array(n * n)
-    manifest.tiles.forEach(([col, row]) => grid[row * n + col] = 1)
+    config.tiles.forEach(([col, row]) => grid[row * n + col] = 1)
     for (let row = 0; row < n; row++) {
       for (let col = 0; col < n; col++) {
         occupancy[(row + 1) * (n + 1) + col + 1] = grid[row * n + col] + occupancy[row * (n + 1) + col + 1] + occupancy[(row + 1) * (n + 1) + col] - occupancy[row * (n + 1) + col]
@@ -1064,8 +1060,8 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
-    const hidden = new Set(manifest.hidden.map(([i, j]) => `${i}_${j}`))
-    return { id: config.id, game: config.game, regions: config.regions, scale, offset, manifest, domain, levels: Math.log2(domain.tiles) + 2, occupancy, occupancyTexture, grid: [offset[0] + domain.minX * scale, offset[1] + (domain.maxY + 1) * scale, n * scale], hidden, borderTexture, border: [offset[0] + mask.left * scale, offset[1] + mask.top * scale, mask.width * scale, mask.height * scale] }
+    const hidden = new Set(config.hidden.map(([i, j]) => `${i}_${j}`))
+    return { id: config.id, game: config.game, regions: config.regions, tiles: config.tiles, scale, offset, domain, levels: Math.log2(domain.tiles) + 2, occupancy, occupancyTexture, grid: [offset[0] + domain.minX * scale, offset[1] + (domain.maxY + 1) * scale, n * scale], hidden, borderTexture, border: [offset[0] + mask.left * scale, offset[1] + mask.top * scale, mask.width * scale, mask.height * scale] }
   }
 
   const world = await (await fetch(`${root}world.json`)).json()
