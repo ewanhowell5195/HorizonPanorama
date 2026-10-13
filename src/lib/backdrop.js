@@ -140,7 +140,7 @@ export async function createBackdrop(canvas, { onSlide } = {}) {
 
   function load(entry) {
     if (!cache.has(entry.file)) {
-      cache.set(entry.file, bitmap(`/backgrounds/${entry.file}`).then(image => {
+      cache.set(entry.file, bitmap(`/backgrounds/${entry.file}.avif`).then(image => {
         const slide = { texture: texture(image, gl.CLAMP_TO_EDGE), aspect: image.width / image.height }
         image.close()
         return slide
