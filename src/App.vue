@@ -14,7 +14,7 @@ import SummaryCard from "./components/SummaryCard.vue"
 import { MAX_POINTS, ROUNDS, formatDistance, points, readStore, shuffle, wait, writeStore } from "./lib/game.js"
 import { METRES_PER_UNIT } from "./lib/map.js"
 import { answerMarker, pin } from "./lib/markers.js"
-import { decodeScore, decodeSeed, encodeSeed, seedLink, snapView } from "./lib/seed.js"
+import { decodeScore, decodeSeed, encodeSeed, randomCode, seededRandom, seedLink, startView } from "./lib/seed.js"
 import { pickView } from "./lib/view.js"
 
 const COUNTDOWN = 3
@@ -90,6 +90,8 @@ let resultMarkers = []
 let presentedRound = -1
 let viewToken = 0
 let trail = []
+let paused = null
+let introRunning = false
 
 function readChallenge(input) {
   const seed = decodeSeed(input)
@@ -158,15 +160,15 @@ function leaveTo(screen) {
 
 function show(screen) {
   if (screen === "game") {
-    if (!game) {
-      replaceScreen("setup")
-      show("setup")
+    if (game && game.seed === new URLSearchParams(location.search).get("seed")) {
+      resumeGame()
+      return
     }
+    replaceScreen("challenge", screenUrl("challenge") + location.search)
+    show("challenge")
     return
   }
-  if (phase.value !== "menu") {
-    resetToMenu()
-  }
+  pauseGame()
   seedError.value = ""
   challenge.value = screen === "challenge" ? readChallenge(location.search) : null
   if (screen === "challenge" && !challenge.value) {
@@ -274,7 +276,7 @@ function prepare(round, current) {
     return
   }
   if (!round.view) {
-    round.view = snapView(current.hard ? pickView(round.bitmap, window.innerWidth / Math.max(window.innerHeight, 1)) : { yaw: Math.random() * Math.PI * 2, pitch: 0 })
+    round.view = current.hard ? pickView(round.bitmap, seededRandom(round.code)) : startView(round.code)
   }
   round.prepared = { texture: sphere.value.upload(round.bitmap), view: round.view }
   round.bitmap = null
@@ -337,6 +339,7 @@ async function startRound() {
   status.tip = tips[Math.floor(Math.random() * tips.length)]
   phase.value = "round"
   intro.value = true
+  introRunning = true
   loadMaps().then(() => minimap.value.fit(null, { snap: true, game: current.games === "both" ? null : current.games }))
   backdrop.value.cycle(false)
   backdrop.value.next()
@@ -373,6 +376,7 @@ async function startRound() {
   sphere.value.setLocked(current.hard)
   round.prepared = null
   round.image = null
+  introRunning = false
   intro.value = false
   preload(current.index + 1)
 }
@@ -441,7 +445,7 @@ async function showSummary() {
   writeStore(key("gamesPlayed"), (storedScore(key("gamesPlayed")) || 0) + 1)
   writeStore(key("scoreSum"), (storedScore(key("scoreSum")) || 0) + game.total)
   refreshScores()
-  summary.value = { seed: encodeSeed(game), total: game.total, max: game.rounds.length * MAX_POINTS, results: game.results.map(entry => ({ distance: formatDistance(entry.metres), score: entry.score })) }
+  summary.value = { seed: game.seed, total: game.total, max: game.rounds.length * MAX_POINTS, results: game.results.map(entry => ({ distance: formatDistance(entry.metres), score: entry.score })) }
   phase.value = "summary"
   await nextTick()
   bigmap.value.fit(game.results.flatMap(entry => [entry.guess, entry.answer]), { inset: (summaryCard.value?.$el.offsetHeight || 0) + 40 })
@@ -500,10 +504,12 @@ function closeView() {
   viewing.value = null
 }
 
-function resetToMenu() {
-  game = null
+function pauseGame() {
+  if (!game || phase.value === "menu") {
+    return
+  }
+  paused = { phase: phase.value }
   closeView()
-  clearMarkers()
   phase.value = "menu"
   intro.value = false
   loadPool()
@@ -511,10 +517,33 @@ function resetToMenu() {
   backdrop.value.cycle(true)
 }
 
+function resumeGame() {
+  if (!paused) {
+    return
+  }
+  seedError.value = ""
+  challenge.value = null
+  setup.value = false
+  phase.value = paused.phase
+  intro.value = introRunning
+  paused = null
+  backdrop.value.cycle(false)
+}
+
 function begin(rounds, isHard, which) {
   seedError.value = ""
   closeView()
+  paused = null
   game = { rounds, index: 0, total: 0, results: [], state: "round", guess: null, hard: isHard, games: which }
+  game.seed = encodeSeed(game)
+  const url = `${screenUrl("game")}?seed=${game.seed}`
+  if (history.state?.screen === "game") {
+    replaceScreen("game", url)
+  } else {
+    enter("game", url)
+  }
+  challenge.value = null
+  setup.value = false
   gameHard.value = isHard
   preload(0)
   startRound()
@@ -525,8 +554,7 @@ async function newGame() {
   if (!choices.value.length) {
     return
   }
-  enterGame()
-  begin(shuffle(choices.value).slice(0, ROUNDS).map(round => Object.assign({}, round)), hard.value, games.value)
+  begin(shuffle(choices.value).slice(0, ROUNDS).map(round => Object.assign({}, round, { code: randomCode() })), hard.value, games.value)
 }
 
 async function playSeed(input) {
@@ -542,8 +570,7 @@ async function playSeed(input) {
     seedError.value = missing.length === seed.rounds.length ? "None of this seed's photospheres are available any more." : `${missing.length} of this seed's photospheres ${missing.length === 1 ? "is" : "are"} no longer available.`
     return
   }
-  enterGame()
-  begin(seed.rounds.map(round => Object.assign({}, byName.get(round.name), { view: round.view })), seed.hard, seed.games)
+  begin(seed.rounds.map(round => Object.assign({}, byName.get(round.name), { code: round.code })), seed.hard, seed.games)
 }
 
 async function toggleSwap() {
@@ -556,12 +583,6 @@ async function toggleSwap() {
   await nextTick()
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
   swapFading.value = false
-}
-
-function enterGame() {
-  if (history.state?.screen !== "game") {
-    enter("game")
-  }
 }
 
 function replay() {
@@ -579,7 +600,7 @@ function onKey(event) {
     goHome()
     return
   }
-  if (event.key !== " " && event.key !== "Enter") {
+  if (isMenu.value || (event.key !== " " && event.key !== "Enter")) {
     return
   }
   if (game?.state === "round" && game.guess) {

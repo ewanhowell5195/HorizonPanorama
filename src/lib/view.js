@@ -6,12 +6,13 @@ const KEEP = 0.6
 const SMOOTH = 0.025
 const MAX_PITCH = 15 * Math.PI / 180
 const PITCH_STEP = 5 * Math.PI / 180
+const ASPECT = 16 / 9
 
 function band() {
   return { r: 0, g: 0, b: 0, edge: 0, smooth: 0, count: 0 }
 }
 
-export function pickView(image, aspect) {
+export function pickView(image, random) {
   const context = new OffscreenCanvas(WIDTH, HEIGHT).getContext("2d", { willReadFrequently: true })
   context.drawImage(image, 0, 0, WIDTH, HEIGHT)
   const pixels = context.getImageData(0, 0, WIDTH, HEIGHT).data
@@ -26,7 +27,7 @@ export function pickView(image, aspect) {
       edge[n] = Math.abs(light[y * WIDTH + (x + 1) % WIDTH] - light[n]) + Math.abs(light[n + WIDTH] - light[n])
     }
   }
-  const horizontalFov = 2 * Math.atan(Math.tan(VERTICAL_FOV / 2) * Math.min(Math.max(aspect, 1), 2.4))
+  const horizontalFov = 2 * Math.atan(Math.tan(VERTICAL_FOV / 2) * ASPECT)
   const halfWidth = Math.round(horizontalFov / (2 * Math.PI) * WIDTH / 2)
 
   function score(yaw, pitch) {
@@ -68,14 +69,14 @@ export function pickView(image, aspect) {
   }
   const bar = Math.max(...headings.map(heading => heading.score)) * KEEP
   const good = headings.filter(heading => heading.score >= bar)
-  const yaw = good[Math.floor(Math.random() * good.length)].yaw + (Math.random() - 0.5) * (2 * Math.PI / CANDIDATES)
+  const yaw = good[Math.floor(random() * good.length)].yaw + (random() - 0.5) * (2 * Math.PI / CANDIDATES)
   const tilts = []
   for (let pitch = -MAX_PITCH; pitch <= MAX_PITCH + 1e-6; pitch += PITCH_STEP) {
     if (score(yaw, pitch) >= bar) {
       tilts.push(pitch)
     }
   }
-  const tilt = tilts.length ? tilts[Math.floor(Math.random() * tilts.length)] : 0
-  const pitch = Math.min(Math.max(tilt + (Math.random() - 0.5) * PITCH_STEP, -MAX_PITCH), MAX_PITCH)
+  const tilt = tilts.length ? tilts[Math.floor(random() * tilts.length)] : 0
+  const pitch = Math.min(Math.max(tilt + (random() - 0.5) * PITCH_STEP, -MAX_PITCH), MAX_PITCH)
   return { yaw, pitch }
 }

@@ -3,8 +3,6 @@ const EPOCH = Date.UTC(2020, 0, 1) / 1000
 const TIME_DIGITS = 6
 const VIEW_DIGITS = 3
 const YAW_STEP = 2
-const PITCH_RANGE = 15
-const PITCH_SLOTS = PITCH_RANGE * 2 + 1
 const MODES = { n: [false, "both"], h: [true, "both"], f: [false, "hfw"], g: [true, "hfw"], z: [false, "hzd"], y: [true, "hzd"] }
 
 function checksum(text) {
@@ -30,25 +28,27 @@ function secondsToName(seconds) {
   return `${date.getUTCFullYear()}${pad(date.getUTCMonth() + 1)}${pad(date.getUTCDate())}-${pad(date.getUTCHours())}${pad(date.getUTCMinutes())}${pad(date.getUTCSeconds())}`
 }
 
-function encodeView(yaw, pitch) {
-  const degrees = ((yaw * 180 / Math.PI) % 360 + 360) % 360
-  const yawSlot = Math.round(degrees / YAW_STEP) % (360 / YAW_STEP)
-  const pitchSlot = Math.min(Math.max(Math.round(pitch * 180 / Math.PI), -PITCH_RANGE), PITCH_RANGE) + PITCH_RANGE
-  return (yawSlot * PITCH_SLOTS + pitchSlot).toString(36).padStart(VIEW_DIGITS, "0")
+export function randomCode() {
+  return Math.floor(Math.random() * 36 ** VIEW_DIGITS)
 }
 
-function decodeView(text) {
-  const value = parseInt(text, 36)
-  return { yaw: Math.floor(value / PITCH_SLOTS) * YAW_STEP * Math.PI / 180, pitch: (value % PITCH_SLOTS - PITCH_RANGE) * Math.PI / 180 }
+export function startView(code) {
+  return { yaw: code % (360 / YAW_STEP) * YAW_STEP * Math.PI / 180, pitch: 0 }
 }
 
-export function snapView(view) {
-  return decodeView(encodeView(view.yaw, view.pitch))
+export function seededRandom(code) {
+  let state = code + 0x9e3779b9
+  return () => {
+    state = state + 0x6d2b79f5 | 0
+    let value = Math.imul(state ^ state >>> 15, 1 | state)
+    value = value + Math.imul(value ^ value >>> 7, 61 | value) ^ value
+    return ((value ^ value >>> 14) >>> 0) / 4294967296
+  }
 }
 
 export function encodeSeed({ hard, games, rounds }) {
   const mode = Object.keys(MODES).find(key => MODES[key][0] === hard && MODES[key][1] === games)
-  const body = VERSION + mode + rounds.map(round => nameToSeconds(round.name).toString(36).padStart(TIME_DIGITS, "0") + encodeView(round.view.yaw, round.view.pitch)).join("")
+  const body = VERSION + mode + rounds.map(round => nameToSeconds(round.name).toString(36).padStart(TIME_DIGITS, "0") + round.code.toString(36).padStart(VIEW_DIGITS, "0")).join("")
   return body + checksum(body)
 }
 
@@ -77,7 +77,7 @@ export function decodeSeed(input) {
   const rounds = []
   for (let at = 2; at < body.length; at += roundLength) {
     const name = secondsToName(parseInt(body.slice(at, at + TIME_DIGITS), 36))
-    rounds.push({ name, view: decodeView(body.slice(at + TIME_DIGITS, at + roundLength)) })
+    rounds.push({ name, code: parseInt(body.slice(at + TIME_DIGITS, at + roundLength), 36) })
   }
   const [hard, games] = MODES[code[1]]
   return { code, hard, games, rounds }
