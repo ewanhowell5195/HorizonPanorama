@@ -21,6 +21,8 @@ const REMOVED = path.join(HERE, "removed.json")
 const ENCODER = path.join(HERE, "encoder")
 const ENCODER_EXE = path.join(ENCODER, "target", "release", "encoder.exe")
 const QUALITY = 85
+const PARALLEL = 3
+const WRITE_ATTEMPTS = 6
 const DEPTH = 8
 const SECRET = "horizon-panorama"
 
@@ -55,6 +57,16 @@ async function convert(source, target) {
   await Promise.all([finished(decoder, "ffmpeg"), finished(encoder, "encoder")])
 }
 
+async function pool(items, size, work) {
+  let next = 0
+  async function worker() {
+    while (next < items.length) {
+      await work(items[next++])
+    }
+  }
+  await Promise.all(Array.from({ length: size }, worker))
+}
+
 async function buildEncoder() {
   await run("cargo", ["build", "--release", "--quiet", "--manifest-path", path.join(ENCODER, "Cargo.toml")])
 }
@@ -84,7 +96,17 @@ async function save(index) {
     const spheres = Object.keys(index[game]).sort().map(name => `    ${JSON.stringify(name)}: ${JSON.stringify(index[game][name])}`)
     return `  ${JSON.stringify(game)}: {\n${spheres.join(",\n")}\n  }`
   })
-  await fs.promises.writeFile(INDEX, `{\n${games.join(",\n")}\n}\n`)
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await fs.promises.writeFile(INDEX, `{\n${games.join(",\n")}\n}\n`)
+      return
+    } catch (error) {
+      if (attempt >= WRITE_ATTEMPTS) {
+        throw error
+      }
+      await new Promise(resolve => setTimeout(resolve, 250 * attempt))
+    }
+  }
 }
 
 async function captures() {
@@ -128,7 +150,7 @@ async function importAll() {
   await fs.promises.mkdir(OUT, { recursive: true })
   const index = await readIndex()
   const removed = new Set(await readJson(REMOVED, []))
-  let building = null
+  const jobs = []
   let imported = 0
   let present = 0
   let skipped = 0
@@ -158,23 +180,29 @@ async function importAll() {
       present++
       continue
     }
-    building ??= buildEncoder()
-    await building
+    jobs.push({ name, game, source, target, position: info.position })
+  }
+  if (jobs.length) {
+    await buildEncoder()
+  }
+  let saving = Promise.resolve()
+  await pool(jobs, PARALLEL, async ({ name, game, source, target, position }) => {
     try {
       await convert(source, target)
     } catch (error) {
       await fs.promises.rm(target, { force: true })
       console.log(`${name}: failed, ${error.message}`)
       failed++
-      continue
+      return
     }
     index[game] ??= {}
-    index[game][name] = hide(name, info.position.map(value => Math.round(value * 100) / 100))
-    await save(index)
+    index[game][name] = hide(name, position.map(value => Math.round(value * 100) / 100))
+    saving = saving.then(() => save(index))
+    await saving
     imported++
     const megabytes = async file => ((await fs.promises.stat(file)).size / 1024 ** 2).toFixed(1)
     console.log(`${name}: ${await megabytes(source)} MB -> ${await megabytes(target)} MB`)
-  }
+  })
   await save(index)
   console.log(`${imported} imported, ${present} already imported, ${skipped} removed, ${failed} skipped or failed`)
 }
