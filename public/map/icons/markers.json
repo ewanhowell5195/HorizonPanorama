@@ -457,6 +457,51 @@
       { "x": 3837.02, "y": 741.72, "z": 491.61, "machine": "fire-fanghorn", "name": "Fire Fanghorn Site" },
       { "x": 3883.31, "y": 969.95, "z": 487.18, "machine": "charger", "name": "Charger Site" },
       { "x": 4003.24, "y": 966.12, "z": 494.7, "machine": "tracker-burrower", "name": "Burrower Site" }
+    ],
+    "settlements": [
+      { "x": -4135.5, "y": -754.83, "z": 247.12, "icon": "settlement-the-digsite", "name": "The Digsite" },
+      { "x": -3878.04, "y": -907.71, "z": 241.04, "icon": "settlement-legacy-s-landfall", "name": "Legacy's Landfall" },
+      { "x": -2528.7, "y": -837.62, "z": 253.36, "icon": "settlement-sky-s-sentry", "name": "Tide's Reach" },
+      { "x": -2282.16, "y": -1856.89, "z": 252.79, "icon": "settlement-thornmarsh", "name": "Thornmarsh" },
+      { "x": -1893.99, "y": -1459.74, "z": 328.84, "icon": "settlement-sky-s-sentry", "name": "Raintrace Rise" },
+      { "x": -1694.34, "y": 338.97, "z": 400.51, "icon": "settlement-the-bulwark", "name": "The Bulwark" },
+      { "x": -1674.31, "y": -463.12, "z": 417.54, "icon": "settlement-sky-s-sentry", "name": "Cliffwatch" },
+      { "x": -1292.51, "y": 533.66, "z": 491.68, "icon": "settlement-sky-s-sentry", "name": "Stone Crest" },
+      { "x": -1257.64, "y": -1491.42, "z": 341.03, "icon": "settlement-sky-s-sentry", "name": "Fall's Edge" },
+      { "x": -1170.91, "y": -323.58, "z": 541.26, "icon": "settlement-sky-s-sentry", "name": "Sky's Sentry" },
+      { "x": -1118.32, "y": 131.33, "z": 493.3, "icon": "settlement-sky-s-sentry", "name": "Sheerside Climb" },
+      { "x": -798.46, "y": -1024.24, "z": 429.56, "icon": "settlement-sky-s-sentry", "name": "Lowland's Path" },
+      { "x": -759.02, "y": -1898.58, "z": 376.96, "icon": "settlement-sky-s-sentry", "name": "Fenrise" },
+      { "x": -654.39, "y": -709.85, "z": 416.92, "icon": "settlement-the-memorial-grove", "name": "The Memorial Grove" },
+      { "x": -634.55, "y": -634.33, "z": 413.42, "icon": "settlement-the-maw-of-the-arena", "name": "The Maw of the Arena" },
+      { "x": -574.97, "y": 657.94, "z": 480.99, "icon": "settlement-sky-s-sentry", "name": "Salt Bite" },
+      { "x": -191.83, "y": -398.08, "z": 417.42, "icon": "settlement-sky-s-sentry", "name": "The Gate of the Vanquished" },
+      { "x": 147.55, "y": -40.82, "z": 406.2, "icon": "settlement-scalding-spear", "name": "Scalding Spear" },
+      { "x": 180.99, "y": -1756.45, "z": 366.53, "icon": "settlement-carja-camp", "name": "The Tower of Tears" },
+      { "x": 180.99, "y": -1756.45, "z": 366.53, "icon": "settlement-carja-camp", "name": "Hidden Ember" },
+      { "x": 369.53, "y": 556.19, "z": 472.9, "icon": "settlement-sky-s-sentry", "name": "Bleeding Mark" },
+      { "x": 668.14, "y": -434.95, "z": 485.62, "icon": "settlement-sky-s-sentry", "name": "Arrowhand" },
+      { "x": 743.29, "y": -1086.88, "z": 417.97, "icon": "settlement-carja-camp", "name": "Camp Nowhere" },
+      { "x": 854.9, "y": -5293.75, "z": 249.49, "icon": "settlement-fleet-s-end", "name": "Fleet's End" },
+      { "x": 1864.42, "y": 120.25, "z": 431.75, "icon": "settlement-plainsong", "name": "Plainsong" },
+      { "x": 1895.73, "y": 833.9, "z": 508.39, "icon": "settlement-stone-s-echo", "name": "Riverhymn" },
+      { "x": 2174.7, "y": -448.69, "z": 442.54, "icon": "settlement-stone-s-echo", "name": "Stone's Echo" },
+      { "x": 2391.62, "y": -569.05, "z": 397.63, "icon": "settlement-carja-camp", "name": "Carja Camp" },
+      { "x": 2443.46, "y": 53.9, "z": 421.97, "icon": "settlement-carja-camp", "name": "Hollowrock" },
+      { "x": 2577.86, "y": -760.46, "z": 394.03, "icon": "settlement-carja-camp", "name": "Jagged Deep Delve" },
+      { "x": 3055.73, "y": -50.28, "z": 452.87, "icon": "settlement-barren-light", "name": "Barren Light" },
+      { "x": 3200.14, "y": 323.2, "z": 473.22, "icon": "settlement-carja-camp", "name": "Redhew Quarry" },
+      { "x": 3246.16, "y": 548.67, "z": 533.94, "icon": "settlement-twilight-s-landing", "name": "Twilight's Landing" },
+      { "x": 3475.52, "y": 646.5, "z": 483.25, "icon": "settlement-chainscrape", "name": "Chainscrape" },
+      { "x": 4079.74, "y": 812.11, "z": 492.92, "icon": "settlement-carja-camp", "name": "Last Log" }
+    ],
+    "tallnecks": [
+      { "x": -4111.64, "y": -1361.09, "z": 243.37, "icon": "tallneck", "name": "Tallneck: Landfall" },
+      { "x": -2017.71, "y": -795.83, "z": 235.23, "icon": "tallneck", "name": "Tallneck: The Stand of the Sentinels" },
+      { "x": -422.6, "y": 852.38, "z": 235.23, "icon": "tallneck", "name": "Tallneck: Salt Bite" },
+      { "x": 36.46, "y": -457.85, "z": 410.65, "icon": "tallneck", "name": "Tallneck: The Shining Wastes" },
+      { "x": 91.86, "y": -1594.43, "z": 318.84, "icon": "tallneck", "name": "Tallneck: The Stillsands" },
+      { "x": 2196.44, "y": -196.75, "z": 351.45, "icon": "tallneck", "name": "Tallneck: Cinnabar Sands" }
     ]
   },
   "hzd": {
@@ -869,6 +914,36 @@
       { "x": 3516.54, "y": -486.18, "z": 132.74, "machine": "grazer", "name": "Grazer Site" },
       { "x": 3530.32, "y": 83.41, "z": 113.47, "machine": "broadhead", "name": "Broadhead Site" },
       { "x": 3565.58, "y": -261.15, "z": 106.98, "machine": "broadhead", "name": "Broadhead Site" }
+    ],
+    "settlements": [
+      { "x": 2676.48, "y": 868.21, "z": 232.19, "icon": "settlement-zero-dawn", "name": "Banuk Encampment" },
+      { "x": -93.59, "y": -1136.33, "z": 111.26, "icon": "settlement-zero-dawn", "name": "Royal Maizelands" },
+      { "x": -1009.34, "y": -198.04, "z": 213.42, "icon": "settlement-zero-dawn", "name": "Blazon Arch" },
+      { "x": 2385.65, "y": -1906.01, "z": 191.8, "icon": "settlement-zero-dawn", "name": "Mother's Watch" },
+      { "x": -546.28, "y": -666.17, "z": 211.92, "icon": "settlement-zero-dawn", "name": "Brightmarket" },
+      { "x": -155.19, "y": -1240.76, "z": 126.85, "icon": "settlement-zero-dawn", "name": "Meridian Village" },
+      { "x": -241.47, "y": -1092.28, "z": 182.57, "icon": "settlement-zero-dawn", "name": "Meridian" },
+      { "x": -24.31, "y": -559.19, "z": 231.36, "icon": "settlement-zero-dawn", "name": "Cut-Cliffs" },
+      { "x": -1180.72, "y": 465.03, "z": 298.13, "icon": "settlement-zero-dawn", "name": "Sunfall" },
+      { "x": 2729.0, "y": -775.58, "z": 177.72, "icon": "settlement-zero-dawn", "name": "Mother's Crown" },
+      { "x": 2433.94, "y": -1302.72, "z": 218.97, "icon": "settlement-zero-dawn", "name": "Mother's Heart" },
+      { "x": 1536.34, "y": -428.0, "z": 319.92, "icon": "settlement-zero-dawn", "name": "Daytower" },
+      { "x": -691.62, "y": -1952.77, "z": 119.68, "icon": "settlement-zero-dawn", "name": "Sunstone Rock" },
+      { "x": 2297.37, "y": -472.51, "z": 219.49, "icon": "settlement-zero-dawn", "name": "Hunter's Gathering" },
+      { "x": 11.83, "y": -1503.43, "z": 112.4, "icon": "settlement-zero-dawn", "name": "The Estate" },
+      { "x": 425.67, "y": 1139.41, "z": 276.59, "icon": "settlement-zero-dawn", "name": "Pitchcliff" },
+      { "x": 2671.62, "y": -1352.16, "z": 208.8, "icon": "settlement-zero-dawn", "name": "Mother's Rise" },
+      { "x": 1511.66, "y": 388.96, "z": 213.49, "icon": "settlement-zero-dawn", "name": "Free Heap" },
+      { "x": 2760.28, "y": -1900.09, "z": 180.83, "icon": "settlement-zero-dawn", "name": "Mother's Cradle" },
+      { "x": 720.85, "y": -339.4, "z": 183.93, "icon": "settlement-zero-dawn", "name": "Lone Light" }
+    ],
+    "tallnecks": [
+      { "x": 147.76, "y": -2031.96, "z": 88.8, "icon": "tallneck-zero-dawn", "name": "Tallneck: Spearshafts" },
+      { "x": 930.79, "y": -727.97, "z": 151.7, "icon": "tallneck-zero-dawn", "name": "Tallneck: Copper Deeps" },
+      { "x": 3084.28, "y": -1240.28, "z": 195.11, "icon": "tallneck-zero-dawn", "name": "Tallneck: Devil's Thirst" },
+      { "x": 935.54, "y": 191.5, "z": 242.06, "icon": "tallneck-zero-dawn", "name": "Tallneck: Sun-Steps" },
+      { "x": -891.74, "y": -11.06, "z": 262.17, "icon": "tallneck-zero-dawn", "name": "Tallneck: Rustwash" },
+      { "x": 2589.16, "y": 1698.63, "z": 446.01, "icon": "tallneck-zero-dawn", "name": "Tallneck: Frostfigures" }
     ]
   }
 }

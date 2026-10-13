@@ -17,10 +17,9 @@ const PREFETCH_NEIGHBOURS = 16
 const CLICK_DISTANCE = 6
 const FIT_TOP = 48
 const FLIGHT_MS = 900
-// HFW MapResource (group 72333) WidthInWorldCoords, MediumZoomedIn, HighlyZoomedIn
+// HFW MapResource (group 72333) WidthInWorldCoords
 const MAP_WIDTH_METRES = 5760
-const ZOOM_LEVELS = [0, 1.4, 4]
-const POI_ZOOM = { "campfire": 1, "machine-site": 1 }
+const POI_ZOOM = { "campfire": 5, "machine-site": 5, "settlement": 2, "tallneck": 3.5 }
 const POI_MARGIN = 40
 const POI_HOVER_RADIUS = 24
 const POI_SPACING = 44
@@ -29,7 +28,6 @@ const POI_OCCLUSION_SAMPLES = 8
 const OCCLUSION_STEPS = 32
 const OCCLUSION_END = 0.97
 const POI_SPREAD_PASSES = 4
-const POI_ZOOM_MIN = 5
 // covers the 0.3 s .map-poi opacity transition in styles.css
 const POI_FADE_MS = 350
 const SCALE_TARGET = 90
@@ -1032,9 +1030,8 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     const now = performance.now()
     const placed = []
     for (const poi of pointsOfInterest) {
-      const level = ZOOM_LEVELS[POI_ZOOM[poi.type]]
       let z = null
-      const visibleZoom = Math.max(level, POI_ZOOM_MIN)
+      const visibleZoom = POI_ZOOM[poi.type]
       let shown = gameZoom >= visibleZoom
       if (threeD) {
         const reach = zoomPerPixel * focal / visibleZoom
@@ -1595,6 +1592,12 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
         }
         for (const marker of data[game].machines) {
           addPointOfInterest(game, "machine-site", marker.machine, marker)
+        }
+        for (const marker of data[game].settlements || []) {
+          addPointOfInterest(game, "settlement", marker.icon, marker)
+        }
+        for (const marker of data[game].tallnecks || []) {
+          addPointOfInterest(game, "tallneck", marker.icon, marker)
         }
       }
       needsDraw = true
