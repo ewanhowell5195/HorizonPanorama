@@ -53,7 +53,7 @@ export function encodeSeed({ hard, games, rounds }) {
 }
 
 export function seedLink(code, score) {
-  return `${location.origin}${location.pathname}?seed=${code}${Number.isInteger(score) ? `&score=${score}` : ""}`
+  return `${location.origin}${import.meta.env.BASE_URL}challenge?seed=${code}${Number.isInteger(score) ? `&score=${score}` : ""}`
 }
 
 export function decodeScore(input, max) {

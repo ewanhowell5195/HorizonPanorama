@@ -21,6 +21,7 @@ const COUNTDOWN = 3
 // after RoundIntro's per tick ring step (0.45 s) and pulse (0.7 s) have finished
 const QUIET_MS = 700
 const MAP_DELAY_MS = 1200
+const SCREEN_PATHS = { home: "", setup: "setup", challenge: "challenge", game: "game" }
 const SECRET = "horizon-panorama"
 const GAME_SUFFIXES = { both: "", hfw: "ForbiddenWest", hzd: "ZeroDawn" }
 const COMBINATIONS = [false, true].flatMap(isHard => Object.keys(GAME_SUFFIXES).map(which => [isHard, which]))
@@ -86,6 +87,7 @@ let guessMarker = null
 let resultMarkers = []
 let presentedRound = -1
 let viewToken = 0
+let trail = []
 
 function readChallenge(input) {
   const seed = decodeSeed(input)
@@ -99,14 +101,82 @@ function openChallenge(input) {
     return
   }
   seedError.value = ""
-  challenge.value = found
-  history.replaceState(null, "", seedLink(found.seed.code, found.score))
+  enter("challenge", seedLink(found.seed.code, found.score))
+  show("challenge")
 }
 
-function leaveChallenge() {
-  challenge.value = null
+function goHome() {
+  leaveTo("home")
+}
+
+function screenUrl(screen) {
+  return import.meta.env.BASE_URL + SCREEN_PATHS[screen]
+}
+
+function screenFromPath() {
+  const path = location.pathname.slice(import.meta.env.BASE_URL.length).replace(/\/$/, "")
+  return Object.keys(SCREEN_PATHS).find(screen => SCREEN_PATHS[screen] === path) || "home"
+}
+
+function goSetup() {
+  enter("setup")
+  show("setup")
+}
+
+function currentDepth() {
+  return history.state?.depth ?? 0
+}
+
+function mark(depth, screen) {
+  trail = trail.slice(0, depth)
+  trail[depth] = screen
+}
+
+function enter(screen, url = screenUrl(screen)) {
+  const depth = currentDepth() + 1
+  mark(depth, screen)
+  history.pushState({ screen, depth }, "", url)
+}
+
+function replaceScreen(screen, url = screenUrl(screen)) {
+  mark(currentDepth(), screen)
+  history.replaceState({ screen, depth: currentDepth() }, "", url)
+}
+
+function leaveTo(screen) {
+  const depth = currentDepth()
+  const index = trail.lastIndexOf(screen, depth - 1)
+  if (index >= 0) {
+    history.go(index - depth)
+    return
+  }
+  replaceScreen(screen)
+  show(screen)
+}
+
+function show(screen) {
+  if (screen === "game") {
+    if (!game) {
+      replaceScreen("setup")
+      show("setup")
+    }
+    return
+  }
+  if (phase.value !== "menu") {
+    resetToMenu()
+  }
   seedError.value = ""
-  history.replaceState(null, "", location.pathname)
+  challenge.value = screen === "challenge" ? readChallenge(location.search) : null
+  if (screen === "challenge" && !challenge.value) {
+    replaceScreen("home")
+  }
+  setup.value = screen === "setup"
+}
+
+function onHistory() {
+  const screen = history.state?.screen || "home"
+  mark(currentDepth(), screen)
+  show(screen)
 }
 
 function playChallenge() {
@@ -427,15 +497,11 @@ function closeView() {
   viewing.value = null
 }
 
-function showMenu() {
+function resetToMenu() {
   game = null
   closeView()
-  if (challenge.value) {
-    leaveChallenge()
-  }
   clearMarkers()
   phase.value = "menu"
-  setup.value = false
   intro.value = false
   loadPool()
   backdrop.value.next()
@@ -454,9 +520,9 @@ function begin(rounds, isHard, which) {
 async function newGame() {
   await loadPool()
   if (!choices.value.length) {
-    showMenu()
     return
   }
+  enterGame()
   begin(shuffle(choices.value).slice(0, ROUNDS).map(round => Object.assign({}, round)), hard.value, games.value)
 }
 
@@ -473,7 +539,14 @@ async function playSeed(input) {
     seedError.value = missing.length === seed.rounds.length ? "None of this seed's photospheres are available any more." : `${missing.length} of this seed's photospheres ${missing.length === 1 ? "is" : "are"} no longer available.`
     return
   }
+  enterGame()
   begin(seed.rounds.map(round => Object.assign({}, byName.get(round.name), { view: round.view })), seed.hard, seed.games)
+}
+
+function enterGame() {
+  if (history.state?.screen !== "game") {
+    enter("game")
+  }
 }
 
 function replay() {
@@ -488,7 +561,7 @@ function onKey(event) {
     return
   }
   if (isMenu.value && setup.value && !challenge.value && event.key === "Escape") {
-    setup.value = false
+    goHome()
     return
   }
   if (event.key !== " " && event.key !== "Enter") {
@@ -505,6 +578,13 @@ function onKey(event) {
 
 onMounted(async () => {
   window.addEventListener("keydown", onKey)
+  window.addEventListener("popstate", onHistory)
+  if (challenge.value) {
+    replaceScreen("challenge", screenUrl("challenge") + location.search)
+  } else {
+    replaceScreen(["setup", "game"].includes(screenFromPath()) ? "setup" : "home")
+  }
+  setup.value = history.state.screen === "setup"
   loadPool()
   backdrop.value.next()
   backdrop.value.cycle(true)
@@ -514,7 +594,10 @@ onMounted(async () => {
   loadMaps()
 })
 
-onBeforeUnmount(() => window.removeEventListener("keydown", onKey))
+onBeforeUnmount(() => {
+  window.removeEventListener("keydown", onKey)
+  window.removeEventListener("popstate", onHistory)
+})
 </script>
 
 <template>
@@ -535,7 +618,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey))
     <ResultCard v-if="phase === `result` && result && !viewing" ref="resultCard" :key="result.key" :score="result.score" :distance="result.distance" :last-round="result.lastRound" @next="next" @view="viewResult" />
   </Transition>
   <Transition name="card">
-    <SummaryCard v-if="phase === `summary` && summary && !viewing" ref="summaryCard" :results="summary.results" :total="summary.total" :max="summary.max" :hard="gameHard" :seed="summary.seed" @menu="showMenu" @again="newGame" @replay="replay" @view="viewRound" />
+    <SummaryCard v-if="phase === `summary` && summary && !viewing" ref="summaryCard" :results="summary.results" :total="summary.total" :max="summary.max" :hard="gameHard" :seed="summary.seed" @menu="goHome" @again="newGame" @replay="replay" @view="viewRound" />
   </Transition>
   <Transition name="card">
     <div v-if="viewing" class="viewing">
@@ -544,9 +627,9 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey))
     </div>
   </Transition>
   <SlideBackdrop ref="backdrop" :active="isMenu || intro" :timer="isMenu" />
-  <ChallengeScreen :visible="isMenu && Boolean(challenge)" :ready="canPlay" :hard="challenge?.seed.hard" :games="challenge?.seed.games" :rounds="challenge?.seed.rounds.length || 0" :score="challenge?.score" :error="seedError" @play="playChallenge" @menu="leaveChallenge" />
-  <HomeScreen :visible="isMenu && !challenge && !setup" :count="pool.length" :ready="canPlay" :best="overall.best" :last="overall.last" :average="overall.average" @play="setup = true" />
-  <SetupScreen :visible="isMenu && !challenge && setup" :ready="canPlay" :counts="counts" :rounds="roundCount" :games="games" :mode="mode" :best="best" :last="last" :average="average" :seed="seedInput" :seed-error="seedError" @start="newGame" @back="setup = false" @games="setGames" @mode="setMode" @seed="openChallenge" />
+  <ChallengeScreen :visible="isMenu && Boolean(challenge)" :ready="canPlay" :hard="challenge?.seed.hard" :games="challenge?.seed.games" :rounds="challenge?.seed.rounds.length || 0" :score="challenge?.score" :error="seedError" @play="playChallenge" @menu="goHome" />
+  <HomeScreen :visible="isMenu && !challenge && !setup" :count="pool.length" :ready="canPlay" :best="overall.best" :last="overall.last" :average="overall.average" @play="goSetup" />
+  <SetupScreen :visible="isMenu && !challenge && setup" :ready="canPlay" :counts="counts" :rounds="roundCount" :games="games" :mode="mode" :best="best" :last="last" :average="average" :seed="seedInput" :seed-error="seedError" @start="newGame" @back="goHome" @games="setGames" @mode="setMode" @seed="openChallenge" />
   <RoundIntro :visible="intro" :number="status.index" :count="status.count" :progress="status.progress" :label="status.label" :tip="status.tip" :hard="gameHard" :countdown="status.countdown" :steps="COUNTDOWN" :waiting="status.waiting" />
 </template>
 
