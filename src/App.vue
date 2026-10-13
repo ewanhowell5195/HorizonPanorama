@@ -23,6 +23,7 @@ const QUIET_MS = 700
 const MAP_DELAY_MS = 1200
 const SECRET = "horizon-panorama"
 const GAME_SUFFIXES = { both: "", hfw: "ForbiddenWest", hzd: "ZeroDawn" }
+const COMBINATIONS = [false, true].flatMap(isHard => Object.keys(GAME_SUFFIXES).map(which => [isHard, which]))
 const TIPS = [
   "Hover the map in the corner to open it. The button in its corner makes it bigger.",
   "Right drag pans the map without moving your pin.",
@@ -46,6 +47,7 @@ let mapsLoading = null
 const best = ref(storedScore(scoreKey("bestScore")))
 const last = ref(storedScore(scoreKey("lastScore")))
 const average = ref(averageScore())
+const overall = ref(overallScores())
 const heading = ref(0)
 const hasGuess = ref(false)
 const status = reactive({ index: 1, count: ROUNDS, total: 0, progress: 0, label: "", tip: "", countdown: COUNTDOWN, waiting: false })
@@ -119,6 +121,15 @@ function refreshScores() {
   best.value = storedScore(scoreKey("bestScore"))
   last.value = storedScore(scoreKey("lastScore"))
   average.value = averageScore()
+  overall.value = overallScores()
+}
+
+function overallScores() {
+  const total = name => COMBINATIONS.reduce((sum, [isHard, which]) => sum + (storedScore(scoreKey(name, isHard, which)) || 0), 0)
+  const bests = COMBINATIONS.map(([isHard, which]) => storedScore(scoreKey("bestScore", isHard, which))).filter(value => value !== null)
+  const played = total("gamesPlayed")
+  const lasts = COMBINATIONS.map(([isHard, which]) => storedScore(scoreKey("lastScore", isHard, which))).filter(value => value !== null)
+  return { best: bests.length ? Math.max(...bests) : null, last: storedScore("lastScoreOverall") ?? lasts[0] ?? null, average: played ? Math.round(total("scoreSum") / played) : null }
 }
 
 function setMode(value) {
@@ -350,6 +361,7 @@ async function showSummary() {
   bigmap.value.setLines(game.results.map(entry => [entry.guess, entry.answer]))
   const key = name => scoreKey(name, game.hard, game.games)
   writeStore(key("lastScore"), game.total)
+  writeStore("lastScoreOverall", game.total)
   if (game.total > (storedScore(key("bestScore")) || 0)) {
     writeStore(key("bestScore"), game.total)
   }
@@ -533,7 +545,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey))
   </Transition>
   <SlideBackdrop ref="backdrop" :active="isMenu || intro" :timer="isMenu" />
   <ChallengeScreen :visible="isMenu && Boolean(challenge)" :ready="canPlay" :hard="challenge?.seed.hard" :games="challenge?.seed.games" :rounds="challenge?.seed.rounds.length || 0" :score="challenge?.score" :error="seedError" @play="playChallenge" @menu="leaveChallenge" />
-  <HomeScreen :visible="isMenu && !challenge && !setup" :count="pool.length" :ready="canPlay" @play="setup = true" />
+  <HomeScreen :visible="isMenu && !challenge && !setup" :count="pool.length" :ready="canPlay" :best="overall.best" :last="overall.last" :average="overall.average" @play="setup = true" />
   <SetupScreen :visible="isMenu && !challenge && setup" :ready="canPlay" :counts="counts" :rounds="roundCount" :games="games" :mode="mode" :best="best" :last="last" :average="average" :seed="seedInput" :seed-error="seedError" @start="newGame" @back="setup = false" @games="setGames" @mode="setMode" @seed="openChallenge" />
   <RoundIntro :visible="intro" :number="status.index" :count="status.count" :progress="status.progress" :label="status.label" :tip="status.tip" :hard="gameHard" :countdown="status.countdown" :steps="COUNTDOWN" :waiting="status.waiting" />
 </template>

@@ -23,7 +23,7 @@ function scatterLetters() {
   })
 }
 
-const props = defineProps({ visible: Boolean, count: Number, ready: Boolean })
+const props = defineProps({ visible: Boolean, count: Number, ready: Boolean, best: Number, last: Number, average: Number })
 const emit = defineEmits(["play"])
 const pieces = ref(scatterLetters())
 
@@ -34,6 +34,9 @@ watch(() => props.visible, visible => {
 })
 
 const countLabel = computed(() => props.count ? `${props.count} locations` : "")
+const bestLabel = computed(() => props.best ? props.best.toLocaleString() : "None yet")
+const lastLabel = computed(() => props.last === null || props.last === undefined ? "None yet" : props.last.toLocaleString())
+const averageLabel = computed(() => props.average === null || props.average === undefined ? "None yet" : props.average.toLocaleString())
 
 function play() {
   emit("play")
@@ -59,6 +62,11 @@ function play() {
         <li><em>03</em><strong>Score</strong><span>Up to 5,000 points a round. Closer scores more.</span></li>
       </ol>
     </div>
+    <footer class="home-bottom rise" style="--i: 6">
+      <div class="stat-block"><small>Best score</small><strong>{{ bestLabel }}</strong></div>
+      <div class="stat-block"><small>Last game</small><strong>{{ lastLabel }}</strong></div>
+      <div class="stat-block"><small>Average</small><strong>{{ averageLabel }}</strong></div>
+    </footer>
   </section>
 </template>
 
@@ -68,7 +76,7 @@ function play() {
   inset: 0;
   z-index: 11;
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto 1fr auto;
   padding: clamp(20px, 3.6vh, 34px) 56px;
   opacity: 0;
   visibility: hidden;
@@ -229,6 +237,32 @@ function play() {
   color: var(--muted);
 }
 
+.home-bottom {
+  display: flex;
+  align-items: flex-end;
+  gap: 40px;
+}
+
+.stat-block {
+  display: grid;
+  gap: 4px;
+}
+
+.stat-block small {
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.stat-block strong {
+  font-family: "Hunter Condensed", "Oita Norm", sans-serif;
+  font-weight: 400;
+  font-size: 30px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+}
+
 @media (max-height: 760px) and (min-width: 761px) {
   .steps {
     display: none;
@@ -252,6 +286,11 @@ function play() {
 
   .steps, .count {
     display: none;
+  }
+
+  .home-bottom {
+    gap: 24px;
+    margin-top: 24px;
   }
 }
 </style>
