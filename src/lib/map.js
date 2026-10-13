@@ -1036,8 +1036,8 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     const game = games[config.game]
     const scale = game.tileMetres / UNIT_METRES
     const offset = [config.offsetMetres[0] / UNIT_METRES, config.offsetMetres[1] / UNIT_METRES]
-    const border = game.border
-    const maskUrl = `${root}${config.game}/${border.mask}`
+    const mask = game.mask
+    const maskUrl = `${root}${config.game}/${mask.file}`
     if (!masks.has(maskUrl)) {
       masks.set(maskUrl, loadOverlay(maskUrl, gl.CLAMP_TO_EDGE, 255))
     }
@@ -1046,7 +1046,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
       throw new Error(`Could not load pyramids/${config.id}/pyramid.json`)
     }
     const manifest = await response.json()
-    const domain = { minX: border.left, maxY: border.top - 1, tiles: border.size }
+    const domain = { minX: game.domain.left, maxY: game.domain.top - 1, tiles: game.domain.size }
     const n = domain.tiles
     const occupancy = new Uint32Array((n + 1) * (n + 1))
     const grid = new Uint8Array(n * n)
@@ -1065,7 +1065,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
     const hidden = new Set(manifest.hidden.map(([i, j]) => `${i}_${j}`))
-    return { id: config.id, game: config.game, regions: config.regions, scale, offset, manifest, domain, levels: Math.log2(domain.tiles) + 2, occupancy, occupancyTexture, grid: [offset[0] + domain.minX * scale, offset[1] + (domain.maxY + 1) * scale, n * scale], hidden, borderTexture, border: [offset[0] + border.left * scale, offset[1] + border.top * scale, border.size * scale, border.size * scale] }
+    return { id: config.id, game: config.game, regions: config.regions, scale, offset, manifest, domain, levels: Math.log2(domain.tiles) + 2, occupancy, occupancyTexture, grid: [offset[0] + domain.minX * scale, offset[1] + (domain.maxY + 1) * scale, n * scale], hidden, borderTexture, border: [offset[0] + mask.left * scale, offset[1] + mask.top * scale, mask.width * scale, mask.height * scale] }
   }
 
   const world = await (await fetch(`${root}world.json`)).json()

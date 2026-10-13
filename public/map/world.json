@@ -2,11 +2,25 @@
   "games": {
     "hfw": {
       "tileMetres": 256,
-      "border": { "mask": "border/border_full.png", "left": -32, "top": 32, "size": 64 }
+      "domain": { "left": -32, "top": 32, "size": 64 },
+      "mask": {
+        "file": "border_full.png",
+        "left": -20.84375,
+        "top": 5.84375,
+        "width": 48.90625,
+        "height": 32.03125
+      }
     },
     "hzd": {
       "tileMetres": 512,
-      "border": { "mask": "border/border_dlc.avif", "left": -6, "top": 8, "size": 16 }
+      "domain": { "left": -6, "top": 8, "size": 16 },
+      "mask": {
+        "file": "border_dlc.avif",
+        "left": -3.265625,
+        "top": 6.3125,
+        "width": 11.6015625,
+        "height": 11.515625
+      }
     }
   },
   "layers": [
