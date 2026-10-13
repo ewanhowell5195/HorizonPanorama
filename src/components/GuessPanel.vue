@@ -129,14 +129,19 @@ watch(() => props.hidden, () => open.value = false)
   transition-delay: 0s;
 }
 
-.map :deep(.map-scale) {
+.map :deep(.map-scale), .map :deep(.map-mode) {
   opacity: 0;
+  pointer-events: none;
   transition: opacity 0.15s ease 0.5s;
 }
 
-.guess:hover .map :deep(.map-scale), .guess.open .map :deep(.map-scale), .guess.resizing .map :deep(.map-scale) {
+.guess:hover .map :deep(.map-scale), .guess.open .map :deep(.map-scale), .guess.resizing .map :deep(.map-scale), .guess:hover .map :deep(.map-mode), .guess.open .map :deep(.map-mode), .guess.resizing .map :deep(.map-mode) {
   opacity: 1;
   transition-delay: 0s;
+}
+
+.guess:hover .map :deep(.map-mode), .guess.open .map :deep(.map-mode), .guess.resizing .map :deep(.map-mode) {
+  pointer-events: auto;
 }
 
 .size-toggle .shrink, .guess.large .size-toggle .grow {

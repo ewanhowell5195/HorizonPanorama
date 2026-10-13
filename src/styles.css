@@ -227,7 +227,45 @@ button.secondary {
   user-select: none;
 }
 
-.map-scale-label {
+.map-mode {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  z-index: 2;
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--panel);
+}
+
+.map-mode button {
+  height: 32px;
+  padding: 0 11px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  user-select: none;
+}
+
+.map-mode button:hover {
+  color: var(--text);
+  filter: none;
+}
+
+.map-mode button.selected {
+  color: var(--accent);
+  background: rgba(242, 165, 65, 0.12);
+}
+
+.map-mode ~ .map-scale {
+  left: 104px;
+}
+
+.map-scale-label, .map-elevation {
   font-size: 11px;
   font-weight: 600;
   color: #fff;

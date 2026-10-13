@@ -22,6 +22,11 @@ const POI_MARGIN = 40
 const POI_FADE_MS = 350
 const SCALE_TARGET = 90
 const SCALE_STEPS = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000]
+// MapProjectionSettings MaxDepth / StoredDepthScale: the full 0 to 255 height range in metres
+const DEPTH_METRES = 2048 / 3
+const MAX_TILT = 85 * Math.PI / 180
+const START_TILT = 55 * Math.PI / 180
+const ORBIT_SPEED = 0.006
 
 const vertexSource = `#version 300 es
   precision highp float;
@@ -72,7 +77,7 @@ const fragmentSource = `#version 300 es
 
 export const METRES_PER_UNIT = UNIT_METRES
 
-export async function createMap(container, { root, onPick, pois = false, scale = false }) {
+export async function createMap(container, { root, onPick, pois = false, scale = false, modes = false }) {
   const canvas = document.createElement("canvas")
   const overlay = document.createElementNS("http://www.w3.org/2000/svg", "svg")
   const markerLayer = document.createElement("div")
@@ -83,7 +88,22 @@ export async function createMap(container, { root, onPick, pois = false, scale =
   const scaleBar = document.createElement("div")
   if (scale) {
     scaleBar.className = "map-scale"
-    scaleBar.innerHTML = `<span class="map-scale-label"></span><span class="map-scale-bar"></span>`
+    scaleBar.innerHTML = `<span class="map-elevation"></span><span class="map-scale-label"></span><span class="map-scale-bar"></span>`
+  }
+  const [elevationLabel, scaleLabel, scaleLine] = scaleBar.children
+  const modeToggle = document.createElement("div")
+  if (modes) {
+    modeToggle.className = "map-mode"
+    modeToggle.innerHTML = `<button type="button" data-mode="2d">2D</button><button type="button" data-mode="3d">3D</button>`
+    modeToggle.addEventListener("click", event => {
+      const button = event.target.closest("button")
+      if (button) {
+        setMode(button.dataset.mode === "3d")
+      }
+    })
+    container.append(modeToggle)
+  }
+  if (scale) {
     container.append(scaleBar)
   }
   const pointsOfInterest = []
@@ -111,8 +131,15 @@ export async function createMap(container, { root, onPick, pois = false, scale =
   let lines = []
   let pendingFit = null
 
-  const camera = { x: 0, y: 0, distance: 60, target: 60 }
-  const relief = 2048 / 3 / UNIT_METRES / 2
+  const camera = { x: 0, y: 0, distance: 60, target: 60, tilt: 0, tiltTarget: 0, heading: 0, headingTarget: 0 }
+  const fullRelief = DEPTH_METRES / UNIT_METRES
+  let threeD = false
+  let relief = fullRelief / 2
+  let hover = null
+  let hoverMoved = false
+  let orbit = null
+  let panning = null
+  let games = {}
   let viewProj = new Float32Array(16)
   let inverse = new Float32Array(16)
   let eye = [0, 0, 0]
@@ -437,11 +464,14 @@ export async function createMap(container, { root, onPick, pois = false, scale =
   }
 
   function updateCamera() {
-    eye = [camera.x, camera.y, camera.distance + relief]
-    const near = camera.distance * 0.5
-    const far = camera.distance + relief * 2 + 1
+    const st = Math.sin(camera.tilt), ct = Math.cos(camera.tilt)
+    const sh = Math.sin(camera.heading), ch = Math.cos(camera.heading)
+    const pivot = [camera.x, camera.y, relief]
+    eye = [pivot[0] - sh * st * camera.distance, pivot[1] - ch * st * camera.distance, pivot[2] + ct * camera.distance]
+    const near = camera.distance * (0.5 * ct + 0.01)
+    const far = camera.distance * (1 + 60 * st) + relief * 2 + 1
     const projection = perspective(FOV, canvas.width / canvas.height, near, far)
-    viewProj = multiply(projection, lookAt(eye, [camera.x, camera.y, 0], [0, 1, 0]))
+    viewProj = multiply(projection, lookAt(eye, pivot, [sh * ct, ch * ct, st]))
     inverse = invert(viewProj)
   }
 
@@ -474,7 +504,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     const path = ray(px, py)
     const dz = path.b[2] - path.a[2]
     const start = Math.max((relief - path.a[2]) / dz, 0)
-    const end = -path.a[2] / dz
+    const end = Math.min(-path.a[2] / dz, 1)
     if (!Number.isFinite(end) || end < 0) {
       return null
     }
@@ -507,6 +537,9 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     const clip = [0, 0, 0, 0]
     for (let row = 0; row < 4; row++) {
       clip[row] = viewProj[row] * x + viewProj[4 + row] * y + viewProj[8 + row] * z + viewProj[12 + row]
+    }
+    if (clip[3] <= 0) {
+      return { x: -1e5, y: -1e5 }
     }
     return { x: (clip[0] / clip[3] + 1) / 2 * viewSize.width, y: (1 - clip[1] / clip[3]) / 2 * viewSize.height }
   }
@@ -627,7 +660,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     gl.bindTexture(gl.TEXTURE_2D, entry.depth)
     gl.uniform3f(uniforms.uRect, box.x, box.y, box.size)
     gl.uniform4f(uniforms.uUv, uv[0], uv[1], uv[2], uv[2])
-    gl.uniform1f(uniforms.uSkirt, box.size * 0.05 + relief * 0.05)
+    gl.uniform1f(uniforms.uSkirt, box.size * 0.01 + relief * 0.02)
     gl.drawElements(gl.TRIANGLES, mesh.count, gl.UNSIGNED_SHORT, 0)
   }
 
@@ -698,9 +731,21 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     camera.y = Math.min(Math.max(camera.y, extent.minY), extent.maxY)
   }
 
+  function approach(value, target, ease, epsilon) {
+    if (Math.abs(target - value) <= epsilon) {
+      return target
+    }
+    needsDraw = true
+    return value + (target - value) * ease
+  }
+
   function step(now) {
     const dt = Math.min((now - lastTime) / 1000, 0.1)
     lastTime = now
+    const ease = Math.min(1, dt * 8)
+    relief = approach(relief, threeD ? fullRelief : fullRelief / 2, ease, 1e-4)
+    camera.tilt = approach(camera.tilt, camera.tiltTarget, ease, 1e-4)
+    camera.heading = approach(camera.heading, camera.headingTarget, ease, 1e-4)
     if (flight) {
       const t = Math.min((now - flight.start) / FLIGHT_MS, 1)
       const e = t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2
@@ -754,10 +799,13 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     const origin = project(camera.x, camera.y, 0)
     const across = project(camera.x + 1, camera.y, 0)
     const unitPixels = Math.hypot(across.x - origin.x, across.y - origin.y)
-    const gameZoom = MAP_WIDTH_METRES * unitPixels / (UNIT_METRES * Math.max(viewSize.width, 1))
+    const zoomPerPixel = MAP_WIDTH_METRES / (UNIT_METRES * Math.max(viewSize.width, 1))
+    const gameZoom = zoomPerPixel * unitPixels
+    const focal = viewSize.height / (2 * Math.tan(FOV / 2))
     const now = performance.now()
     for (const poi of pointsOfInterest) {
-      const shown = gameZoom >= ZOOM_LEVELS[POI_ZOOM[poi.type]]
+      const zoom = threeD ? zoomPerPixel * focal / Math.max(Math.hypot(eye[0] - poi.x, eye[1] - poi.y, eye[2] - relief / 2), 1e-4) : gameZoom
+      const shown = zoom >= ZOOM_LEVELS[POI_ZOOM[poi.type]]
       if (shown !== poi.shown) {
         poi.shown = shown
         poi.hiddenAt = now
@@ -780,8 +828,8 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     if (scale && unitPixels > 0) {
       const metresPerPixel = UNIT_METRES / unitPixels
       const metres = SCALE_STEPS.filter(value => value <= SCALE_TARGET * metresPerPixel).pop() || SCALE_STEPS[0]
-      scaleBar.lastChild.style.width = `${(metres / metresPerPixel).toFixed(1)}px`
-      scaleBar.firstChild.textContent = metres < 1000 ? `${metres} m` : `${metres / 1000} km`
+      scaleLine.style.width = `${(metres / metresPerPixel).toFixed(1)}px`
+      scaleLabel.textContent = metres < 1000 ? `${metres} m` : `${metres / 1000} km`
     }
     for (const marker of markers) {
       const point = project(marker.x, marker.y, heightAt(marker.x, marker.y))
@@ -808,6 +856,10 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     }
     step(now)
     processUploads()
+    if (hoverMoved && !needsDraw) {
+      hoverMoved = false
+      updateElevation()
+    }
     if (!needsDraw && !uploads.length && !inflight) {
       return
     }
@@ -846,6 +898,10 @@ export async function createMap(container, { root, onPick, pois = false, scale =
       wanted.filter(node => node.layer === layer).forEach(drawNode)
     }
     updateMarkers()
+    if (scale && hover) {
+      hoverMoved = false
+      updateElevation()
+    }
     evict()
   }
 
@@ -858,7 +914,46 @@ export async function createMap(container, { root, onPick, pois = false, scale =
 
   function pinchState() {
     const [a, b] = Array.from(pointers.values())
-    return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, span: Math.hypot(a.x - b.x, a.y - b.y) }
+    return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, span: Math.hypot(a.x - b.x, a.y - b.y), angle: Math.atan2(b.y - a.y, b.x - a.x) }
+  }
+
+  function turn(heading, tilt) {
+    camera.heading = camera.headingTarget = heading
+    camera.tilt = camera.tiltTarget = Math.min(Math.max(tilt, 0), MAX_TILT)
+    needsDraw = true
+  }
+
+  function setMode(on, instant = false) {
+    threeD = on
+    if (on) {
+      if (camera.tiltTarget === 0) {
+        camera.tiltTarget = START_TILT
+      }
+    } else {
+      camera.heading = Math.atan2(Math.sin(camera.heading), Math.cos(camera.heading))
+      camera.headingTarget = 0
+      camera.tiltTarget = 0
+    }
+    if (instant) {
+      relief = on ? fullRelief : fullRelief / 2
+      camera.tilt = camera.tiltTarget
+      camera.heading = camera.headingTarget
+    }
+    for (const button of modeToggle.children) {
+      button.classList.toggle("selected", (button.dataset.mode === "3d") === on)
+    }
+    needsDraw = true
+  }
+
+  function updateElevation() {
+    const point = hover && pick(hover.x, hover.y)
+    const place = point && locate(point.x, point.y)
+    if (!place) {
+      elevationLabel.textContent = ""
+      return
+    }
+    const seaLevel = games[place.layer.game].seaLevel || 0
+    elevationLabel.textContent = `Elevation ${Math.round((point.z / relief * 255 - seaLevel) * DEPTH_METRES / 255)} m`
   }
 
   function startGrab(x, y) {
@@ -879,6 +974,22 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     }
     camera.x += grab.x - now.x
     camera.y += grab.y - now.y
+    trackVelocity()
+    camera.target = camera.distance
+    needsDraw = true
+  }
+
+  function panBy(dx, dy) {
+    const k = camera.distance * 2 * Math.tan(FOV / 2) / Math.max(viewSize.height, 1)
+    const sh = Math.sin(camera.heading), ch = Math.cos(camera.heading)
+    camera.x -= (dy * sh + dx * ch) * k
+    camera.y += (dx * sh - dy * ch) * k
+    trackVelocity()
+    camera.target = camera.distance
+    needsDraw = true
+  }
+
+  function trackVelocity() {
     const time = performance.now()
     const elapsed = (time - lastMove.time) / 1000
     if (elapsed > 0.004) {
@@ -891,8 +1002,15 @@ export async function createMap(container, { root, onPick, pois = false, scale =
       }
       lastMove = { time, x: camera.x, y: camera.y }
     }
-    camera.target = camera.distance
-    needsDraw = true
+  }
+
+  function pickAt(x, y) {
+    updateCamera()
+    const point = pick(x, y)
+    if (point) {
+      velocity = { x: 0, y: 0 }
+      onPick(locate(point.x, point.y) || { x: point.x, y: point.y, layer: null })
+    }
   }
 
   canvas.addEventListener("pointerdown", event => {
@@ -901,6 +1019,19 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     }
     flight = null
     canvas.setPointerCapture(event.pointerId)
+    if (threeD && event.pointerType === "mouse") {
+      if (event.button === 0) {
+        orbit = { x: event.clientX, y: event.clientY, heading: camera.heading, tilt: camera.tilt }
+        press = { x: event.clientX, y: event.clientY }
+      } else {
+        panning = { x: event.clientX, y: event.clientY }
+        velocity = { x: 0, y: 0 }
+        lastMove = { time: performance.now(), x: camera.x, y: camera.y }
+      }
+      dragging = true
+      canvas.classList.add("dragging")
+      return
+    }
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
     press = pointers.size === 1 && event.button === 0 ? { x: event.clientX, y: event.clientY } : null
     dragging = true
@@ -914,16 +1045,42 @@ export async function createMap(container, { root, onPick, pois = false, scale =
   })
 
   canvas.addEventListener("pointermove", event => {
-    const held = pointers.get(event.pointerId)
-    if (!held) {
+    if (orbit) {
+      if (press && Math.hypot(event.clientX - press.x, event.clientY - press.y) > CLICK_DISTANCE) {
+        press = null
+      }
+      if (!press) {
+        turn(orbit.heading + (event.clientX - orbit.x) * ORBIT_SPEED, orbit.tilt + (event.clientY - orbit.y) * ORBIT_SPEED)
+      }
       return
     }
+    if (panning) {
+      panBy(event.clientX - panning.x, event.clientY - panning.y)
+      panning = { x: event.clientX, y: event.clientY }
+      return
+    }
+    const held = pointers.get(event.pointerId)
+    if (!held) {
+      if (scale && event.pointerType === "mouse") {
+        hover = { x: event.clientX, y: event.clientY }
+        hoverMoved = true
+      }
+      return
+    }
+    const previous = { x: held.x, y: held.y }
     held.x = event.clientX
     held.y = event.clientY
     if (press && Math.hypot(event.clientX - press.x, event.clientY - press.y) > CLICK_DISTANCE) {
       press = null
     }
-    if (pointers.size === 2 && pinch) {
+    if (pointers.size === 2 && pinch && threeD) {
+      const next = pinchState()
+      turn(camera.heading + (next.angle - pinch.angle), camera.tilt + (next.y - pinch.y) * ORBIT_SPEED)
+      camera.distance *= pinch.span / Math.max(next.span, 1)
+      clampCamera()
+      camera.target = camera.distance
+      pinch = next
+    } else if (pointers.size === 2 && pinch) {
       const next = pinchState()
       dragTo(next.x, next.y)
       camera.distance *= pinch.span / Math.max(next.span, 1)
@@ -931,19 +1088,30 @@ export async function createMap(container, { root, onPick, pois = false, scale =
       camera.target = camera.distance
       pinch = next
       startGrab(next.x, next.y)
+    } else if (threeD) {
+      panBy(event.clientX - previous.x, event.clientY - previous.y)
     } else {
       dragTo(event.clientX, event.clientY)
     }
   })
 
   function endPointer(event) {
-    if (event.type === "pointerup" && press && pointers.size === 1 && onPick) {
-      updateCamera()
-      const point = pick(event.clientX, event.clientY)
-      if (point) {
-        velocity = { x: 0, y: 0 }
-        onPick(locate(point.x, point.y) || { x: point.x, y: point.y, layer: null })
+    if (orbit || panning) {
+      if (orbit && press && event.type === "pointerup" && onPick) {
+        pickAt(event.clientX, event.clientY)
       }
+      orbit = null
+      panning = null
+      press = null
+      dragging = false
+      canvas.classList.remove("dragging")
+      if (performance.now() - lastMove.time > 80) {
+        velocity = { x: 0, y: 0 }
+      }
+      return
+    }
+    if (event.type === "pointerup" && press && pointers.size === 1 && onPick) {
+      pickAt(event.clientX, event.clientY)
     }
     press = null
     pointers.delete(event.pointerId)
@@ -964,6 +1132,12 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     }
   }
 
+  canvas.addEventListener("pointerleave", () => {
+    if (scale) {
+      hover = null
+      hoverMoved = true
+    }
+  })
   canvas.addEventListener("pointerup", endPointer)
   canvas.addEventListener("pointercancel", endPointer)
   let suppressMenu = false
@@ -1065,6 +1239,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
   }
 
   const world = await (await fetch(`${root}world.json`)).json()
+  games = world.games
   hatchTexture = await loadOverlay(`${root}hatch.avif`, gl.REPEAT, 0)
   const masks = new Map()
   layers = await Promise.all(world.layers.map(config => loadLayer(config, world.games, masks)))
@@ -1082,6 +1257,9 @@ export async function createMap(container, { root, onPick, pois = false, scale =
     }
   }
   pendingFit = { box: extent, snap: true, inset: 0 }
+  if (modes) {
+    setMode(false, true)
+  }
   requestAnimationFrame(render)
   if (pois) {
     loadPointsOfInterest(Object.keys(world.games))
@@ -1122,6 +1300,7 @@ export async function createMap(container, { root, onPick, pois = false, scale =
 
   return {
     place,
+    setMode,
     addMarker(element, x, y) {
       markerLayer.append(element)
       const marker = { element, x, y }

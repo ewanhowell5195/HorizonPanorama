@@ -342,7 +342,10 @@ async function startRound() {
   phase.value = "round"
   intro.value = true
   introRunning = true
-  loadMaps().then(() => minimap.value.fit(null, { snap: true, game: current.games === "both" ? null : current.games }))
+  loadMaps().then(() => {
+    minimap.value.setMode(false, true)
+    minimap.value.fit(null, { snap: true, game: current.games === "both" ? null : current.games })
+  })
   backdrop.value.cycle(false)
   backdrop.value.next()
   preload(current.index)
@@ -661,7 +664,7 @@ onBeforeUnmount(() => {
   <GameHud :round="status.index" :count="status.count" :score="status.total" :heading="heading" :hidden="!isRound" :hard="gameHard" :swapped="swapView" :faded="swapFading" />
   <GuessPanel :hidden="!isRound" :has-guess="hasGuess" :swapped="swapView" @guess="submitGuess" @swap="toggleSwap">
     <Teleport to="#map-full" defer :disabled="!swapView">
-      <MapView ref="minimap" pickable pois scale :faded="swapFading" @pick="placeGuess" />
+      <MapView ref="minimap" pickable pois scale modes :faded="swapFading" @pick="placeGuess" />
     </Teleport>
   </GuessPanel>
   <div class="bigmap" :class="{ shown: showsMap }">
