@@ -1,4 +1,5 @@
 import { createCompass } from "./compass.js"
+import { tileLocation } from "./locations.js"
 
 const UNIT_METRES = 256
 const HATCH_METRES = 128
@@ -150,6 +151,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
   const pointsOfInterest = []
   const hiddenTypes = new Set()
   let iconsOn = true
+  let shownLocations = null
   const tracksHover = Boolean(scale || onHover)
 
   const gl = canvas.getContext("webgl2", { antialias: true })
@@ -692,7 +694,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
       }
       wanted.push({ layer, level, i, j, box, pixels })
     }
-    for (const layer of layers) {
+    for (const layer of layers.filter(layer => layer.visible)) {
       const top = layer.levels - 1
       const count = Math.ceil(layer.domain.tiles / tileSize(top))
       for (let j = 0; j < count; j++) {
@@ -1039,7 +1041,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
         z = away <= reach ? heightAt(poi.x, poi.y) : null
         shown = z !== null && Math.hypot(away, eye[2] - z) <= reach
       }
-      shown = shown && iconsOn && !hiddenTypes.has(poi.type)
+      shown = shown && iconsOn && !hiddenTypes.has(poi.type) && (!shownLocations || shownLocations.has(poi.location))
       if (shown && threeD && hiddenByTerrain(poi.x, poi.y, z)) {
         shown = false
       }
@@ -1135,7 +1137,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     gl.bindTexture(gl.TEXTURE_2D, hatchTexture)
     drawn = []
     lastTile = null
-    for (const layer of layers) {
+    for (const layer of layers.filter(layer => layer.visible)) {
       gl.uniform4f(uniforms.uDomain, layer.border[0], layer.border[1], layer.border[2], layer.border[3])
       gl.activeTexture(gl.TEXTURE2)
       gl.bindTexture(gl.TEXTURE_2D, layer.borderTexture)
@@ -1486,7 +1488,10 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
   function tileExtent(game) {
     const box = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity }
     for (const layer of layers.filter(layer => !game || layer.game === game)) {
-      for (const [col, row] of layer.tiles) {
+      for (const [n, [col, row]] of layer.tiles.entries()) {
+        if (shownLocations && !shownLocations.has(layer.tileLocations[n])) {
+          continue
+        }
         const x = layer.offset[0] + (layer.domain.minX + col) * layer.scale
         const y = layer.offset[1] + (layer.domain.maxY - row) * layer.scale
         box.minX = Math.min(box.minX, x)
@@ -1528,6 +1533,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
       }
     }
     const occupancyTexture = gl.createTexture()
+    const tileLocations = config.tiles.map(([col, row]) => tileLocation(config.game, config.id, domain.minX + col, domain.maxY - row))
     gl.bindTexture(gl.TEXTURE_2D, occupancyTexture)
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1)
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, n, n, 0, gl.RED, gl.UNSIGNED_BYTE, grid.map(value => value * 255))
@@ -1536,7 +1542,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
     const hidden = new Set(config.hidden.map(([i, j]) => `${i}_${j}`))
-    return { index, id: config.id, game: config.game, regions: config.regions, tiles: config.tiles, scale, offset, domain, levels: Math.log2(domain.tiles) + 2, cells: grid, occupancy, occupancyTexture, grid: [offset[0] + domain.minX * scale, offset[1] + (domain.maxY + 1) * scale, n * scale], hidden, borderTexture, border: [offset[0] + mask.left * scale, offset[1] + mask.top * scale, mask.width * scale, mask.height * scale] }
+    return { index, id: config.id, game: config.game, regions: config.regions, tiles: config.tiles, scale, offset, domain, levels: Math.log2(domain.tiles) + 2, cells: grid, occupancy, occupancyTexture, tileLocations, visible: true, grid: [offset[0] + domain.minX * scale, offset[1] + (domain.maxY + 1) * scale, n * scale], hidden, borderTexture, border: [offset[0] + mask.left * scale, offset[1] + mask.top * scale, mask.width * scale, mask.height * scale] }
   }
 
   const world = await (await fetch(`${root}world.json`)).json()
@@ -1575,8 +1581,10 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     element.append(image)
     markerLayer.prepend(element)
     const point = place(game, marker.x, marker.y)
+    const tileMetres = point.layer.scale * UNIT_METRES
+    const location = tileLocation(game, point.layer.id, Math.floor(marker.x / tileMetres), Math.floor(marker.y / tileMetres))
     const label = type === "campfire" ? "Campfire" : marker.name
-    pointsOfInterest.push({ type, label, x: point.x, y: point.y, element })
+    pointsOfInterest.push({ type, label, location, x: point.x, y: point.y, element })
   }
 
   async function loadPointsOfInterest(games) {
@@ -1638,11 +1646,28 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
       needsDraw = true
     },
     fit(points, { snap = false, inset = 0, start = null, game = null } = {}) {
-      const box = points?.length ? { minX: Math.min(...points.map(p => p.x)), maxX: Math.max(...points.map(p => p.x)), minY: Math.min(...points.map(p => p.y)), maxY: Math.max(...points.map(p => p.y)) } : game ? tileExtent(game) : extent
+      const box = points?.length ? { minX: Math.min(...points.map(p => p.x)), maxX: Math.max(...points.map(p => p.x)), minY: Math.min(...points.map(p => p.y)), maxY: Math.max(...points.map(p => p.y)) } : tileExtent(game)
       pendingFit = { box, snap, inset, start }
       needsDraw = true
     },
     refresh() {
+      needsDraw = true
+    },
+    setLocations(locations) {
+      shownLocations = locations ? new Set(locations) : null
+      for (const layer of layers) {
+        const n = layer.domain.tiles
+        const grid = new Uint8Array(n * n)
+        layer.tiles.forEach(([col, row], index) => {
+          if (!shownLocations || shownLocations.has(layer.tileLocations[index])) {
+            grid[row * n + col] = 255
+          }
+        })
+        layer.visible = grid.some(Boolean)
+        gl.bindTexture(gl.TEXTURE_2D, layer.occupancyTexture)
+        gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1)
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, n, n, 0, gl.RED, gl.UNSIGNED_BYTE, grid)
+      }
       needsDraw = true
     },
     setFeatures({ modes: modesOn = true, readouts = true, compass: compassOn = true, icons = true }) {

@@ -14,7 +14,8 @@ import SummaryCard from "./components/SummaryCard.vue"
 import { MAX_POINTS, ROUNDS, formatDistance, points, readStore, shuffle, wait, writeStore } from "./lib/game.js"
 import { METRES_PER_UNIT } from "./lib/map.js"
 import { answerMarker, pin } from "./lib/markers.js"
-import { MODE_RULES, fullRules, modeOf } from "./lib/rules.js"
+import { pointLocation } from "./lib/locations.js"
+import { LOCATIONS, MODE_RULES, fullRules, gamesOf, modeOf, withGames } from "./lib/rules.js"
 import { decodeScore, decodeSeed, encodeSeed, randomCode, seededRandom, seedLink } from "./lib/seed.js"
 import { pickView } from "./lib/view.js"
 
@@ -84,16 +85,18 @@ const showsMap = computed(() => (phase.value === "result" || phase.value === "su
 const playing = computed(() => isRound.value && !intro.value)
 const swapView = computed(() => swapped.value && playing.value)
 const sphereActive = computed(() => playing.value || Boolean(viewing.value && !viewing.value.loading))
-const choices = computed(() => games.value === "both" ? pool.value : pool.value.filter(round => round.game === games.value))
+const choices = computed(() => pool.value.filter(round => rules.value[round.location]))
 const counts = computed(() => ({ both: pool.value.length, hzd: pool.value.filter(round => round.game === "hzd").length, hfw: pool.value.filter(round => round.game === "hfw").length }))
+const locationCounts = computed(() => Object.fromEntries(LOCATIONS.map(location => [location.id, pool.value.filter(round => round.location === location.id).length])))
 const roundCount = computed(() => Math.min(ROUNDS, choices.value.length))
 const canPlay = computed(() => pool.value.length > 0)
-const previewGame = computed(() => isMenu.value && setup.value && !challenge.value && games.value !== "both" ? games.value : null)
-const rules = computed(() => mode.value === "custom" ? customRules.value : MODE_RULES[mode.value])
+const rules = computed(() => mode.value === "custom" ? customRules.value : withGames(MODE_RULES[mode.value], games.value))
+const previewGame = computed(() => isMenu.value && setup.value && !challenge.value && gamesOf(rules.value) !== "both" ? gamesOf(rules.value) : null)
 const gameRules = ref(MODE_RULES.normal)
 const gameMode = computed(() => modeOf(gameRules.value))
 
 let game = null
+let world = null
 let guessMarker = null
 let resultMarkers = []
 let presentedRound = -1
@@ -280,10 +283,11 @@ async function loadPool() {
   try {
     const response = await fetch("/photospheres/photospheres.json", { cache: "no-store" })
     if (response.ok) {
+      world ??= await (await fetch("/map/world.json")).json()
       const entries = Object.entries(await response.json()).flatMap(([game, spheres]) => Object.entries(spheres).map(([name, text]) => ({ name, game, text })))
       pool.value = await Promise.all(entries.map(async ({ name, game, text }) => {
         const [x, y, z] = await decodePosition(name, text)
-        return { name, game, x, y, z }
+        return { name, game, x, y, z, location: pointLocation(world, game, x, y) }
       }))
     }
   } catch (error) {
@@ -339,6 +343,12 @@ async function countDown(current, round) {
   }
 }
 
+function showLocations(current) {
+  const shown = LOCATIONS.filter(location => current.rules[location.id]).map(location => location.id)
+  minimap.value.setLocations(shown)
+  bigmap.value.setLocations(shown)
+}
+
 function loadMaps() {
   mapsLoading ??= (async () => {
     await minimap.value.load()
@@ -371,6 +381,7 @@ async function startRound() {
   introRunning = true
   loadMaps().then(() => {
     minimap.value.setFeatures({ modes: current.rules.map3d, readouts: current.rules.readouts, compass: current.rules.compass, icons: current.rules.icons })
+    showLocations(current)
     minimap.value.setMode(false, true)
     minimap.value.fit(null, { snap: true, game: current.games === "both" ? null : current.games })
   })
@@ -481,6 +492,7 @@ async function restoreGame(saved) {
   }
   backdrop.value.cycle(false)
   await loadMaps()
+  showLocations(game)
   restoring.value = false
   if (game.state === "result") {
     await showResult(game.results[game.index])
@@ -640,11 +652,11 @@ function resumeGame() {
   backdrop.value.cycle(false)
 }
 
-function begin(rounds, gameRulesValue, which) {
+function begin(rounds, gameRulesValue) {
   seedError.value = ""
   closeView()
   paused = null
-  game = { rounds, index: 0, total: 0, results: [], state: "round", guess: null, rules: fullRules(gameRulesValue), games: which }
+  game = { rounds, index: 0, total: 0, results: [], state: "round", guess: null, rules: fullRules(gameRulesValue), games: gamesOf(fullRules(gameRulesValue)) }
   game.seed = encodeSeed(game)
   game.id = Math.random().toString(36).slice(2, 8)
   const url = `${screenUrl("game")}?seed=${game.seed}&id=${game.id}`
@@ -666,7 +678,7 @@ async function newGame() {
   if (!choices.value.length) {
     return
   }
-  begin(shuffle(choices.value).slice(0, ROUNDS).map(round => Object.assign({}, round, { code: randomCode() })), rules.value, games.value)
+  begin(shuffle(choices.value).slice(0, ROUNDS).map(round => Object.assign({}, round, { code: randomCode() })), rules.value)
 }
 
 async function playSeed(input) {
@@ -682,7 +694,7 @@ async function playSeed(input) {
     seedError.value = missing.length === seed.rounds.length ? "None of this seed's photospheres are available any more." : `${missing.length} of this seed's photospheres ${missing.length === 1 ? "is" : "are"} no longer available.`
     return
   }
-  begin(seed.rounds.map(round => Object.assign({}, byName.get(round.name), { code: round.code })), seed.rules, seed.games)
+  begin(seed.rounds.map(round => Object.assign({}, byName.get(round.name), { code: round.code })), seed.rules)
 }
 
 async function toggleSwap() {
@@ -800,7 +812,7 @@ onBeforeUnmount(() => {
   <SlideBackdrop ref="backdrop" :active="isMenu || intro" :timer="isMenu" />
   <ChallengeScreen :visible="isMenu && Boolean(challenge)" :ready="canPlay" :rules="challenge?.seed.rules" :games="challenge?.seed.games" :rounds="challenge?.seed.rounds.length || 0" :score="challenge?.score" :error="seedError" @play="playChallenge" @menu="goHome" />
   <HomeScreen :visible="isMenu && !challenge && !setup && !restoring" :count="pool.length" :ready="canPlay" :best="overall.best" :last="overall.last" :average="overall.average" @play="goSetup" />
-  <SetupScreen :visible="isMenu && !challenge && setup" :ready="canPlay" :counts="counts" :rounds="roundCount" :games="games" :mode="mode" :custom-rules="customRules" :best="best" :last="last" :average="average" :seed="seedInput" :seed-error="seedError" @start="newGame" @back="goHome" @games="setGames" @mode="setMode" @rule="setRule" @seed="openChallenge" />
+  <SetupScreen :visible="isMenu && !challenge && setup" :ready="canPlay" :counts="counts" :location-counts="locationCounts" :available="choices.length" :rounds="roundCount" :games="games" :mode="mode" :custom-rules="customRules" :best="best" :last="last" :average="average" :seed="seedInput" :seed-error="seedError" @start="newGame" @back="goHome" @games="setGames" @mode="setMode" @rule="setRule" @seed="openChallenge" />
   <RoundIntro :visible="intro" :number="status.index" :count="status.count" :progress="status.progress" :label="status.label" :tip="status.tip" :mode="gameMode" :countdown="status.countdown" :steps="COUNTDOWN" :waiting="status.waiting" />
 </template>
 

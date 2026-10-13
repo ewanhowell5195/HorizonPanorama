@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, watch } from "vue"
 import { MAX_POINTS } from "../lib/game.js"
-import { RULES } from "../lib/rules.js"
+import { LOCATIONS, RULES } from "../lib/rules.js"
 
 const GAMES = [
   { id: "both", name: "Both games" },
@@ -14,19 +14,24 @@ const MODES = [
   { id: "custom", name: "Custom", detail: "Choose what you get" }
 ]
 
-const props = defineProps({ visible: Boolean, ready: Boolean, counts: Object, rounds: Number, games: String, mode: String, customRules: Object, best: Number, last: Number, average: Number, seed: String, seedError: String })
+const props = defineProps({ visible: Boolean, ready: Boolean, counts: Object, locationCounts: Object, available: Number, rounds: Number, games: String, mode: String, customRules: Object, best: Number, last: Number, average: Number, seed: String, seedError: String })
 const emit = defineEmits(["start", "back", "games", "mode", "rule", "seed"])
 const seedText = ref(props.seed || "")
 
 watch(() => props.seed, value => seedText.value = value || "")
 
 const custom = computed(() => props.mode === "custom")
-const count = computed(() => props.counts?.[props.games] || 0)
+const count = computed(() => props.available || 0)
 const roundsLabel = computed(() => count.value ? `${props.rounds} rounds` : "No photospheres yet")
 const maxLabel = computed(() => count.value ? `Up to ${(props.rounds * MAX_POINTS).toLocaleString()} points` : "Capture some to play")
 const bestLabel = computed(() => props.best ? props.best.toLocaleString() : "None yet")
 const lastLabel = computed(() => props.last === null || props.last === undefined ? "None yet" : props.last.toLocaleString())
 const averageLabel = computed(() => props.average === null || props.average === undefined ? "None yet" : props.average.toLocaleString())
+
+function locationCount(id) {
+  const value = props.locationCounts?.[id] || 0
+  return `${value} location${value === 1 ? "" : "s"}`
+}
 
 function locations(id) {
   const value = props.counts?.[id] || 0
@@ -49,10 +54,16 @@ function playSeed() {
     <div class="setup-main">
       <p class="eyebrow rise" style="--i: 1">New game</p>
       <h1 class="title rise" style="--i: 2"><span>Game</span><span class="outline">Setup</span></h1>
-      <div class="group rise" style="--i: 3">
-        <small>Game</small>
-        <div class="options" role="radiogroup" aria-label="Game">
-          <button v-for="option in GAMES" :key="option.id" class="option" :class="{ selected: games === option.id }" type="button" role="radio" :aria-checked="games === option.id" @click="emit('games', option.id)"><strong>{{ option.name }}</strong><span>{{ locations(option.id) }}</span></button>
+      <div class="rise" style="--i: 3">
+        <div class="collapse" :class="{ open: !custom }" :inert="custom">
+          <div class="collapse-inner">
+            <div class="group">
+              <small>Game</small>
+              <div class="options" role="radiogroup" aria-label="Game">
+                <button v-for="option in GAMES" :key="option.id" class="option" :class="{ selected: games === option.id }" type="button" role="radio" :aria-checked="games === option.id" @click="emit('games', option.id)"><strong>{{ option.name }}</strong><span>{{ locations(option.id) }}</span></button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       <div class="group rise" style="--i: 4">
@@ -64,6 +75,12 @@ function playSeed() {
       <div class="rise" style="--i: 4">
         <div class="collapse" :class="{ open: custom }" :inert="!custom">
           <div class="collapse-inner">
+            <div class="group">
+              <small>Locations</small>
+              <div class="rules">
+                <button v-for="location in LOCATIONS" :key="location.id" class="rule" :class="{ on: customRules[location.id] }" type="button" role="switch" :aria-checked="customRules[location.id]" @click="emit('rule', location.id, !customRules[location.id])"><span class="switch"></span><strong>{{ location.name }}</strong><span>{{ locationCount(location.id) }}</span></button>
+              </div>
+            </div>
             <div class="group">
               <small>Custom rules</small>
               <div class="rules">

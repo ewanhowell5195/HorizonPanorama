@@ -20,7 +20,8 @@ defineExpose({
   fit: (points, options) => map?.fit(points, options),
   refresh: () => map?.refresh(),
   setMode: (on, instant) => map?.setMode(on, instant),
-  setFeatures: features => map?.setFeatures(features)
+  setFeatures: features => map?.setFeatures(features),
+  setLocations: locations => map?.setLocations(locations)
 })
 </script>
 

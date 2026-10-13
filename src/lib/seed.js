@@ -1,11 +1,10 @@
-import { bitsToRules, rulesToBits } from "./rules.js"
+import { bitsToRules, gamesOf, rulesToBits } from "./rules.js"
 
-const VERSION = "2"
+const VERSION = "3"
 const EPOCH = Date.UTC(2020, 0, 1) / 1000
 const TIME_DIGITS = 6
 const VIEW_DIGITS = 3
-const RULE_DIGITS = 2
-const GAMES = { b: "both", z: "hzd", f: "hfw" }
+const RULE_DIGITS = 3
 
 function checksum(text) {
   let sum = 0
@@ -44,9 +43,8 @@ export function seededRandom(code) {
   }
 }
 
-export function encodeSeed({ rules, games, rounds }) {
-  const letter = Object.keys(GAMES).find(key => GAMES[key] === games)
-  const body = VERSION + letter + rulesToBits(rules).toString(36).padStart(RULE_DIGITS, "0") + rounds.map(round => nameToSeconds(round.name).toString(36).padStart(TIME_DIGITS, "0") + round.code.toString(36).padStart(VIEW_DIGITS, "0")).join("")
+export function encodeSeed({ rules, rounds }) {
+  const body = VERSION + rulesToBits(rules).toString(36).padStart(RULE_DIGITS, "0") + rounds.map(round => nameToSeconds(round.name).toString(36).padStart(TIME_DIGITS, "0") + round.code.toString(36).padStart(VIEW_DIGITS, "0")).join("")
   return body + checksum(body)
 }
 
@@ -65,8 +63,8 @@ export function decodeSeed(input) {
   const fromLink = /[?&]seed=([0-9a-z]+)/i.exec(text)
   const code = (fromLink ? fromLink[1] : text).toLowerCase()
   const roundLength = TIME_DIGITS + VIEW_DIGITS
-  const head = 2 + RULE_DIGITS
-  if (!/^[0-9a-z]+$/.test(code) || code[0] !== VERSION || !GAMES[code[1]] || (code.length - head - 1) % roundLength !== 0 || code.length <= head + 1) {
+  const head = 1 + RULE_DIGITS
+  if (!/^[0-9a-z]+$/.test(code) || code[0] !== VERSION || (code.length - head - 1) % roundLength !== 0 || code.length <= head + 1) {
     return null
   }
   const body = code.slice(0, -1)
@@ -78,5 +76,6 @@ export function decodeSeed(input) {
     const name = secondsToName(parseInt(body.slice(at, at + TIME_DIGITS), 36))
     rounds.push({ name, code: parseInt(body.slice(at + TIME_DIGITS, at + roundLength), 36) })
   }
-  return { code, games: GAMES[code[1]], rules: bitsToRules(parseInt(code.slice(2, head), 36)), rounds }
+  const rules = bitsToRules(parseInt(code.slice(1, head), 36))
+  return { code, games: gamesOf(rules), rules, rounds }
 }
