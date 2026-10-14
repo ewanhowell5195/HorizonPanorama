@@ -7,6 +7,10 @@ export function points(metres) {
   return metres <= PERFECT_METRES ? MAX_POINTS : Math.round(MAX_POINTS * Math.exp(-(metres - PERFECT_METRES) / FALLOFF_METRES))
 }
 
+export function distanceLabel(entry) {
+  return entry.miss || formatDistance(entry.metres)
+}
+
 export function formatDistance(metres) {
   if (metres < 25) {
     return `${metres.toFixed(metres < 5 ? 2 : 1)} m`

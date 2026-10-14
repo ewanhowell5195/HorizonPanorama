@@ -103,8 +103,6 @@ const fragmentSource = `#version 300 es
     outColor = gl_FrontFacing ? vec4(texture(uColor, vUv).rgb * alpha * shade, alpha) : vec4(0.0, 0.0, 0.0, 1.0);
   }`
 
-export const METRES_PER_UNIT = UNIT_METRES
-
 export async function createMap(container, { root, onPick, onHover, onView, pois = false, scale = false, modes = false, minZoom = 0 }) {
   const canvas = document.createElement("canvas")
   const overlay = document.createElementNS("http://www.w3.org/2000/svg", "svg")
@@ -1477,6 +1475,21 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     return null
   }
 
+  function nearestPiece(x, y) {
+    let best = null
+    for (const layer of layers) {
+      for (const [col, row] of layer.tiles) {
+        const left = layer.offset[0] + (layer.domain.minX + col) * layer.scale
+        const bottom = layer.offset[1] + (layer.domain.maxY - row) * layer.scale
+        const distance = Math.hypot(Math.max(left - x, 0, x - left - layer.scale), Math.max(bottom - y, 0, y - bottom - layer.scale))
+        if (!best || distance < best.distance) {
+          best = { distance, layer }
+        }
+      }
+    }
+    return best && { x, y, layer: best.layer, worldX: (x - best.layer.offset[0]) * UNIT_METRES, worldY: (y - best.layer.offset[1]) * UNIT_METRES }
+  }
+
   function place(game, worldX, worldY) {
     const candidates = layers.filter(layer => layer.game === game)
     const tileMetres = candidates[0].scale * UNIT_METRES
@@ -1619,6 +1632,9 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
 
   return {
     place,
+    locate(x, y) {
+      return locate(x, y) || nearestPiece(x, y)
+    },
     setMode,
     addMarker(element, x, y) {
       markerLayer.append(element)

@@ -11,8 +11,7 @@ import RoundIntro from "./components/RoundIntro.vue"
 import SlideBackdrop from "./components/SlideBackdrop.vue"
 import SetupScreen from "./components/SetupScreen.vue"
 import SummaryCard from "./components/SummaryCard.vue"
-import { MAX_POINTS, ROUNDS, formatDistance, points, readStore, shuffle, wait, writeStore } from "./lib/game.js"
-import { METRES_PER_UNIT } from "./lib/map.js"
+import { MAX_POINTS, ROUNDS, distanceLabel, points, readStore, shuffle, wait, writeStore } from "./lib/game.js"
 import { answerMarker, pin } from "./lib/markers.js"
 import { pointLocation } from "./lib/locations.js"
 import { LOCATIONS, MODE_RULES, fullRules, gamesOf, modeOf, withGames } from "./lib/rules.js"
@@ -20,6 +19,7 @@ import { decodeScore, decodeSeed, encodeSeed, randomCode, seededRandom, seedLink
 import { pickView } from "./lib/view.js"
 
 const COUNTDOWN = 3
+const SEPARATE_PIECE = "hfw-east"
 // after RoundIntro's per tick ring step (0.45 s) and pulse (0.7 s) have finished
 const QUIET_MS = 700
 const MAP_DELAY_MS = 1200
@@ -537,10 +537,12 @@ async function submitGuess() {
   const round = game.rounds[game.index]
   const answer = bigmap.value.place(round.game, round.x, round.y)
   const guess = { x: game.guess.x, y: game.guess.y }
-  const metres = Math.hypot(guess.x - answer.x, guess.y - answer.y) * METRES_PER_UNIT
-  const score = points(metres)
+  const spot = bigmap.value.locate(guess.x, guess.y)
+  const miss = spot.layer.game !== round.game ? "Wrong game" : spot.layer.id !== answer.layer.id && (spot.layer.id === SEPARATE_PIECE || answer.layer.id === SEPARATE_PIECE) ? "Too far away" : null
+  const metres = miss ? null : Math.hypot(spot.worldX - round.x, spot.worldY - round.y)
+  const score = miss ? 0 : points(metres)
   game.total += score
-  const entry = { guess, answer: { x: answer.x, y: answer.y }, metres, score }
+  const entry = { guess, answer: { x: answer.x, y: answer.y }, metres, miss, score }
   game.results.push(entry)
   game.state = "result"
   saveGame()
@@ -551,7 +553,7 @@ async function showResult(entry) {
   status.total = game.total
   resultMarkers.push(bigmap.value.addMarker(pin("var(--accent)"), entry.guess.x, entry.guess.y), bigmap.value.addMarker(answerMarker(), entry.answer.x, entry.answer.y))
   bigmap.value.setLines([[entry.guess, entry.answer]])
-  result.value = { key: game.index, score: entry.score, distance: formatDistance(entry.metres), lastRound: game.index + 1 >= game.rounds.length }
+  result.value = { key: game.index, score: entry.score, distance: distanceLabel(entry), lastRound: game.index + 1 >= game.rounds.length }
   phase.value = "result"
   await nextTick()
   bigmap.value.fit([entry.guess, entry.answer], { inset: (resultCard.value?.$el.offsetHeight || 0) + 40, start: { x: entry.guess.x, y: entry.guess.y, zoom: 0.35 } })
@@ -576,7 +578,7 @@ async function showSummary(record = true) {
     writeStore(key("scoreSum"), (storedScore(key("scoreSum")) || 0) + game.total)
     refreshScores()
   }
-  summary.value = { seed: game.seed, total: game.total, max: game.rounds.length * MAX_POINTS, results: game.results.map(entry => ({ distance: formatDistance(entry.metres), score: entry.score })) }
+  summary.value = { seed: game.seed, total: game.total, max: game.rounds.length * MAX_POINTS, results: game.results.map(entry => ({ distance: distanceLabel(entry), score: entry.score })) }
   phase.value = "summary"
   await nextTick()
   bigmap.value.fit(game.results.flatMap(entry => [entry.guess, entry.answer]), { inset: (summaryCard.value?.$el.offsetHeight || 0) + 40 })

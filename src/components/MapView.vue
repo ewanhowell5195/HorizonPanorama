@@ -15,6 +15,7 @@ async function load() {
 defineExpose({
   load,
   place: (game, x, y) => map.place(game, x, y),
+  locate: (x, y) => map.locate(x, y),
   addMarker: (element, x, y) => map.addMarker(element, x, y),
   setLines: pairs => map?.setLines(pairs),
   fit: (points, options) => map?.fit(points, options),
