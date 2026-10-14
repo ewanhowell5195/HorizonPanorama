@@ -1,12 +1,17 @@
 <script setup>
+import { computed } from "vue"
+import { cauldronFor } from "../lib/cauldrons.js"
 import HudCompass from "./HudCompass.vue"
 
-defineProps({ round: Number, count: Number, score: Number, heading: Number, hidden: Boolean, mode: String, compass: Boolean, swapped: Boolean, faded: Boolean })
+const props = defineProps({ round: Number, count: Number, score: Number, heading: Number, hidden: Boolean, mode: String, compass: Boolean, swapped: Boolean, faded: Boolean })
+
+const emblem = computed(() => `/cauldrons/round-${cauldronFor(props.round)}.png`)
 </script>
 
 <template>
   <div class="hud" :class="{ hidden }">
     <div class="stats">
+      <img class="emblem" :src="emblem" alt="">
       <div class="stat"><span>Round</span><strong>{{ round }} / {{ count }}</strong></div>
       <div class="stat"><span>Score</span><strong>{{ score.toLocaleString() }}</strong></div>
       <div v-if="mode !== 'normal'" class="stat"><span>Mode</span><strong class="mode">{{ mode === "hard" ? "Hard" : "Custom" }}</strong></div>
@@ -57,6 +62,12 @@ defineProps({ round: Number, count: Number, score: Number, heading: Number, hidd
 .stat strong {
   font-size: 17px;
   font-variant-numeric: tabular-nums;
+}
+
+.emblem {
+  align-self: center;
+  height: 30px;
+  margin-right: -4px;
 }
 
 .stat .mode {

@@ -48,7 +48,7 @@ function playSeed() {
 <template>
   <section class="setup" :class="{ visible }">
     <header class="setup-top rise">
-      <span class="mark"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 2.5 21.5 19h-19z" /><path d="M12 9.5 16 16.5H8z" fill="currentColor" stroke="none" /></svg>Photosphere guessing game</span>
+      <span class="mark"><i class="mark-emblem"></i>Photosphere guessing game</span>
       <button class="back" type="button" @click="emit('back')">Main menu</button>
     </header>
     <div class="setup-main">
@@ -159,10 +159,6 @@ function playSeed() {
   align-items: center;
   gap: 12px;
   color: var(--text);
-}
-
-.mark svg {
-  color: var(--accent);
 }
 
 .back {

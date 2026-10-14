@@ -84,6 +84,13 @@ button.secondary {
   border: 1px solid var(--border);
 }
 
+.mark-emblem {
+  width: 34px;
+  height: 17px;
+  background: var(--accent);
+  mask: url("/cauldrons/iota.png") center / contain no-repeat;
+}
+
 .eyebrow {
   display: flex;
   align-items: center;
