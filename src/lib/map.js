@@ -1445,9 +1445,9 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
   canvas.addEventListener("pointercancel", endPointer)
   let suppressMenu = false
   window.addEventListener("pointerdown", () => suppressMenu = false, true)
-  canvas.addEventListener("pointerdown", event => suppressMenu = event.button === 2)
+  container.addEventListener("pointerdown", event => suppressMenu = event.button === 2)
   window.addEventListener("contextmenu", event => {
-    if (suppressMenu || event.target === canvas) {
+    if (suppressMenu || container.contains(event.target)) {
       event.preventDefault()
       suppressMenu = false
     }
