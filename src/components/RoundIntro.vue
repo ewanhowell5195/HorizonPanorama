@@ -3,7 +3,8 @@ import { computed } from "vue"
 
 const RING = 2 * Math.PI * 28
 
-const props = defineProps({ visible: Boolean, number: Number, count: Number, progress: Number, label: String, tip: String, mode: String, countdown: Number, steps: Number, waiting: Boolean })
+const props = defineProps({ visible: Boolean, number: Number, count: Number, progress: Number, label: String, tip: String, mode: String, countdown: Number, steps: Number, waiting: Boolean, held: Boolean })
+const emit = defineEmits(["begin"])
 
 const bar = computed(() => ({ transform: `scaleX(${props.progress})` }))
 const ring = computed(() => ({ strokeDasharray: RING, strokeDashoffset: RING * (1 - Math.max(props.countdown, 0) / props.steps) }))
@@ -15,16 +16,19 @@ const digit = computed(() => props.waiting || props.countdown <= 0 ? "" : props.
     <p class="eyebrow rise">Round<span v-if="mode !== 'normal'" class="mode">{{ mode === "hard" ? "Hard" : "Custom" }}</span></p>
     <div class="number rise" style="--i: 1"><span>{{ number }}</span><small>/ {{ count }}</small></div>
     <div class="start rise" style="--i: 2">
-      <div class="countdown" :class="{ waiting }">
-        <span :key="`${number}-${countdown}`" class="pulse"></span>
-        <svg :key="number" viewBox="0 0 64 64" width="64" height="64">
-          <circle class="track" cx="32" cy="32" r="28" />
-          <circle class="sweep" cx="32" cy="32" r="28" :style="waiting ? null : ring" />
-        </svg>
-        <span :key="`${number}-${countdown}`" class="digit">{{ digit }}</span>
-      </div>
+      <Transition name="swap" mode="out-in">
+        <button v-if="held" class="begin" type="button" @click="emit('begin')">Start round</button>
+        <div v-else class="countdown" :class="{ waiting }">
+          <span :key="`${number}-${countdown}`" class="pulse"></span>
+          <svg :key="number" viewBox="0 0 64 64" width="64" height="64">
+            <circle class="track" cx="32" cy="32" r="28" />
+            <circle class="sweep" cx="32" cy="32" r="28" :style="waiting ? null : ring" />
+          </svg>
+          <span :key="`${number}-${countdown}`" class="digit">{{ digit }}</span>
+        </div>
+      </Transition>
       <div class="load">
-        <strong>{{ waiting ? "Almost there" : "Starting in" }}</strong>
+        <strong>{{ held ? "Ready when you are" : waiting ? "Almost there" : "Starting in" }}</strong>
         <span>{{ label }}</span>
         <div class="bar"><i :style="bar"></i></div>
       </div>
@@ -73,6 +77,20 @@ const digit = computed(() => props.waiting || props.countdown <= 0 ? "" : props.
   font-family: "Hunter", "Oita Norm", sans-serif;
   font-size: clamp(110px, min(20vw, 24vh), 240px);
   line-height: 0.8;
+}
+
+.swap-enter-active, .swap-leave-active {
+  transition: opacity 0.25s ease, transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.swap-enter-from {
+  opacity: 0;
+  transform: translateX(-10px);
+}
+
+.swap-leave-to {
+  opacity: 0;
+  transform: scale(0.9);
 }
 
 .number small {
@@ -168,6 +186,11 @@ const digit = computed(() => props.waiting || props.countdown <= 0 ? "" : props.
     opacity: 0;
     transform: scale(1.5);
   }
+}
+
+.begin {
+  flex: none;
+  padding: 14px 24px;
 }
 
 .load {

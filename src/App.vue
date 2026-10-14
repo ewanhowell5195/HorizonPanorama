@@ -60,7 +60,7 @@ const average = ref(mode.value === "custom" ? null : averageScore())
 const overall = ref(overallScores())
 const heading = ref(0)
 const hasGuess = ref(false)
-const status = reactive({ index: 1, count: ROUNDS, total: 0, progress: 0, label: "", tip: "", countdown: COUNTDOWN, waiting: false })
+const status = reactive({ index: 1, count: ROUNDS, total: 0, progress: 0, label: "", tip: "", countdown: COUNTDOWN, waiting: false, held: false })
 const result = ref(null)
 const summary = ref(null)
 const seedInput = ref(new URLSearchParams(location.search).get("seed") || "")
@@ -103,6 +103,7 @@ let viewToken = 0
 let trail = []
 let paused = null
 let introRunning = false
+let beginRound = null
 
 function readJson(key) {
   try {
@@ -357,7 +358,12 @@ function loadMaps() {
   return mapsLoading
 }
 
+function startHeld() {
+  beginRound?.()
+}
+
 async function startRound() {
+  startHeld()
   const current = game
   const round = current.rounds[current.index]
   swapped.value = false
@@ -407,6 +413,12 @@ async function startRound() {
     }
   }
   clearInterval(ticker)
+  if (game === current && !document.hasFocus()) {
+    status.held = true
+    await new Promise(resolve => beginRound = resolve)
+    beginRound = null
+    status.held = false
+  }
   if (game !== current) {
     drop(round)
     return
@@ -726,7 +738,10 @@ function onKey(event) {
   if (isMenu.value || (event.key !== " " && event.key !== "Enter")) {
     return
   }
-  if (game?.state === "round" && game.guess) {
+  if (beginRound) {
+    event.preventDefault()
+    startHeld()
+  } else if (game?.state === "round" && game.guess) {
     event.preventDefault()
     submitGuess()
   } else if (game?.state === "result") {
@@ -812,7 +827,7 @@ onBeforeUnmount(() => {
   <ChallengeScreen :visible="isMenu && Boolean(challenge)" :ready="canPlay" :rules="challenge?.seed.rules" :games="challenge?.seed.games" :rounds="challenge?.seed.rounds.length || 0" :score="challenge?.score" :error="seedError" @play="playChallenge" @menu="goHome" />
   <HomeScreen :visible="isMenu && !challenge && !setup && !restoring" :count="pool.length" :ready="canPlay" :best="overall.best" :last="overall.last" :average="overall.average" @play="goSetup" />
   <SetupScreen :visible="isMenu && !challenge && setup" :ready="canPlay" :counts="counts" :location-counts="locationCounts" :available="choices.length" :rounds="roundCount" :games="games" :mode="mode" :custom-rules="customRules" :best="best" :last="last" :average="average" :seed="seedInput" :seed-error="seedError" @start="newGame" @back="goHome" @games="setGames" @mode="setMode" @rule="setRule" @seed="openChallenge" />
-  <RoundIntro :visible="intro" :number="status.index" :count="status.count" :progress="status.progress" :label="status.label" :tip="status.tip" :mode="gameMode" :countdown="status.countdown" :steps="COUNTDOWN" :waiting="status.waiting" />
+  <RoundIntro :visible="intro" :number="status.index" :count="status.count" :progress="status.progress" :label="status.label" :tip="status.tip" :mode="gameMode" :countdown="status.countdown" :steps="COUNTDOWN" :waiting="status.waiting" :held="status.held" @begin="startHeld" />
 </template>
 
 <style scoped>
