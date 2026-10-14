@@ -1,27 +1,21 @@
 <script setup>
-import { computed, ref, watch } from "vue"
+import { computed } from "vue"
 import { MAX_POINTS } from "../lib/game.js"
 import { LOCATIONS, RULES } from "../lib/rules.js"
 import TickerNumber from "./TickerNumber.vue"
 
-const GAMES = [
-  { id: "both", name: "Both games" },
-  { id: "hzd", name: "Zero Dawn", bars: 1 },
-  { id: "hfw", name: "Forbidden West", bars: 2 }
-]
+const GAME_NAMES = { both: "Both games", hzd: "Zero Dawn", hfw: "Forbidden West" }
 const MODES = [
   { id: "normal", name: "Normal", detail: "Look around freely" },
   { id: "hard", name: "Hard", detail: "Fixed view, no zoom" },
   { id: "custom", name: "Custom", detail: "Choose what you get" }
 ]
 
-const props = defineProps({ visible: Boolean, ready: Boolean, counts: Object, locationCounts: Object, available: Number, rounds: Number, games: String, mode: String, customRules: Object, best: Number, last: Number, average: Number, seed: String, seedError: String })
-const emit = defineEmits(["start", "back", "games", "mode", "rule", "seed"])
-const seedText = ref(props.seed || "")
-
-watch(() => props.seed, value => seedText.value = value || "")
+const props = defineProps({ visible: Boolean, ready: Boolean, locationCounts: Object, available: Number, rounds: Number, games: String, mode: String, customRules: Object, best: Number, last: Number, average: Number })
+const emit = defineEmits(["start", "back", "mode", "rule"])
 
 const custom = computed(() => props.mode === "custom")
+const locations = computed(() => LOCATIONS.filter(location => props.games === "both" || location.game === props.games))
 const count = computed(() => props.available || 0)
 const roundsLabel = computed(() => count.value ? `${props.rounds} rounds` : "No photospheres yet")
 const maxLabel = computed(() => count.value ? `Up to ${(props.rounds * MAX_POINTS).toLocaleString()} points` : "Capture some to play")
@@ -29,17 +23,6 @@ const maxLabel = computed(() => count.value ? `Up to ${(props.rounds * MAX_POINT
 function locationCount(id) {
   const value = props.locationCounts?.[id] || 0
   return `${value} location${value === 1 ? "" : "s"}`
-}
-
-function locations(id) {
-  const value = props.counts?.[id] || 0
-  return `${value} location${value === 1 ? "" : "s"}`
-}
-
-function playSeed() {
-  if (seedText.value.trim()) {
-    emit("seed", seedText.value)
-  }
 }
 </script>
 
@@ -49,7 +32,7 @@ function playSeed() {
       <button class="mark" type="button" title="Main menu" @click="emit('back')"><i class="mark-emblem"></i>Horizon Wayfinder</button>
     </header>
     <div class="setup-main">
-      <p class="eyebrow rise" style="--i: 1">New game</p>
+      <p class="eyebrow rise" style="--i: 1">{{ GAME_NAMES[games] }}</p>
       <h1 class="title rise" style="--i: 2"><span>Game</span><span class="outline">Setup</span></h1>
       <div class="group rise" style="--i: 3">
         <small>Mode</small>
@@ -58,24 +41,12 @@ function playSeed() {
         </div>
       </div>
       <div class="rise" style="--i: 4">
-        <div class="collapse" :class="{ open: !custom }" :inert="custom">
-          <div class="collapse-inner">
-            <div class="group">
-              <small>Game</small>
-              <div class="options" role="radiogroup" aria-label="Game">
-                <button v-for="option in GAMES" :key="option.id" class="option numbered" :class="{ selected: games === option.id }" type="button" role="radio" :aria-checked="games === option.id" @click="emit('games', option.id)"><b class="glyph" aria-hidden="true"><svg v-if="option.bars" :viewBox="`0 0 ${option.bars * 10 - 5} 28`" :width="option.bars * 10 - 5" height="28" fill="currentColor"><rect v-for="bar in option.bars" :key="bar" :x="(bar - 1) * 10" width="5" height="28" /></svg><svg v-else viewBox="0 0 44 28" width="44" height="28" fill="currentColor"><rect width="5" height="28" /><rect x="12" y="12.5" width="10" height="3" /><rect x="15.5" y="9" width="3" height="10" /><rect x="29" width="5" height="28" /><rect x="39" width="5" height="28" /></svg></b><strong>{{ option.name }}</strong><span>{{ locations(option.id) }}</span></button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="rise" style="--i: 4">
         <div class="collapse" :class="{ open: custom }" :inert="!custom">
           <div class="collapse-inner">
             <div class="group">
               <small>Locations</small>
               <div class="rules">
-                <button v-for="location in LOCATIONS" :key="location.id" class="rule" :class="{ on: customRules[location.id] }" type="button" role="switch" :aria-checked="customRules[location.id]" @click="emit('rule', location.id, !customRules[location.id])"><span class="switch"></span><strong>{{ location.name }}</strong><span>{{ locationCount(location.id) }}</span></button>
+                <button v-for="location in locations" :key="location.id" class="rule" :class="{ on: customRules[location.id] }" type="button" role="switch" :aria-checked="customRules[location.id]" @click="emit('rule', location.id, !customRules[location.id])"><span class="switch"></span><strong>{{ location.name }}</strong><span>{{ locationCount(location.id) }}</span></button>
               </div>
             </div>
             <div class="group">
@@ -107,11 +78,6 @@ function playSeed() {
           </div>
         </div>
       </div>
-      <form class="seed rise" style="--i: 7" @submit.prevent="playSeed">
-        <input v-model="seedText" type="text" spellcheck="false" autocomplete="off" placeholder="Paste a seed or link to replay a game" aria-label="Seed">
-        <button class="secondary" type="submit" :disabled="!ready || !seedText.trim()">Play seed</button>
-        <p v-if="seedError" class="seed-error">{{ seedError }}</p>
-      </form>
     </div>
   </section>
 </template>
@@ -239,22 +205,6 @@ function playSeed() {
   color: var(--text);
   background: rgba(242, 165, 65, 0.12);
   border-color: var(--accent);
-}
-
-.option.numbered {
-  grid-template-columns: auto auto;
-  column-gap: 12px;
-  align-items: center;
-}
-
-.glyph {
-  grid-row: span 2;
-  display: grid;
-  place-items: center;
-}
-
-.option.selected .glyph {
-  color: var(--accent);
 }
 
 .option.selected strong {
@@ -413,47 +363,6 @@ function playSeed() {
   font-size: 30px;
   line-height: 1;
   letter-spacing: 0.04em;
-}
-
-.seed {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  max-width: 470px;
-  margin: clamp(18px, 3.2vh, 34px) 0 0;
-}
-
-.seed input {
-  flex: 1;
-  min-width: 0;
-  padding: 9px 12px;
-  font: inherit;
-  font-size: 13px;
-  color: var(--text);
-  background: rgba(10, 12, 16, 0.55);
-  border: 1px solid var(--border);
-  outline: none;
-}
-
-.seed input:focus {
-  border-color: var(--accent);
-}
-
-.seed input::placeholder {
-  color: var(--muted);
-}
-
-.seed button {
-  padding: 9px 16px;
-  font-size: 13px;
-  border-radius: 0;
-}
-
-.seed-error {
-  flex-basis: 100%;
-  margin: 0;
-  font-size: 13px;
-  color: #f28b82;
 }
 
 @media (max-width: 760px) {
