@@ -4,7 +4,7 @@
     "tribes": ["nora", "carja", "shadowCarja", "oseram", "banuk"],
     "areas": {
       "zeroDawn": ["nora", "carja", "shadowCarja", "oseram", "banuk"],
-      "frozenWilds": ["nora", "carja", "banuk"]
+      "frozenWilds": ["nora", "banuk"]
     }
   },
   "hfw": {
