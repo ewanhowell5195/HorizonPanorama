@@ -4,6 +4,7 @@ const FADE_MS = 1800
 const HATCH_SCREEN_PX = 300
 const FOG_COLOR = [7 / 255, 9 / 255, 12 / 255]
 const FOG_OPACITY = 0.9
+const DARK_MS = 250
 // must match CLOSE_UPS in tools/game/build_map_previews.py
 const MAP_CLOSE_UPS = 8
 
@@ -20,7 +21,6 @@ const fragmentSource = `#version 300 es
   uniform vec2 uResolution;
   uniform float uPixelRatio;
   uniform vec4 uView;
-  uniform vec4 uBox;
   uniform float uAspect;
   uniform float uFocus;
   uniform float uAlpha;
@@ -28,6 +28,7 @@ const fragmentSource = `#version 300 es
   uniform vec2 uHatchOffset;
   uniform vec3 uFogColor;
   uniform float uFogOpacity;
+  uniform float uDark;
   out vec4 outColor;
 
   vec2 cover(vec2 p, float imageAspect, vec4 view, float focus) {
@@ -44,28 +45,10 @@ const fragmentSource = `#version 300 es
     return 0.5 + (uv - 0.5) / view.z + view.xy + vec2(centre - 0.5, 0.0);
   }
 
-  vec3 slide(sampler2D image, vec2 p, float imageAspect, vec4 view, vec4 box, float focus) {
-    if (box.z <= box.x) {
-      return texture(image, cover(p, imageAspect, view, focus)).rgb;
-    }
-    vec2 uv = (p - box.xy) / (box.zw - box.xy);
-    float boxAspect = (box.z - box.x) * uResolution.x / ((box.w - box.y) * uResolution.y);
-    if (boxAspect > imageAspect) {
-      uv.x = 0.5 + (uv.x - 0.5) * boxAspect / imageAspect;
-    } else {
-      uv.y = 0.5 + (uv.y - 0.5) * imageAspect / boxAspect;
-    }
-    uv = 0.5 + (uv - 0.5) / view.z;
-    if (any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) {
-      return vec3(0.0);
-    }
-    return texture(image, uv).rgb;
-  }
-
   void main() {
     vec2 pixel = vec2(gl_FragCoord.x, uResolution.y - gl_FragCoord.y);
     vec2 p = pixel / uResolution;
-    vec3 color = slide(uImage, p, uAspect, uView, uBox, uFocus);
+    vec3 color = texture(uImage, cover(p, uAspect, uView, uFocus)).rgb;
     vec2 css = pixel / uPixelRatio;
     vec2 screen = uResolution / uPixelRatio;
     bool portrait = uFog.w > 0.5;
@@ -76,7 +59,8 @@ const fragmentSource = `#version 300 es
     float edge = (clamp((mask - 0.5) / 0.3, 0.0, 1.0) + clamp((mask - 0.2) / 0.3, 0.0, 1.0)) * 0.5;
     float hatch = texture(uHatch, css / ${HATCH_SCREEN_PX.toFixed(1)} + uHatchOffset).r;
     float fog = 1.0 - clamp((hatch * 0.4 - 0.7 + edge) * 50.0, 0.0, 1.0);
-    outColor = vec4(mix(color, uFogColor, fog * uFogOpacity), uAlpha);
+    vec3 shaded = mix(color, uFogColor, fog * uFogOpacity);
+    outColor = vec4(mix(shaded, vec3(0.0), uDark * (1.0 - fog)), uAlpha);
   }`
 
 export async function createBackdrop(canvas, { onSlide } = {}) {
@@ -104,7 +88,7 @@ export async function createBackdrop(canvas, { onSlide } = {}) {
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
     throw new Error(gl.getProgramInfoLog(program))
   }
-  const uniforms = Object.fromEntries(["uImage", "uHatch", "uResolution", "uPixelRatio", "uView", "uBox", "uAspect", "uFocus", "uAlpha", "uFog", "uHatchOffset", "uFogColor", "uFogOpacity"].map(name => [name, gl.getUniformLocation(program, name)]))
+  const uniforms = Object.fromEntries(["uImage", "uHatch", "uResolution", "uPixelRatio", "uView", "uAspect", "uFocus", "uAlpha", "uFog", "uHatchOffset", "uFogColor", "uFogOpacity", "uDark"].map(name => [name, gl.getUniformLocation(program, name)]))
   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW)
   gl.enableVertexAttribArray(0)
@@ -149,6 +133,9 @@ export async function createBackdrop(canvas, { onSlide } = {}) {
   let current = null
   let token = 0
   let active = false
+  let darkness = 0
+  let darkTarget = 0
+  let lastDraw = 0
 
   function nextEntry() {
     if (!order.length) {
@@ -178,16 +165,13 @@ export async function createBackdrop(canvas, { onSlide } = {}) {
     if (mine !== token) {
       return
     }
-    layers.push({ texture: slide.texture, aspect: slide.aspect, start: performance.now(), drift: Math.random() < 0.5 ? 0 : 1, boxed: Boolean(entry.boxed), focused: Boolean(entry.focused) })
+    layers.push({ texture: slide.texture, aspect: slide.aspect, start: performance.now(), drift: Math.random() < 0.5 ? 0 : 1, focused: Boolean(entry.focused) })
     onSlide?.(entry)
   }
 
   function view(slide, now) {
     const t = Math.min(Math.max((now - slide.start) / DRIFT_MS, 0), 1)
     const k = slide.drift ? 1 - t : t
-    if (slide.boxed) {
-      return [0, 0, 0.99 + 0.01 * t, 0]
-    }
     return slide.drift ? [0.014 * k, -0.01 * k, 1.02 + 0.08 * k, 0] : [-0.016 * k, -0.008 * k, 1.02 + 0.08 * k, 0]
   }
 
@@ -226,19 +210,20 @@ export async function createBackdrop(canvas, { onSlide } = {}) {
     gl.uniform1i(uniforms.uHatch, 1)
     gl.uniform2f(uniforms.uResolution, width, height)
     gl.uniform1f(uniforms.uPixelRatio, width / screenWidth)
-    const box = portrait ? [0.04, 70 / screenHeight, 0.96, Math.max((screenHeight - middle - band * 0.12) / screenHeight, 0.3)] : [(middle + band * 0.12) / screenWidth, 80 / screenHeight, 1 - 16 / screenWidth, 1 - 96 / screenHeight]
     const focus = portrait ? 0.5 : Math.min((middle + band * 0.3 + screenWidth) / 2 / screenWidth, 0.8)
     gl.uniform4f(uniforms.uFog, middle, band, phase, portrait ? 1 : 0)
     gl.uniform2f(uniforms.uHatchOffset, hatchOffset[0], hatchOffset[1])
     gl.uniform3f(uniforms.uFogColor, FOG_COLOR[0], FOG_COLOR[1], FOG_COLOR[2])
     gl.uniform1f(uniforms.uFogOpacity, FOG_OPACITY)
+    darkness += (darkTarget - darkness) * Math.min((now - lastDraw) / DARK_MS, 1)
+    lastDraw = now
+    gl.uniform1f(uniforms.uDark, darkness)
     const covered = layers.findLastIndex(layer => opacity(layer, now) >= 1)
     layers = layers.slice(Math.max(covered, 0))
     gl.activeTexture(gl.TEXTURE0)
     for (const layer of layers) {
       gl.bindTexture(gl.TEXTURE_2D, layer.texture)
       gl.uniform4fv(uniforms.uView, view(layer, now))
-      gl.uniform4fv(uniforms.uBox, layer.boxed ? box : [0, 0, 0, 0])
       gl.uniform1f(uniforms.uFocus, layer.focused ? focus : 0.5)
       gl.uniform1f(uniforms.uAspect, layer.aspect)
       gl.uniform1f(uniforms.uAlpha, opacity(layer, now))
@@ -252,12 +237,14 @@ export async function createBackdrop(canvas, { onSlide } = {}) {
     next() {
       return show(nextEntry())
     },
-    useMaps(game, title) {
-      source = Array.from({ length: MAP_CLOSE_UPS }, (_, n) => ({ file: `map-${game}-${n + 1}`, game: title, label: "Map", focused: true }))
+    useMaps(games, now) {
+      darkTarget = 1
+      source = games.flatMap(({ game, title }) => Array.from({ length: MAP_CLOSE_UPS }, (_, n) => ({ file: `map-${game}-${n + 1}`, game: title, label: "Map", focused: true })))
       order = []
-      return show({ file: `map-${game}`, game: title, label: "Map", boxed: true })
+      return now ? show(nextEntry()) : null
     },
     useScreenshots() {
+      darkTarget = 0
       if (source !== entries) {
         source = entries
         order = []

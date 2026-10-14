@@ -28,16 +28,12 @@ export function withGames(rules, games) {
   return Object.assign({}, rules, Object.fromEntries(LOCATIONS.map(location => [location.id, games === "both" || location.game === games])))
 }
 
-export function onlyGames(rules, games) {
-  return Object.assign({}, rules, Object.fromEntries(LOCATIONS.filter(location => games !== "both" && location.game !== games).map(location => [location.id, false])))
-}
-
 export function gamesOf(rules) {
   const on = new Set(LOCATIONS.filter(location => rules[location.id]).map(location => location.game))
   return on.size === 1 ? Array.from(on)[0] : "both"
 }
 
-function wholeGames(rules) {
+export function wholeGames(rules) {
   return ["hzd", "hfw"].every(game => {
     const states = LOCATIONS.filter(location => location.game === game).map(location => rules[location.id])
     return states.every(Boolean) || !states.some(Boolean)

@@ -1,29 +1,23 @@
 <script setup>
 import { computed } from "vue"
 import { MAX_POINTS } from "../lib/game.js"
-import { LOCATIONS, RULES } from "../lib/rules.js"
+import { RULES } from "../lib/rules.js"
 import TickerNumber from "./TickerNumber.vue"
 
-const GAME_NAMES = { both: "Both games", hzd: "Zero Dawn", hfw: "Forbidden West" }
+const GAME_NAMES = { both: "Both games", hzd: "Zero Dawn", hfw: "Forbidden West", custom: "Custom locations" }
 const MODES = [
   { id: "normal", name: "Normal", detail: "Look around freely" },
   { id: "hard", name: "Hard", detail: "Fixed view, no zoom" },
   { id: "custom", name: "Custom", detail: "Choose what you get" }
 ]
 
-const props = defineProps({ visible: Boolean, ready: Boolean, locationCounts: Object, available: Number, rounds: Number, games: String, mode: String, customRules: Object, best: Number, last: Number, average: Number })
+const props = defineProps({ visible: Boolean, ready: Boolean, scored: Boolean, available: Number, rounds: Number, games: String, mode: String, customRules: Object, best: Number, last: Number, average: Number })
 const emit = defineEmits(["start", "back", "mode", "rule"])
 
 const custom = computed(() => props.mode === "custom")
-const locations = computed(() => LOCATIONS.filter(location => props.games === "both" || location.game === props.games))
 const count = computed(() => props.available || 0)
 const roundsLabel = computed(() => count.value ? `${props.rounds} rounds` : "No photospheres yet")
 const maxLabel = computed(() => count.value ? `Up to ${(props.rounds * MAX_POINTS).toLocaleString()} points` : "Capture some to play")
-
-function locationCount(id) {
-  const value = props.locationCounts?.[id] || 0
-  return `${value} location${value === 1 ? "" : "s"}`
-}
 </script>
 
 <template>
@@ -44,12 +38,6 @@ function locationCount(id) {
         <div class="collapse" :class="{ open: custom }" :inert="!custom">
           <div class="collapse-inner">
             <div class="group">
-              <small>Locations</small>
-              <div class="rules">
-                <button v-for="location in locations" :key="location.id" class="rule" :class="{ on: customRules[location.id] }" type="button" role="switch" :aria-checked="customRules[location.id]" @click="emit('rule', location.id, !customRules[location.id])"><span class="switch"></span><strong>{{ location.name }}</strong><span>{{ locationCount(location.id) }}</span></button>
-              </div>
-            </div>
-            <div class="group">
               <small>Custom rules</small>
               <div class="rules">
                 <button v-for="rule in RULES" :key="rule.id" class="rule" :class="{ on: customRules[rule.id] }" type="button" role="switch" :aria-checked="customRules[rule.id]" @click="emit('rule', rule.id, !customRules[rule.id])"><span class="switch"></span><strong>{{ rule.name }}</strong><span>{{ rule.detail }}</span></button>
@@ -63,12 +51,12 @@ function locationCount(id) {
         <div class="cta-meta"><strong>{{ roundsLabel }}</strong><span>{{ maxLabel }}</span></div>
       </div>
       <div class="rise" style="--i: 6">
-        <div class="collapse" :class="{ open: custom }" :inert="!custom">
+        <div class="collapse" :class="{ open: !scored }" :inert="scored">
           <div class="collapse-inner">
             <p class="unscored">Custom games are not scored, but you can still share them.</p>
           </div>
         </div>
-        <div class="collapse" :class="{ open: !custom }" :inert="custom">
+        <div class="collapse" :class="{ open: scored }" :inert="!scored">
           <div class="collapse-inner">
             <div class="stats">
               <div class="stat-block"><small>Best score</small><strong><TickerNumber :value="best" :pad="5" /></strong></div>
@@ -211,97 +199,6 @@ function locationCount(id) {
   color: var(--accent);
 }
 
-.collapse {
-  display: grid;
-  grid-template-rows: 0fr;
-  opacity: 0;
-  transition: grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
-}
-
-.collapse.open {
-  grid-template-rows: 1fr;
-  opacity: 1;
-}
-
-.collapse-inner {
-  min-height: 0;
-  overflow: hidden;
-}
-
-.rules {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  max-width: 640px;
-}
-
-.rule {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  align-items: center;
-  column-gap: 10px;
-  padding: 8px 12px;
-  text-align: left;
-  text-transform: none;
-  letter-spacing: normal;
-  color: var(--muted);
-  background: rgba(10, 12, 16, 0.55);
-  border: 1px solid var(--border);
-  border-radius: 0;
-  transition: border-color 0.2s ease, color 0.2s ease;
-}
-
-.rule:hover {
-  color: var(--text);
-  filter: none;
-}
-
-.rule.on {
-  color: var(--text);
-  border-color: rgba(242, 165, 65, 0.6);
-}
-
-.rule .switch {
-  grid-row: span 2;
-  position: relative;
-  width: 26px;
-  height: 14px;
-  background: rgba(255, 255, 255, 0.14);
-  border-radius: 7px;
-  transition: background 0.2s ease;
-}
-
-.rule .switch::after {
-  content: "";
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 10px;
-  height: 10px;
-  background: var(--muted);
-  border-radius: 50%;
-  transition: transform 0.2s ease, background 0.2s ease;
-}
-
-.rule.on .switch {
-  background: rgba(242, 165, 65, 0.35);
-}
-
-.rule.on .switch::after {
-  background: var(--accent);
-  transform: translateX(12px);
-}
-
-.rule strong {
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.rule > span:last-child {
-  font-size: 11px;
-  font-weight: 400;
-}
-
 .unscored {
   margin: clamp(18px, 3.2vh, 34px) 0 0;
   font-size: 13px;
@@ -378,10 +275,6 @@ function locationCount(id) {
   .option {
     flex: 1;
     min-width: 0;
-  }
-
-  .rules {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .stats {

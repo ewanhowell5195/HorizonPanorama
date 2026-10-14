@@ -15,7 +15,7 @@ import SummaryCard from "./components/SummaryCard.vue"
 import { MAX_POINTS, ROUNDS, distanceLabel, points, readStore, shuffle, wait, writeStore } from "./lib/game.js"
 import { answerMarker, pin } from "./lib/markers.js"
 import { pointLocation } from "./lib/locations.js"
-import { LOCATIONS, MODE_RULES, fullRules, gamesOf, modeOf, onlyGames, withGames } from "./lib/rules.js"
+import { LOCATIONS, MODE_RULES, fullRules, gamesOf, modeOf, wholeGames, withGames } from "./lib/rules.js"
 import { decodeScore, decodeSeed, encodeSeed, randomCode, seededRandom, seedLink } from "./lib/seed.js"
 import { pickView } from "./lib/view.js"
 
@@ -46,7 +46,7 @@ const LOCKED_TIP = "The view is locked. Everything you get is already in frame."
 const phase = ref("menu")
 const mode = ref(["hard", "custom"].includes(readStore("mode")) ? readStore("mode") : "normal")
 const customRules = ref(fullRules(readJson("customRules")))
-const games = ref(Object.hasOwn(GAME_SUFFIXES, readStore("games")) ? readStore("games") : "both")
+const games = ref(Object.hasOwn(GAME_SUFFIXES, readStore("games")) || readStore("games") === "custom" ? readStore("games") : "both")
 const intro = ref(false)
 const setup = ref(false)
 const choosing = ref(false)
@@ -56,10 +56,10 @@ const swapFading = ref(false)
 const pool = ref([])
 const mapsReady = ref(false)
 let mapsLoading = null
-const best = ref(mode.value === "custom" ? null : storedScore(scoreKey("bestScore")))
-const last = ref(mode.value === "custom" ? null : storedScore(scoreKey("lastScore")))
-const average = ref(mode.value === "custom" ? null : averageScore())
-const overall = ref(overallScores())
+const best = ref(null)
+const last = ref(null)
+const average = ref(null)
+const overall = ref(null)
 const heading = ref(0)
 const hasGuess = ref(false)
 const status = reactive({ index: 1, count: ROUNDS, total: 0, progress: 0, label: "", tip: "", countdown: COUNTDOWN, waiting: false, held: false })
@@ -91,8 +91,12 @@ const counts = computed(() => ({ both: pool.value.length, hzd: pool.value.filter
 const locationCounts = computed(() => Object.fromEntries(LOCATIONS.map(location => [location.id, pool.value.filter(round => round.location === location.id).length])))
 const roundCount = computed(() => Math.min(ROUNDS, choices.value.length))
 const canPlay = computed(() => pool.value.length > 0)
-const rules = computed(() => mode.value === "custom" ? onlyGames(customRules.value, games.value) : withGames(MODE_RULES[mode.value], games.value))
-const previewGame = computed(() => isMenu.value && setup.value && !challenge.value && gamesOf(rules.value) !== "both" ? gamesOf(rules.value) : null)
+const rules = computed(() => customLocations(mode.value === "custom" ? customRules.value : MODE_RULES[mode.value]))
+const scored = computed(() => modeOf(rules.value) !== "custom")
+const litAreas = computed(() => LOCATIONS.filter(location => rules.value[location.id]).map(location => location.id))
+const chosenGames = computed(() => games.value === "custom" && choices.value.length && wholeGames(rules.value) ? gamesOf(rules.value) : games.value)
+const previewGame = computed(() => isMenu.value && choosing.value && !challenge.value ? gamesOf(rules.value) : null)
+refreshScores()
 const gameRules = ref(MODE_RULES.normal)
 const gameMode = computed(() => modeOf(gameRules.value))
 
@@ -149,10 +153,13 @@ function goGames() {
   show("games")
 }
 
-function pickGame(value) {
-  setGames(value)
+function goSetup() {
   enter("setup")
   show("setup")
+}
+
+function customLocations(base) {
+  return games.value === "custom" ? Object.assign({}, base, Object.fromEntries(LOCATIONS.map(location => [location.id, customRules.value[location.id]]))) : withGames(base, games.value)
 }
 
 function currentDepth() {
@@ -222,12 +229,12 @@ function playChallenge() {
   playSeed(challenge.value.seed.code)
 }
 
-function scoreKey(name, modeName = mode.value, which = games.value) {
+function scoreKey(name, modeName = mode.value, which = gamesOf(rules.value)) {
   return `${name}${modeName === "hard" ? "Hard" : ""}${GAME_SUFFIXES[which]}`
 }
 
 function refreshScores() {
-  const scored = mode.value !== "custom"
+  const scored = modeOf(rules.value) !== "custom"
   best.value = scored ? storedScore(scoreKey("bestScore")) : null
   last.value = scored ? storedScore(scoreKey("lastScore")) : null
   average.value = scored ? averageScore() : null
@@ -251,6 +258,7 @@ function setMode(value) {
 function setRule(id, value) {
   customRules.value = Object.assign({}, customRules.value, { [id]: value })
   writeStore("customRules", JSON.stringify(customRules.value))
+  refreshScores()
 }
 
 function setGames(value) {
@@ -796,8 +804,10 @@ onMounted(async () => {
 
 watch(previewGame, (value, old) => {
   if (value) {
-    backdrop.value.useMaps(value, GAME_TITLES[value])
-    backdrop.value.cycle(true)
+    backdrop.value.useMaps((value === "both" ? ["hzd", "hfw"] : [value]).map(game => ({ game, title: GAME_TITLES[game] })), !old)
+    if (!old) {
+      backdrop.value.cycle(true)
+    }
   } else if (old) {
     backdrop.value.useScreenshots()
     if (isMenu.value) {
@@ -842,8 +852,8 @@ onBeforeUnmount(() => {
   <SlideBackdrop ref="backdrop" :active="isMenu || intro" :timer="isMenu" />
   <ChallengeScreen :visible="isMenu && Boolean(challenge)" :ready="canPlay" :rules="challenge?.seed.rules" :games="challenge?.seed.games" :rounds="challenge?.seed.rounds.length || 0" :score="challenge?.score" :error="seedError" @play="playChallenge" @menu="goHome" />
   <HomeScreen :visible="isMenu && !challenge && !setup && !choosing && !restoring" :count="pool.length" :ready="canPlay" :best="overall.best" :last="overall.last" :average="overall.average" @play="goGames" />
-  <GamesScreen :visible="isMenu && !challenge && choosing" :ready="canPlay" :counts="counts" :games="games" :seed="seedInput" :seed-error="seedError" @pick="pickGame" @back="goHome" @seed="openChallenge" />
-  <SetupScreen :visible="isMenu && !challenge && setup" :ready="canPlay" :location-counts="locationCounts" :available="choices.length" :rounds="roundCount" :games="games" :mode="mode" :custom-rules="customRules" :best="best" :last="last" :average="average" @start="newGame" @back="goHome" @mode="setMode" @rule="setRule" />
+  <GamesScreen :visible="isMenu && !challenge && choosing" :ready="canPlay" :counts="counts" :location-counts="locationCounts" :available="choices.length" :games="games" :preview="previewGame" :lit="litAreas" :matched="chosenGames !== 'custom'" :custom-rules="customRules" :seed="seedInput" :seed-error="seedError" @games="setGames" @rule="setRule" @next="goSetup" @back="goHome" @seed="openChallenge" />
+  <SetupScreen :visible="isMenu && !challenge && setup" :ready="canPlay" :scored="scored" :available="choices.length" :rounds="roundCount" :games="chosenGames" :mode="mode" :custom-rules="customRules" :best="best" :last="last" :average="average" @start="newGame" @back="goHome" @mode="setMode" @rule="setRule" />
   <RoundIntro :visible="intro" :number="status.index" :count="status.count" :progress="status.progress" :label="status.label" :tip="status.tip" :mode="gameMode" :countdown="status.countdown" :steps="COUNTDOWN" :waiting="status.waiting" :held="status.held" @begin="startHeld" />
 </template>
 
