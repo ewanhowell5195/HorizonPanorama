@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from "vue"
+import { computed, nextTick, ref, watch } from "vue"
 import { LOCATIONS } from "../lib/rules.js"
 
 const GAMES = [
@@ -9,13 +9,43 @@ const GAMES = [
   { id: "custom", name: "Custom", detail: "Pick the areas yourself" }
 ]
 
-const props = defineProps({ visible: Boolean, ready: Boolean, counts: Object, locationCounts: Object, available: Number, games: String, preview: String, lit: Array, matched: Boolean, customRules: Object, seed: String, seedError: String })
-const emit = defineEmits(["games", "rule", "next", "back", "seed"])
+const props = defineProps({ visible: Boolean, ready: Boolean, counts: Object, locationCounts: Object, available: Number, games: String, preview: String, lit: Array, litTribes: Array, tribeAreas: Object, tribes: Array, tribeFilter: Boolean, tribeCounts: Object, matched: Boolean, customRules: Object, seed: String, seedError: String })
+const emit = defineEmits(["games", "rule", "tribe-filter", "next", "back", "seed"])
 const seedText = ref(props.seed || "")
 const custom = computed(() => props.games === "custom")
 const rows = ["hzd", "hfw"].map(game => LOCATIONS.filter(location => location.game === game))
 const maps = computed(() => props.games === "custom" || props.preview === "both" ? ["hzd", "hfw"] : props.preview ? [props.preview] : [])
 const areas = Object.fromEntries(["hzd", "hfw"].map(game => [game, LOCATIONS.filter(location => location.game === game).map(location => location.id)]))
+const tribeList = ref(null)
+
+watch(() => props.tribes.map(tribe => tribe.id).join(), async () => {
+  const list = tribeList.value?.$el
+  if (!list) {
+    return
+  }
+  const from = list.offsetHeight
+  await nextTick()
+  const to = list.offsetHeight
+  if (from === to) {
+    return
+  }
+  list.style.height = `${from}px`
+  list.offsetHeight
+  list.style.height = `${to}px`
+  list.addEventListener("transitionend", function done(event) {
+    if (event.target === list) {
+      list.style.height = ""
+      list.removeEventListener("transitionend", done)
+    }
+  })
+})
+
+function leaving(el) {
+  el.style.left = `${el.offsetLeft}px`
+  el.style.top = `${el.offsetTop}px`
+  el.style.width = `${el.offsetWidth}px`
+}
+
 watch(() => props.seed, value => seedText.value = value || "")
 
 function plural(value) {
@@ -62,6 +92,14 @@ function playSeed() {
             <div v-for="(row, n) in rows" :key="n" class="rules">
               <button v-for="location in row" :key="location.id" class="rule" :class="{ on: customRules[location.id] }" type="button" role="switch" :aria-checked="customRules[location.id]" @click="emit('rule', location.id, !customRules[location.id])"><span class="switch"></span><strong>{{ location.name }}</strong><span>{{ plural(locationCounts?.[location.id] || 0) }}</span></button>
             </div>
+            <button class="toggle" :class="{ on: tribeFilter }" type="button" role="switch" :aria-checked="tribeFilter" @click="emit('tribe-filter', !tribeFilter)"><span class="switch"></span>Filter by tribe</button>
+            <div class="collapse" :class="{ open: tribeFilter }" :inert="!tribeFilter">
+              <div class="collapse-inner">
+                <TransitionGroup ref="tribeList" tag="div" name="tribe" class="rules tribes" @before-leave="leaving">
+                  <button v-for="tribe in tribes" :key="tribe.id" class="rule" :class="{ on: customRules[tribe.id] }" type="button" role="switch" :aria-checked="customRules[tribe.id]" @click="emit('rule', tribe.id, !customRules[tribe.id])"><span class="switch"></span><strong>{{ tribe.name }}</strong><span>{{ plural(tribeCounts?.[tribe.id] || 0) }}</span></button>
+                </TransitionGroup>
+              </div>
+            </div>
             <div class="collapse" :class="{ open: !matched }" :inert="matched">
               <div class="collapse-inner">
                 <p class="unscored">Your score will not be remembered for custom games.</p>
@@ -83,7 +121,10 @@ function playSeed() {
       <div :key="maps.join()" class="maps" :class="{ pair: maps.length > 1 }" aria-hidden="true">
         <div v-for="game in maps" :key="game" class="map">
           <div class="glow">
-            <img v-for="area in areas[game]" :key="area" :class="{ off: !lit?.includes(area) }" :src="`/backgrounds/area-${area}.avif`" alt="">
+            <template v-for="area in areas[game]" :key="area">
+              <img v-for="tribe in tribeAreas?.[game]?.[area]" :key="tribe" class="tribe" :class="{ off: !lit?.includes(area) || !litTribes?.includes(tribe) }" :style="{ '--mask': `url(/map/tribes/${game}-${tribe}.png)` }" :src="`/backgrounds/area-${area}.avif`" alt="">
+              <img v-if="!tribeAreas" :class="{ off: !lit?.includes(area) }" :src="`/backgrounds/area-${area}.avif`" alt="">
+            </template>
           </div>
           <img v-for="area in areas[game]" :key="area" class="area dim" :src="`/backgrounds/area-${area}.avif`" alt="">
         </div>
@@ -153,6 +194,10 @@ function playSeed() {
 
 .glow img.off {
   opacity: 0;
+}
+
+.glow img.tribe {
+  mask: var(--mask) center / contain no-repeat luminance;
 }
 
 .area.dim {
@@ -283,6 +328,56 @@ function playSeed() {
   padding: 12px 0 0;
 }
 
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 860px;
+  margin: 20px 0 0;
+  padding: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: none;
+  border-radius: 0;
+  transition: color 0.2s ease;
+}
+
+.toggle::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.toggle:hover, .toggle.on {
+  color: var(--text);
+  filter: none;
+}
+
+.tribes {
+  position: relative;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  max-width: 860px;
+  transition: height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tribe-move, .tribe-enter-active, .tribe-leave-active {
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
+}
+
+.tribe-enter-from, .tribe-leave-to {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+.tribe-leave-active {
+  position: absolute;
+}
+
 .unscored {
   margin: 12px 0 0;
   font-size: 13px;
@@ -375,6 +470,10 @@ function playSeed() {
     left: 16px;
     right: 16px;
     height: calc(28vh - 64px);
+  }
+
+  .tribes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .maps.pair {

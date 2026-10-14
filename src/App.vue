@@ -15,7 +15,8 @@ import SummaryCard from "./components/SummaryCard.vue"
 import { MAX_POINTS, ROUNDS, distanceLabel, points, readStore, shuffle, wait, writeStore } from "./lib/game.js"
 import { answerMarker, pin } from "./lib/markers.js"
 import { pointLocation } from "./lib/locations.js"
-import { LOCATIONS, MODE_RULES, fullRules, gamesOf, modeOf, wholeGames, withGames } from "./lib/rules.js"
+import { LOCATIONS, MODE_RULES, TRIBES, fullRules, gamesOf, modeOf, offTribes, tribeRule, tribesOf, wholeGames, withGames } from "./lib/rules.js"
+import { loadTribes, tribeAt } from "./lib/tribes.js"
 import { decodeScore, decodeSeed, encodeSeed, randomCode, seededRandom, seedLink } from "./lib/seed.js"
 import { pickView } from "./lib/view.js"
 
@@ -46,6 +47,7 @@ const LOCKED_TIP = "The view is locked. Everything you get is already in frame."
 const phase = ref("menu")
 const mode = ref(["hard", "custom"].includes(readStore("mode")) ? readStore("mode") : "normal")
 const customRules = ref(fullRules(readJson("customRules")))
+const tribeFilter = ref(readStore("tribeFilter") === "true")
 const games = ref(Object.hasOwn(GAME_SUFFIXES, readStore("games")) || readStore("games") === "custom" ? readStore("games") : "both")
 const intro = ref(false)
 const setup = ref(false)
@@ -86,7 +88,8 @@ const showsMap = computed(() => (phase.value === "result" || phase.value === "su
 const playing = computed(() => isRound.value && !intro.value)
 const swapView = computed(() => swapped.value && playing.value)
 const sphereActive = computed(() => playing.value || Boolean(viewing.value && !viewing.value.loading))
-const choices = computed(() => pool.value.filter(round => rules.value[round.location]))
+const choices = computed(() => pool.value.filter(round => rules.value[round.location] && rules.value[tribeRule(round.tribe)]))
+const tribeCounts = computed(() => Object.fromEntries(TRIBES.map(tribe => [tribe.id, pool.value.filter(round => rules.value[round.location] && tribeRule(round.tribe) === tribe.id).length])))
 const counts = computed(() => ({ both: pool.value.length, hzd: pool.value.filter(round => round.game === "hzd").length, hfw: pool.value.filter(round => round.game === "hfw").length }))
 const locationCounts = computed(() => Object.fromEntries(LOCATIONS.map(location => [location.id, pool.value.filter(round => round.location === location.id).length])))
 const roundCount = computed(() => Math.min(ROUNDS, choices.value.length))
@@ -94,7 +97,16 @@ const canPlay = computed(() => pool.value.length > 0)
 const rules = computed(() => customLocations(mode.value === "custom" ? customRules.value : MODE_RULES[mode.value]))
 const scored = computed(() => modeOf(rules.value) !== "custom")
 const litAreas = computed(() => LOCATIONS.filter(location => rules.value[location.id]).map(location => location.id))
-const chosenGames = computed(() => games.value === "custom" && choices.value.length && wholeGames(rules.value) ? gamesOf(rules.value) : games.value)
+const tribeAreas = ref(null)
+const availableTribes = computed(() => {
+  const on = LOCATIONS.filter(location => customRules.value[location.id])
+  if (!tribeAreas.value) {
+    return tribesOf(gamesOf(customRules.value)).filter(tribe => tribe.tribe)
+  }
+  return TRIBES.filter(tribe => on.some(location => tribeAreas.value[location.game]?.[location.id]?.includes(tribe.tribe)))
+})
+const litTribes = computed(() => TRIBES.filter(tribe => rules.value[tribe.id]).map(tribe => tribe.tribe))
+const chosenGames = computed(() => games.value === "custom" && choices.value.length && wholeGames(rules.value) && !offTribes(rules.value).length ? gamesOf(rules.value) : games.value)
 const previewGame = computed(() => isMenu.value && choosing.value && !challenge.value ? gamesOf(rules.value) : null)
 refreshScores()
 const gameRules = ref(MODE_RULES.normal)
@@ -102,6 +114,7 @@ const gameMode = computed(() => modeOf(gameRules.value))
 
 let game = null
 let world = null
+let tribeMaps = null
 let guessMarker = null
 let resultMarkers = []
 let presentedRound = -1
@@ -159,7 +172,7 @@ function goSetup() {
 }
 
 function customLocations(base) {
-  return games.value === "custom" ? Object.assign({}, base, Object.fromEntries(LOCATIONS.map(location => [location.id, customRules.value[location.id]]))) : withGames(base, games.value)
+  return games.value === "custom" ? Object.assign({}, base, Object.fromEntries(LOCATIONS.map(location => [location.id, customRules.value[location.id]]).concat(TRIBES.map(tribe => [tribe.id, !tribeFilter.value || customRules.value[tribe.id] || !availableTribes.value.includes(tribe)])))) : Object.assign(withGames(base, games.value), Object.fromEntries(TRIBES.map(tribe => [tribe.id, true])))
 }
 
 function currentDepth() {
@@ -261,6 +274,12 @@ function setRule(id, value) {
   refreshScores()
 }
 
+function setTribeFilter(value) {
+  tribeFilter.value = value
+  writeStore("tribeFilter", String(value))
+  refreshScores()
+}
+
 function setGames(value) {
   games.value = value
   writeStore("games", value)
@@ -301,10 +320,15 @@ async function loadPool() {
     const response = await fetch("/photospheres/photospheres.json", { cache: "no-store" })
     if (response.ok) {
       world ??= await (await fetch("/map/world.json")).json()
+      tribeMaps ??= await loadTribes().catch(error => {
+        console.warn(error)
+        return {}
+      })
+      tribeAreas.value = Object.fromEntries(Object.entries(tribeMaps).map(([key, map]) => [key, map.info.areas || {}]))
       const entries = Object.entries(await response.json()).flatMap(([game, spheres]) => Object.entries(spheres).map(([name, text]) => ({ name, game, text })))
       pool.value = await Promise.all(entries.map(async ({ name, game, text }) => {
         const [x, y, z] = await decodePosition(name, text)
-        return { name, game, x, y, z, location: pointLocation(world, game, x, y) }
+        return { name, game, x, y, z, location: pointLocation(world, game, x, y), tribe: tribeAt(tribeMaps, world, game, x, y) }
       }))
     }
   } catch (error) {
@@ -852,7 +876,7 @@ onBeforeUnmount(() => {
   <SlideBackdrop ref="backdrop" :active="isMenu || intro" :timer="isMenu" />
   <ChallengeScreen :visible="isMenu && Boolean(challenge)" :ready="canPlay" :rules="challenge?.seed.rules" :games="challenge?.seed.games" :rounds="challenge?.seed.rounds.length || 0" :score="challenge?.score" :error="seedError" @play="playChallenge" @menu="goHome" />
   <HomeScreen :visible="isMenu && !challenge && !setup && !choosing && !restoring" :count="pool.length" :ready="canPlay" :best="overall.best" :last="overall.last" :average="overall.average" @play="goGames" />
-  <GamesScreen :visible="isMenu && !challenge && choosing" :ready="canPlay" :counts="counts" :location-counts="locationCounts" :available="choices.length" :games="games" :preview="previewGame" :lit="litAreas" :matched="chosenGames !== 'custom'" :custom-rules="customRules" :seed="seedInput" :seed-error="seedError" @games="setGames" @rule="setRule" @next="goSetup" @back="goHome" @seed="openChallenge" />
+  <GamesScreen :visible="isMenu && !challenge && choosing" :ready="canPlay" :counts="counts" :location-counts="locationCounts" :available="choices.length" :games="games" :preview="previewGame" :lit="litAreas" :lit-tribes="litTribes" :tribe-areas="tribeAreas" :tribes="availableTribes" :tribe-filter="tribeFilter" :tribe-counts="tribeCounts" :matched="chosenGames !== 'custom'" :custom-rules="customRules" :seed="seedInput" :seed-error="seedError" @games="setGames" @rule="setRule" @tribe-filter="setTribeFilter" @next="goSetup" @back="goHome" @seed="openChallenge" />
   <SetupScreen :visible="isMenu && !challenge && setup" :ready="canPlay" :scored="scored" :available="choices.length" :rounds="roundCount" :games="chosenGames" :mode="mode" :custom-rules="customRules" :best="best" :last="last" :average="average" @start="newGame" @back="goHome" @mode="setMode" @rule="setRule" />
   <RoundIntro :visible="intro" :number="status.index" :count="status.count" :progress="status.progress" :label="status.label" :tip="status.tip" :mode="gameMode" :countdown="status.countdown" :steps="COUNTDOWN" :waiting="status.waiting" :held="status.held" @begin="startHeld" />
 </template>

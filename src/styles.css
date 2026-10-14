@@ -507,6 +507,9 @@ button.mark:hover {
 
 .rule .switch {
   grid-row: span 2;
+}
+
+.rule .switch, .toggle .switch {
   position: relative;
   width: 26px;
   height: 14px;
@@ -515,7 +518,7 @@ button.mark:hover {
   transition: background 0.2s ease;
 }
 
-.rule .switch::after {
+.rule .switch::after, .toggle .switch::after {
   content: "";
   position: absolute;
   top: 2px;
@@ -527,11 +530,11 @@ button.mark:hover {
   transition: transform 0.2s ease, background 0.2s ease;
 }
 
-.rule.on .switch {
+.rule.on .switch, .toggle.on .switch {
   background: rgba(242, 165, 65, 0.35);
 }
 
-.rule.on .switch::after {
+.rule.on .switch::after, .toggle.on .switch::after {
   background: var(--accent);
   transform: translateX(12px);
 }

@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from "vue"
 import { MAX_POINTS } from "../lib/game.js"
-import { LOCATIONS, locationNames, missingRules, modeOf } from "../lib/rules.js"
+import { LOCATIONS, locationNames, missingRules, modeOf, tribesOf } from "../lib/rules.js"
 import SlapTitle from "./SlapTitle.vue"
 
 const props = defineProps({ visible: Boolean, ready: Boolean, rules: Object, games: String, rounds: Number, score: Number, error: String })
@@ -10,10 +10,21 @@ const emit = defineEmits(["play", "menu"])
 const hasScore = computed(() => props.score !== null && props.score !== undefined)
 const mode = computed(() => props.rules ? modeOf(props.rules) : "normal")
 const modeName = computed(() => ({ normal: "Normal", hard: "Hard", custom: "Custom" })[mode.value])
-const modeDetail = computed(() => mode.value === "normal" ? "Look around freely" : mode.value === "hard" ? "Fixed view, no zoom" : `No ${new Intl.ListFormat("en", { type: "disjunction" }).format(missingRules(props.rules))}`)
+const missing = computed(() => props.rules ? missingRules(props.rules) : [])
+const modeDetail = computed(() => mode.value === "hard" ? "Fixed view, no zoom" : missing.value.length ? `No ${new Intl.ListFormat("en", { type: "disjunction" }).format(missing.value)}` : "Look around freely")
 const gameName = computed(() => ({ hzd: "Zero Dawn", hfw: "Forbidden West" })[props.games] || "Both games")
 const someLocations = computed(() => props.rules && LOCATIONS.some(location => !props.rules[location.id]))
-const gameDetail = computed(() => someLocations.value ? new Intl.ListFormat("en").format(locationNames(props.rules)) : props.games === "hzd" || props.games === "hfw" ? `Horizon ${gameName.value} only` : "Zero Dawn and Forbidden West")
+const placeDetail = computed(() => someLocations.value ? new Intl.ListFormat("en").format(locationNames(props.rules)) : props.games === "hzd" || props.games === "hfw" ? `Horizon ${gameName.value} only` : "Zero Dawn and Forbidden West")
+const tribeDetail = computed(() => {
+  const named = tribesOf(props.games).filter(tribe => tribe.tribe)
+  const on = named.filter(tribe => props.rules?.[tribe.id]).map(tribe => tribe.name)
+  const off = named.filter(tribe => props.rules && !props.rules[tribe.id]).map(tribe => tribe.name)
+  if (!off.length) {
+    return ""
+  }
+  return on.length < off.length ? `only ${new Intl.ListFormat("en").format(on)}` : `no ${new Intl.ListFormat("en", { type: "disjunction" }).format(off)}`
+})
+const gameDetail = computed(() => tribeDetail.value ? `${placeDetail.value}, ${tribeDetail.value}` : placeDetail.value)
 
 function play() {
   emit("play")
