@@ -54,7 +54,13 @@ function playSeed() {
     <div class="setup-main">
       <p class="eyebrow rise" style="--i: 1">New game</p>
       <h1 class="title rise" style="--i: 2"><span>Game</span><span class="outline">Setup</span></h1>
-      <div class="rise" style="--i: 3">
+      <div class="group rise" style="--i: 3">
+        <small>Mode</small>
+        <div class="options" role="radiogroup" aria-label="Mode">
+          <button v-for="option in MODES" :key="option.id" class="option" :class="{ selected: mode === option.id }" type="button" role="radio" :aria-checked="mode === option.id" @click="emit('mode', option.id)"><strong>{{ option.name }}</strong><span>{{ option.detail }}</span></button>
+        </div>
+      </div>
+      <div class="rise" style="--i: 4">
         <div class="collapse" :class="{ open: !custom }" :inert="custom">
           <div class="collapse-inner">
             <div class="group">
@@ -64,12 +70,6 @@ function playSeed() {
               </div>
             </div>
           </div>
-        </div>
-      </div>
-      <div class="group rise" style="--i: 4">
-        <small>Mode</small>
-        <div class="options" role="radiogroup" aria-label="Mode">
-          <button v-for="option in MODES" :key="option.id" class="option" :class="{ selected: mode === option.id }" type="button" role="radio" :aria-checked="mode === option.id" @click="emit('mode', option.id)"><strong>{{ option.name }}</strong><span>{{ option.detail }}</span></button>
         </div>
       </div>
       <div class="rise" style="--i: 4">
