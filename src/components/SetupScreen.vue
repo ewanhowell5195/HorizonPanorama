@@ -6,8 +6,8 @@ import TickerNumber from "./TickerNumber.vue"
 
 const GAMES = [
   { id: "both", name: "Both games" },
-  { id: "hzd", name: "Zero Dawn" },
-  { id: "hfw", name: "Forbidden West" }
+  { id: "hzd", name: "Zero Dawn", bars: 1 },
+  { id: "hfw", name: "Forbidden West", bars: 2 }
 ]
 const MODES = [
   { id: "normal", name: "Normal", detail: "Look around freely" },
@@ -64,7 +64,7 @@ function playSeed() {
             <div class="group">
               <small>Game</small>
               <div class="options" role="radiogroup" aria-label="Game">
-                <button v-for="option in GAMES" :key="option.id" class="option" :class="{ selected: games === option.id }" type="button" role="radio" :aria-checked="games === option.id" @click="emit('games', option.id)"><strong>{{ option.name }}</strong><span>{{ locations(option.id) }}</span></button>
+                <button v-for="option in GAMES" :key="option.id" class="option numbered" :class="{ selected: games === option.id }" type="button" role="radio" :aria-checked="games === option.id" @click="emit('games', option.id)"><b class="glyph" aria-hidden="true"><svg v-if="option.bars" :viewBox="`0 0 ${option.bars * 10 - 5} 28`" :width="option.bars * 10 - 5" height="28" fill="currentColor"><rect v-for="bar in option.bars" :key="bar" :x="(bar - 1) * 10" width="5" height="28" /></svg><svg v-else viewBox="0 0 44 28" width="44" height="28" fill="currentColor"><rect width="5" height="28" /><rect x="12" y="12.5" width="10" height="3" /><rect x="15.5" y="9" width="3" height="10" /><rect x="29" width="5" height="28" /><rect x="39" width="5" height="28" /></svg></b><strong>{{ option.name }}</strong><span>{{ locations(option.id) }}</span></button>
               </div>
             </div>
           </div>
@@ -254,6 +254,22 @@ function playSeed() {
   color: var(--text);
   background: rgba(242, 165, 65, 0.12);
   border-color: var(--accent);
+}
+
+.option.numbered {
+  grid-template-columns: auto auto;
+  column-gap: 12px;
+  align-items: center;
+}
+
+.glyph {
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+}
+
+.option.selected .glyph {
+  color: var(--accent);
 }
 
 .option.selected strong {
