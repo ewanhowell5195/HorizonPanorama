@@ -2,6 +2,7 @@
 import { computed, ref, watch } from "vue"
 import { MAX_POINTS } from "../lib/game.js"
 import { LOCATIONS, RULES } from "../lib/rules.js"
+import TickerNumber from "./TickerNumber.vue"
 
 const GAMES = [
   { id: "both", name: "Both games" },
@@ -24,9 +25,6 @@ const custom = computed(() => props.mode === "custom")
 const count = computed(() => props.available || 0)
 const roundsLabel = computed(() => count.value ? `${props.rounds} rounds` : "No photospheres yet")
 const maxLabel = computed(() => count.value ? `Up to ${(props.rounds * MAX_POINTS).toLocaleString()} points` : "Capture some to play")
-const bestLabel = computed(() => props.best ? props.best.toLocaleString() : "None yet")
-const lastLabel = computed(() => props.last === null || props.last === undefined ? "None yet" : props.last.toLocaleString())
-const averageLabel = computed(() => props.average === null || props.average === undefined ? "None yet" : props.average.toLocaleString())
 
 function locationCount(id) {
   const value = props.locationCounts?.[id] || 0
@@ -103,9 +101,9 @@ function playSeed() {
         <div class="collapse" :class="{ open: !custom }" :inert="custom">
           <div class="collapse-inner">
             <div class="stats">
-              <div class="stat-block"><small>Best score</small><strong>{{ bestLabel }}</strong></div>
-              <div class="stat-block"><small>Last game</small><strong>{{ lastLabel }}</strong></div>
-              <div class="stat-block"><small>Average</small><strong>{{ averageLabel }}</strong></div>
+              <div class="stat-block"><small>Best score</small><strong><TickerNumber :value="best" :pad="5" /></strong></div>
+              <div class="stat-block"><small>Last game</small><strong><TickerNumber :value="last" :pad="5" /></strong></div>
+              <div class="stat-block"><small>Average</small><strong><TickerNumber :value="average" :pad="5" /></strong></div>
             </div>
           </div>
         </div>
