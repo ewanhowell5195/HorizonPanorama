@@ -1,5 +1,5 @@
 import { createCompass } from "./compass.js"
-import { tileLocation } from "./locations.js"
+import { areaAt, tileLocation } from "./locations.js"
 
 const UNIT_METRES = 256
 const HATCH_METRES = 128
@@ -1595,7 +1595,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     markerLayer.prepend(element)
     const point = place(game, marker.x, marker.y)
     const tileMetres = point.layer.scale * UNIT_METRES
-    const location = tileLocation(game, point.layer.id, Math.floor(marker.x / tileMetres), Math.floor(marker.y / tileMetres))
+    const location = areaAt(game, point.layer.id, tileMetres, marker.x, marker.y)
     const label = type === "campfire" ? "Campfire" : marker.name
     pointsOfInterest.push({ type, label, location, x: point.x, y: point.y, element })
   }
