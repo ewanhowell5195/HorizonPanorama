@@ -171,6 +171,11 @@ watch(() => props.hidden, () => open.value = false)
   flex: 1;
 }
 
+.actions button:disabled {
+  color: rgba(17, 17, 17, 0.6);
+  background: color-mix(in srgb, var(--accent) 55%, #14161a);
+}
+
 .sphere-box {
   display: none;
   position: absolute;
