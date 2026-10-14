@@ -35,8 +35,7 @@ const TIPS = [
   "Right drag pans the map without moving your pin.",
   "Click your pin again to take it back.",
   "Space or Enter locks in your guess.",
-  "Look for landmarks on the skyline: ruins, mountains and machine sites.",
-  "The view always starts somewhere worth looking, never at a wall."
+  "Look for landmarks on the skyline: ruins, mountains and machine sites."
 ]
 const COMPASS_TIP = "The compass at the top shows which way you are facing."
 const PAN_TIP = "Drag to look around."
