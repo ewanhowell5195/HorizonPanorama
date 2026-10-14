@@ -27,8 +27,7 @@ function menu() {
 <template>
   <section class="challenge" :class="{ visible }">
     <header class="challenge-top rise">
-      <span class="mark"><i class="mark-emblem"></i>Photosphere guessing game</span>
-      <button class="back" type="button" @click="menu">Main menu</button>
+      <button class="mark" type="button" title="Main menu" @click="menu"><i class="mark-emblem"></i>Horizon Wayfinder</button>
     </header>
     <div class="challenge-main">
       <p class="eyebrow rise" style="--i: 1">Shared game</p>
@@ -88,20 +87,6 @@ function menu() {
   align-items: center;
   gap: 12px;
   color: var(--text);
-}
-
-.back {
-  padding: 8px 16px;
-  font-size: 12px;
-  color: var(--text);
-  background: rgba(10, 12, 16, 0.55);
-  border: 1px solid var(--border);
-  border-radius: 0;
-}
-
-.back:hover {
-  border-color: var(--accent);
-  filter: none;
 }
 
 .challenge-main {

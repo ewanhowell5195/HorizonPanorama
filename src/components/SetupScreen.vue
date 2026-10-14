@@ -46,8 +46,7 @@ function playSeed() {
 <template>
   <section class="setup" :class="{ visible }">
     <header class="setup-top rise">
-      <span class="mark"><i class="mark-emblem"></i>Photosphere guessing game</span>
-      <button class="back" type="button" @click="emit('back')">Main menu</button>
+      <button class="mark" type="button" title="Main menu" @click="emit('back')"><i class="mark-emblem"></i>Horizon Wayfinder</button>
     </header>
     <div class="setup-main">
       <p class="eyebrow rise" style="--i: 1">New game</p>
@@ -157,20 +156,6 @@ function playSeed() {
   align-items: center;
   gap: 12px;
   color: var(--text);
-}
-
-.back {
-  padding: 8px 16px;
-  font-size: 12px;
-  color: var(--text);
-  background: rgba(10, 12, 16, 0.55);
-  border: 1px solid var(--border);
-  border-radius: 0;
-}
-
-.back:hover {
-  border-color: var(--accent);
-  filter: none;
 }
 
 .setup-main {
