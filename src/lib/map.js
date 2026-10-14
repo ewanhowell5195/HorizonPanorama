@@ -20,7 +20,7 @@ const FIT_TOP = 48
 const FLIGHT_MS = 900
 // HFW MapResource (group 72333) WidthInWorldCoords
 const MAP_WIDTH_METRES = 5760
-const POI_ZOOM = { "campfire": 5, "machine-site": 5, "settlement": 2, "tallneck": 3.5 }
+const POI_ZOOM = { "campfire": 5, "machine-site": 5, "settlement": 2, "tallneck": 3.5, "cauldron": 2 }
 const POI_MARGIN = 40
 const POI_HOVER_RADIUS = 24
 const POI_SPACING = 44
@@ -1606,6 +1606,9 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
         }
         for (const marker of data[game].tallnecks || []) {
           addPointOfInterest(game, "tallneck", marker.icon, marker)
+        }
+        for (const marker of data[game].cauldrons || []) {
+          addPointOfInterest(game, "cauldron", marker.icon, marker)
         }
       }
       needsDraw = true
