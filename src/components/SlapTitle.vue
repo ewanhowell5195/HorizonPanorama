@@ -24,26 +24,16 @@ function scatterLetters() {
 }
 
 const pieces = ref(scatterLetters())
-const settled = ref(false)
-let landed = 0
 
 watch(() => props.visible, visible => {
   if (visible) {
     pieces.value = scatterLetters()
-    settled.value = false
-    landed = 0
   }
 })
-
-function land(event) {
-  if (event.animationName.startsWith("slap") && ++landed === pieces.value.length) {
-    settled.value = true
-  }
-}
 </script>
 
 <template>
-  <h1 class="title" :class="{ visible }" :aria-label="settled ? null : `Horizon ${text}`"><span class="rise">Horizon</span><span v-if="settled" class="pieces">{{ text }}</span><span v-else class="pieces" aria-hidden="true" @animationend="land"><span v-for="(piece, n) in pieces" :key="n" class="piece" :style="piece.style">{{ piece.char }}</span></span></h1>
+  <h1 class="title" :class="{ visible }" :aria-label="`Horizon ${text}`"><span class="rise">Horizon</span><span class="pieces" aria-hidden="true"><span v-for="(piece, n) in pieces" :key="n" class="piece" :style="piece.style">{{ piece.char }}</span></span></h1>
 </template>
 
 <style scoped>
