@@ -13,6 +13,8 @@ const REVEAL_FADE_SECONDS = 0.4
 const FEATURE_FADE_MS = 400
 const CELL_ROUND_METRES = 150
 const HATCH_METRES = 256
+const SOLID_FOG_EDGE = 0.3
+const LAND_MASK = 128
 const FOV = 30 * Math.PI / 180
 const MESH = 128
 const MESH_SIZES = [8, 16, 32, 64, 128]
@@ -150,6 +152,15 @@ function shared(url, load) {
     }))
   }
   return sharedFiles.get(url)
+}
+
+async function readMask(url) {
+  const bitmap = await shared(url, decodeBitmap)
+  const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
+  const context = canvas.getContext("2d", { willReadFrequently: true })
+  context.drawImage(bitmap, 0, 0)
+  const pixels = context.getImageData(0, 0, bitmap.width, bitmap.height).data
+  return { width: bitmap.width, height: bitmap.height, values: Uint8Array.from({ length: bitmap.width * bitmap.height }, (_, n) => pixels[n * 4]) }
 }
 
 async function decodeBitmap(url) {
@@ -1009,13 +1020,14 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     }
   }
 
-  function fitBox(box, snap, inset, start) {
+  function fitBox(box, snap, inset, start, hidden = 0) {
     const height = canvas.clientHeight
     const top = inset ? FIT_TOP : 0
-    const usable = Math.max(height - inset - top, height * 0.3) / height
+    const bottom = inset + hidden
+    const usable = Math.max(height - bottom - top, height * 0.3) / height
     const aspect = canvas.width / (canvas.height * usable)
     const span = Math.max(box.maxY - box.minY, (box.maxX - box.minX) / aspect) * 1.2 / usable
-    const to = { x: (box.minX + box.maxX) / 2, y: (box.minY + box.maxY) / 2 - span * (inset - top) / height / 2, distance: Math.max(span / 2 / Math.tan(FOV / 2), limits().min * 40) }
+    const to = { x: (box.minX + box.maxX) / 2, y: (box.minY + box.maxY) / 2 - span * (bottom - top) / height / 2, distance: Math.max(span / 2 / Math.tan(FOV / 2), limits().min * 40) }
     if (camera.z !== null) {
       anchorPivot(false)
     }
@@ -1205,7 +1217,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
       return
     }
     if (pendingFit) {
-      fitBox(pendingFit.box, pendingFit.snap, pendingFit.inset, pendingFit.start)
+      fitBox(pendingFit.box, pendingFit.snap, pendingFit.inset, pendingFit.start, pendingFit.hidden)
       pendingFit = null
     }
     step(now)
@@ -1427,10 +1439,22 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
   function pickAt(x, y) {
     updateCamera()
     const point = pick(x, y)
-    if (point) {
+    const place = point && locate(point.x, point.y)
+    if (place && onLand(place)) {
       velocity = { x: 0, y: 0 }
-      onPick(locate(point.x, point.y) || { x: point.x, y: point.y, layer: null })
+      onPick(place)
     }
+  }
+
+  function onLand({ x, y, layer }) {
+    if (!layer.maskPixels) {
+      return true
+    }
+    const { width, height, values } = layer.maskPixels
+    const px = Math.min(Math.max(Math.floor((x - layer.border[0]) / layer.border[2] * width), 0), width - 1)
+    const py = Math.min(Math.max(Math.floor((layer.border[1] - y) / layer.border[3] * height), 0), height - 1)
+    const mask = values[py * width + px] / 255
+    return (Math.min(Math.max((mask - 0.5) / 0.3, 0), 1) + Math.min(Math.max((mask - 0.2) / 0.3, 0), 1)) / 2 > SOLID_FOG_EDGE
   }
 
   canvas.addEventListener("pointerdown", event => {
@@ -1643,16 +1667,14 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
   function tileExtent(game) {
     const box = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity }
     for (const layer of layers.filter(layer => !game || layer.game === game)) {
-      for (const [n, [col, row]] of layer.tiles.entries()) {
-        if (shownLocations && !shownLocations.has(layer.tileLocations[n])) {
+      for (const [n, land] of layer.tileLand.entries()) {
+        if (!land || shownLocations && !shownLocations.has(layer.tileLocations[n])) {
           continue
         }
-        const x = layer.offset[0] + (layer.domain.minX + col) * layer.scale
-        const y = layer.offset[1] + (layer.domain.maxY - row) * layer.scale
-        box.minX = Math.min(box.minX, x)
-        box.maxX = Math.max(box.maxX, x + layer.scale)
-        box.minY = Math.min(box.minY, y)
-        box.maxY = Math.max(box.maxY, y + layer.scale)
+        box.minX = Math.min(box.minX, land.minX)
+        box.maxX = Math.max(box.maxX, land.maxX)
+        box.minY = Math.min(box.minY, land.minY)
+        box.maxY = Math.max(box.maxY, land.maxY)
       }
     }
     return box
@@ -1677,6 +1699,10 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
       masks.set(maskUrl, loadOverlay(maskUrl, gl.CLAMP_TO_EDGE, 255))
     }
     const borderTexture = await masks.get(maskUrl)
+    const maskPixels = await shared(`${maskUrl}#pixels`, () => readMask(maskUrl)).catch(error => {
+      console.warn(error)
+      return null
+    })
     const domain = { minX: game.domain.left, maxY: game.domain.top - 1, tiles: game.domain.size }
     const n = domain.tiles
     const occupancy = new Uint32Array((n + 1) * (n + 1))
@@ -1697,7 +1723,39 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
     const hidden = new Set(config.hidden.map(([i, j]) => `${i}_${j}`))
-    return { index, id: config.id, game: config.game, regions: config.regions, tiles: config.tiles, scale, offset, domain, levels: Math.log2(domain.tiles) + 2, cells: grid, occupancy, occupancyTexture, tileLocations, visible: true, grid: [offset[0] + domain.minX * scale, offset[1] + (domain.maxY + 1) * scale, n * scale], hidden, borderTexture, border: [offset[0] + mask.left * scale, offset[1] + mask.top * scale, mask.width * scale, mask.height * scale] }
+    const border = [offset[0] + mask.left * scale, offset[1] + mask.top * scale, mask.width * scale, mask.height * scale]
+    const tileLand = config.tiles.map(([col, row]) => {
+      const x = offset[0] + (domain.minX + col) * scale
+      const y = offset[1] + (domain.maxY - row) * scale
+      return landBox({ minX: x, maxX: x + scale, minY: y, maxY: y + scale }, border, maskPixels)
+    })
+    return { index, id: config.id, game: config.game, regions: config.regions, tiles: config.tiles, scale, offset, domain, levels: Math.log2(domain.tiles) + 2, cells: grid, occupancy, occupancyTexture, tileLocations, tileLand, visible: true, grid: [offset[0] + domain.minX * scale, offset[1] + (domain.maxY + 1) * scale, n * scale], hidden, borderTexture, maskPixels, border }
+  }
+
+  function landBox(tile, border, maskPixels) {
+    if (!maskPixels) {
+      return tile
+    }
+    const { width, height, values } = maskPixels
+    const column = x => (x - border[0]) / border[2] * width
+    const line = y => (border[1] - y) / border[3] * height
+    const px0 = Math.max(Math.floor(column(tile.minX)), 0), px1 = Math.min(Math.ceil(column(tile.maxX)), width)
+    const py0 = Math.max(Math.floor(line(tile.maxY)), 0), py1 = Math.min(Math.ceil(line(tile.minY)), height)
+    let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity
+    for (let py = py0; py < py1; py++) {
+      for (let px = px0; px < px1; px++) {
+        if (values[py * width + px] >= LAND_MASK) {
+          left = Math.min(left, px)
+          right = Math.max(right, px + 1)
+          top = Math.min(top, py)
+          bottom = Math.max(bottom, py + 1)
+        }
+      }
+    }
+    if (left === Infinity) {
+      return null
+    }
+    return { minX: Math.max(border[0] + left / width * border[2], tile.minX), maxX: Math.min(border[0] + right / width * border[2], tile.maxX), minY: Math.max(border[1] - bottom / height * border[3], tile.minY), maxY: Math.min(border[1] - top / height * border[3], tile.maxY) }
   }
 
   const world = await shared(`${root}world.json`, fetchJson)
@@ -1945,9 +2003,9 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
       })
       needsDraw = true
     },
-    fit(points, { snap = false, inset = 0, start = null, game = null } = {}) {
+    fit(points, { snap = false, inset = 0, start = null, game = null, hidden = 0 } = {}) {
       const box = points?.length ? { minX: Math.min(...points.map(p => p.x)), maxX: Math.max(...points.map(p => p.x)), minY: Math.min(...points.map(p => p.y)), maxY: Math.max(...points.map(p => p.y)) } : tileExtent(game)
-      pendingFit = { box, snap, inset, start }
+      pendingFit = { box, snap, inset, start, hidden }
       needsDraw = true
     },
     refresh() {

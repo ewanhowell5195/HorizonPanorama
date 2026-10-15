@@ -36,6 +36,8 @@ const ATLAS_RADIUS_METRES = 400
 const ATLAS_READY_TIMEOUT_MS = 10000
 // the .bigmap opacity transition
 const MAP_FADE_MS = 450
+// --tuck in GuessPanel.vue
+const MINIMAP_TUCK = 40 - 8 * Math.SQRT2
 // the .marker.atlas opacity transition in styles.css
 const PIN_FADE_MS = 400
 const REVEAL_HASH = "#reveal"
@@ -605,7 +607,7 @@ async function startRound() {
     minimap.value.setFeatures({ modes: current.rules.map3d, readouts: current.rules.readouts, compass: current.rules.compass, icons: current.rules.icons })
     showLocations(current)
     minimap.value.setMode(false, true)
-    minimap.value.fit(null, { snap: true, game: current.games === "both" ? null : current.games })
+    minimap.value.fit(null, { snap: true, game: current.games === "both" ? null : current.games, hidden: MINIMAP_TUCK })
   })
   backdrop.value.cycle(false)
   backdrop.value.next()
