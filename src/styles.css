@@ -98,8 +98,6 @@ button.secondary {
 }
 
 .button-row {
-  --cut: 32px;
-  --tuck: calc(var(--cut) + 8px - 8px * sqrt(2));
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
@@ -108,10 +106,14 @@ button.secondary {
 }
 
 .button-row > * {
+  --pad-y: 14px;
+  --cut: calc(var(--pad-y) + 0.7em);
+  --tuck: calc(var(--cut) + 8px - 8px * sqrt(2));
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 14px 16px;
+  padding: var(--pad-y) 16px;
+  line-height: 1.4;
   font-size: 15px;
   letter-spacing: 0.22em;
   clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
@@ -161,22 +163,20 @@ button.secondary {
 }
 
 @media (max-width: 560px) {
-  .button-row {
-    --cut: 20px;
-  }
-
   .button-row > * {
-    padding: 12px 8px;
+    --pad-y: 12px;
+    padding: var(--pad-y) 8px;
     font-size: 13px;
     letter-spacing: 0.1em;
   }
 }
 
 .action {
+  --pad-y: 17px;
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 17px 30px 17px 34px;
+  padding: var(--pad-y) 30px var(--pad-y) 34px;
   font-size: 17px;
   letter-spacing: 0.22em;
   clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
