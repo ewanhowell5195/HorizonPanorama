@@ -2,8 +2,8 @@
 import { computed } from "vue"
 import SlapTitle from "./SlapTitle.vue"
 
-const props = defineProps({ visible: Boolean, count: Number, ready: Boolean, best: Number, last: Number, average: Number })
-const emit = defineEmits(["play"])
+const props = defineProps({ visible: Boolean, count: Number, found: Number, ready: Boolean, best: Number, last: Number, average: Number })
+const emit = defineEmits(["play", "atlas"])
 
 const countLabel = computed(() => props.count ? `${props.count} locations` : "")
 const bestLabel = computed(() => props.best ? props.best.toLocaleString() : "None yet")
@@ -27,6 +27,7 @@ function play() {
       <p class="lede rise" style="--i: 3">Each round puts you somewhere in Horizon Zero Dawn or Horizon Forbidden West. Have a look around, then drop a pin on the map where you think you are.</p>
       <div class="cta rise" style="--i: 4">
         <button class="play" type="button" :disabled="!ready" @click="play">Play<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4" /></svg></button>
+        <button class="secondary atlas" type="button" :disabled="!ready" @click="emit('atlas')">Map<small>{{ found }} found</small></button>
       </div>
       <ol class="steps rise" style="--i: 5">
         <li><em>01</em><strong>Look around</strong><span>Drag to turn, scroll to zoom in on the details.</span></li>
@@ -116,6 +117,22 @@ function play() {
 
 .play svg {
   transition: transform 0.25s ease;
+}
+
+.atlas {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 14px 22px;
+  font-size: 15px;
+  letter-spacing: 0.18em;
+  border-radius: 0;
+}
+
+.atlas small {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--muted);
 }
 
 .play:hover:not(:disabled) svg {

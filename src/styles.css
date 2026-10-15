@@ -351,6 +351,17 @@ button.mark:hover {
   cursor: pointer;
 }
 
+.marker.atlas .dot {
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.15s ease;
+}
+
+.marker.atlas .dot:hover {
+  transform: scale(1.25);
+}
+
 .marker.answer .dot {
   position: absolute;
   left: -8px;

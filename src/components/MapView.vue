@@ -6,10 +6,14 @@ const props = defineProps({ pickable: Boolean, pois: Boolean, scale: Boolean, mo
 const emit = defineEmits(["pick"])
 const host = ref(null)
 let map = null
+let loading = null
 
-async function load() {
-  map = await createMap(host.value, { root: "/map/", onPick: props.pickable ? place => emit("pick", place) : null, pois: props.pois, scale: props.scale, modes: props.modes })
-  return map
+function load() {
+  loading ??= createMap(host.value, { root: "/map/", onPick: props.pickable ? place => emit("pick", place) : null, pois: props.pois, scale: props.scale, modes: props.modes }).then(created => {
+    map = created
+    return map
+  })
+  return loading
 }
 
 defineExpose({
@@ -20,9 +24,11 @@ defineExpose({
   setLines: pairs => map?.setLines(pairs),
   fit: (points, options) => map?.fit(points, options),
   refresh: () => map?.refresh(),
+  whenReady: () => map?.whenReady(),
   setMode: (on, instant) => map?.setMode(on, instant),
   setFeatures: features => map?.setFeatures(features),
-  setLocations: locations => map?.setLocations(locations)
+  setLocations: locations => map?.setLocations(locations),
+  setReveal: (...args) => map?.setReveal(...args)
 })
 </script>
 

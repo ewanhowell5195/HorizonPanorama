@@ -1,5 +1,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue"
+import AtlasScreen from "./components/AtlasScreen.vue"
+import LoadingEmblem from "./components/LoadingEmblem.vue"
 import ChallengeScreen from "./components/ChallengeScreen.vue"
 import GameHud from "./components/GameHud.vue"
 import GuessPanel from "./components/GuessPanel.vue"
@@ -12,7 +14,7 @@ import SlideBackdrop from "./components/SlideBackdrop.vue"
 import GamesScreen from "./components/GamesScreen.vue"
 import SetupScreen from "./components/SetupScreen.vue"
 import SummaryCard from "./components/SummaryCard.vue"
-import { MAX_POINTS, ROUNDS, distanceLabel, points, readStore, shuffle, wait, writeStore } from "./lib/game.js"
+import { MAX_POINTS, ROUNDS, distanceLabel, formatDistance, points, readStore, shuffle, wait, writeStore } from "./lib/game.js"
 import { answerMarker, pin } from "./lib/markers.js"
 import { pointLocation } from "./lib/locations.js"
 import { LOCATIONS, MODE_RULES, TRIBES, fullRules, gamesOf, modeOf, offTribes, SHARED_TRIBES, tribeOn, tribeOrder, tribeRules, tribesOf, wholeGames, withGames } from "./lib/rules.js"
@@ -26,7 +28,13 @@ const SEPARATE_PIECE = "hfw-east"
 const QUIET_MS = 700
 const MAP_DELAY_MS = 1200
 const SWAP_FADE_MS = 200
-const SCREEN_PATHS = { home: "", games: "play", setup: "setup", challenge: "challenge", game: "game" }
+const SCREEN_PATHS = { home: "", games: "play", setup: "setup", challenge: "challenge", game: "game", atlas: "map" }
+const FOUND = "found"
+const BEST_GUESSES = "bestGuesses"
+const MISSED = { "Wrong game": "You guessed the wrong game", "Too far away": "Your guess was too far away" }
+const ATLAS_RADIUS_METRES = 400
+const ATLAS_READY_TIMEOUT_MS = 10000
+const REVEAL_HASH = "#reveal"
 const SECRET = "horizon-panorama"
 const SAVED_GAME = "savedGame"
 const GAME_SUFFIXES = { both: "", hzd: "ZeroDawn", hfw: "ForbiddenWest" }
@@ -52,12 +60,16 @@ const games = ref(Object.hasOwn(GAME_SUFFIXES, readStore("games")) || readStore(
 const intro = ref(false)
 const setup = ref(false)
 const choosing = ref(false)
+const atlas = ref(false)
+const found = ref(new Set(readJson(FOUND) || []))
+const bestGuesses = ref(readJson(BEST_GUESSES) || {})
 const swapped = ref(false)
 const restoring = ref(false)
 const swapFading = ref(false)
 const pool = ref([])
 const mapsReady = ref(false)
 let mapsLoading = null
+let poolLoading = null
 const best = ref(null)
 const last = ref(null)
 const average = ref(null)
@@ -84,7 +96,9 @@ const summaryCard = ref(null)
 
 const isMenu = computed(() => phase.value === "menu")
 const isRound = computed(() => phase.value === "round")
-const showsMap = computed(() => (phase.value === "result" || phase.value === "summary") && !viewing.value)
+const showsMap = computed(() => (phase.value === "result" || phase.value === "summary" || atlas.value) && !viewing.value)
+const revealAll = ref(location.hash === REVEAL_HASH)
+const atlasRounds = computed(() => revealAll.value ? pool.value : pool.value.filter(round => found.value.has(round.name)))
 const playing = computed(() => isRound.value && !intro.value)
 const swapView = computed(() => swapped.value && playing.value)
 const sphereActive = computed(() => playing.value || Boolean(viewing.value && !viewing.value.loading))
@@ -118,11 +132,16 @@ let tribeMaps = null
 let guessMarker = null
 let resultMarkers = []
 let presentedRound = -1
+let presentedAtlas = null
 let viewToken = 0
 let trail = []
 let paused = null
 let introRunning = false
 let beginRound = null
+let atlasMarkers = []
+let atlasFramed = false
+const atlasReady = ref(false)
+const loadingKey = ref(0)
 
 function readJson(key) {
   try {
@@ -164,6 +183,87 @@ function screenFromPath() {
 function goGames() {
   enter("games")
   show("games")
+}
+
+function goAtlas() {
+  enter("atlas")
+  show("atlas")
+}
+
+function addFound(name) {
+  if (found.value.has(name)) {
+    return
+  }
+  found.value = new Set(found.value).add(name)
+  writeStore(FOUND, JSON.stringify(Array.from(found.value)))
+}
+
+function clearAtlas() {
+  atlasMarkers.forEach(marker => marker.remove())
+  atlasMarkers = []
+  bigmap.value?.setReveal(null)
+}
+
+async function drawAtlas() {
+  loadMaps()
+  while (!bigmap.value) {
+    await nextTick()
+  }
+  await Promise.all([bigmap.value.load(), poolLoading])
+  if (!atlas.value) {
+    return
+  }
+  clearAtlas()
+  bigmap.value.setLocations(null)
+  const points = atlasRounds.value.map(round => {
+    const place = bigmap.value.place(round.game, round.x, round.y)
+    const element = answerMarker()
+    element.classList.add("atlas")
+    element.title = LOCATIONS.find(location => location.id === round.location)?.name || ""
+    element.querySelector(".dot").addEventListener("click", () => openView({ atlas: round.name }))
+    atlasMarkers.push(bigmap.value.addMarker(element, place.x, place.y))
+    return { x: place.x, y: place.y }
+  })
+  const sites = pool.value.map(round => {
+    const place = bigmap.value.place(round.game, round.x, round.y)
+    return { x: place.x, y: place.y }
+  })
+  bigmap.value.setReveal(points, ATLAS_RADIUS_METRES / 256, sites)
+  if (!atlasFramed) {
+    atlasFramed = true
+    bigmap.value.fit(null, { snap: true })
+    await Promise.race([bigmap.value.whenReady(), wait(ATLAS_READY_TIMEOUT_MS)])
+    atlasReady.value = atlas.value
+  }
+}
+
+async function viewAtlas(round) {
+  const token = ++viewToken
+  const title = LOCATIONS.find(location => location.id === round.location)?.name || "This"
+  sphere.value.setControls({ pan: true, zoom: true })
+  const best = bestGuesses.value[round.name]
+  const unfound = !found.value.has(round.name)
+  if (presentedAtlas === round.name) {
+    viewing.value = { title, best, unfound, loading: false }
+    return
+  }
+  viewing.value = { title, best, unfound, loading: true }
+  try {
+    const bitmap = await sphere.value.decode(`/photospheres/${round.name}.avif`)
+    if (token !== viewToken) {
+      bitmap.close()
+      return
+    }
+    sphere.value.present(sphere.value.upload(bitmap), 0, 0)
+    presentedRound = -1
+    presentedAtlas = round.name
+    viewing.value = { title, best, unfound, loading: false }
+  } catch (error) {
+    console.warn(error)
+    if (token === viewToken) {
+      viewing.value = null
+    }
+  }
 }
 
 function goSetup() {
@@ -230,12 +330,49 @@ function show(screen) {
   }
   setup.value = screen === "setup"
   choosing.value = screen === "games"
+  atlas.value = screen === "atlas"
 }
 
 function onHistory() {
-  const screen = history.state?.screen || "home"
+  if (!history.state) {
+    history.replaceState({ screen: screenFromPath(), depth: trail.length }, "", location.href)
+  }
+  const screen = history.state.screen
   mark(currentDepth(), screen)
   show(screen)
+  if (history.state?.view) {
+    showView(history.state.view)
+  } else if (viewing.value) {
+    closeView()
+  }
+}
+
+function openView(view) {
+  const screen = history.state.screen
+  const depth = currentDepth() + 1
+  mark(depth, screen)
+  history.pushState({ screen, depth, view }, "", view.atlas ? `${screenUrl("atlas")}?view=${encodeURIComponent(view.atlas)}${location.hash}` : location.href)
+  showView(view)
+}
+
+async function showView(view) {
+  if (view.atlas) {
+    await poolLoading
+    const round = pool.value.find(entry => entry.name === view.atlas)
+    if (round && atlas.value) {
+      viewAtlas(round)
+    }
+  } else if (game && view.round < game.rounds.length) {
+    viewRound(view.round)
+  }
+}
+
+function leaveView() {
+  if (history.state?.view) {
+    history.back()
+  } else {
+    closeView()
+  }
 }
 
 function playChallenge() {
@@ -392,8 +529,12 @@ function showLocations(current) {
 
 function loadMaps() {
   mapsLoading ??= (async () => {
-    await minimap.value.load()
-    await bigmap.value.load()
+    while (!minimap.value || !bigmap.value) {
+      await nextTick()
+    }
+    const order = atlas.value ? [bigmap.value, minimap.value] : [minimap.value, bigmap.value]
+    await order[0].load()
+    await order[1].load()
     mapsReady.value = true
   })()
   return mapsLoading
@@ -469,6 +610,7 @@ async function startRound() {
   status.label = "Ready"
   sphere.value.present(round.prepared.texture, round.prepared.view.yaw, round.prepared.view.pitch)
   presentedRound = current.index
+  presentedAtlas = null
   sphere.value.setControls({ pan: current.rules.pan, zoom: current.rules.zoom })
   round.prepared = null
   round.image = null
@@ -586,6 +728,12 @@ async function submitGuess() {
   game.total += score
   const entry = { guess, answer: { x: answer.x, y: answer.y }, metres, miss, score }
   game.results.push(entry)
+  addFound(round.name)
+  const previous = bestGuesses.value[round.name]
+  if (previous === undefined || (metres !== null && !(previous <= metres))) {
+    bestGuesses.value = { ...bestGuesses.value, [round.name]: metres ?? miss }
+    writeStore(BEST_GUESSES, JSON.stringify(bestGuesses.value))
+  }
   game.state = "result"
   saveGame()
   await showResult(entry)
@@ -663,6 +811,7 @@ async function viewRound(index) {
     }
     sphere.value.present(sphere.value.upload(bitmap), round.view?.yaw || 0, round.view?.pitch || 0)
     presentedRound = index
+    presentedAtlas = null
     viewing.value = { title, loading: false }
   } catch (error) {
     console.warn(error)
@@ -673,7 +822,7 @@ async function viewRound(index) {
 }
 
 function viewResult() {
-  viewRound(game.index)
+  openView({ round: game.index })
 }
 
 function closeView() {
@@ -773,11 +922,11 @@ function replay() {
 function onKey(event) {
   if (viewing.value) {
     if (event.key === "Escape") {
-      closeView()
+      leaveView()
     }
     return
   }
-  if (isMenu.value && !challenge.value && event.key === "Escape" && (setup.value || choosing.value)) {
+  if (isMenu.value && !challenge.value && event.key === "Escape" && (setup.value || choosing.value || atlas.value)) {
     leaveTo(setup.value ? "games" : "home")
     return
   }
@@ -799,6 +948,7 @@ function onKey(event) {
 onMounted(async () => {
   window.addEventListener("keydown", onKey)
   window.addEventListener("popstate", onHistory)
+  let sharedView = null
   const resumable = screenFromPath() === "game" && savedGame(gameParams())
   if (resumable) {
     replaceScreen("game", location.href)
@@ -808,11 +958,16 @@ onMounted(async () => {
     replaceScreen("challenge", screenUrl("challenge") + location.search)
   } else {
     const path = screenFromPath()
-    replaceScreen(path === "games" ? "games" : ["setup", "game"].includes(path) ? "setup" : "home")
+    sharedView = path === "atlas" ? new URLSearchParams(location.search).get("view") : null
+    replaceScreen(["games", "atlas"].includes(path) ? path : ["setup", "game"].includes(path) ? "setup" : "home", ["games", "atlas"].includes(path) ? screenUrl(path) + location.hash : undefined)
   }
   setup.value = history.state.screen === "setup"
   choosing.value = history.state.screen === "games"
-  loadPool()
+  atlas.value = history.state.screen === "atlas"
+  poolLoading = loadPool()
+  if (sharedView) {
+    openView({ atlas: sharedView })
+  }
   if (!previewGame.value && !resumable) {
     backdrop.value.next()
     backdrop.value.cycle(true)
@@ -824,6 +979,26 @@ onMounted(async () => {
   }
   await wait(MAP_DELAY_MS)
   loadMaps()
+})
+
+window.addEventListener("hashchange", () => {
+  revealAll.value = location.hash === REVEAL_HASH
+})
+
+watch(() => Boolean(viewing.value?.loading || (atlas.value && !atlasReady.value)), shown => {
+  if (shown) {
+    loadingKey.value++
+  }
+})
+
+watch([atlas, atlasRounds], () => {
+  if (atlas.value) {
+    drawAtlas()
+  } else {
+    atlasFramed = false
+    atlasReady.value = false
+    clearAtlas()
+  }
 })
 
 watch(previewGame, (value, old) => {
@@ -858,24 +1033,32 @@ onBeforeUnmount(() => {
       <MapView ref="minimap" pickable pois scale modes :faded="swapFading" @pick="placeGuess" />
     </Teleport>
   </GuessPanel>
-  <div class="bigmap" :class="{ shown: showsMap }">
+  <div class="bigmap" :class="{ shown: showsMap, waiting: atlas && !atlasReady, atlas }">
     <MapView ref="bigmap" />
+    <LoadingEmblem :key="loadingKey" class="map-loading" />
+  </div>
+  <div class="view-loading" :class="{ shown: viewing?.loading }">
+    <LoadingEmblem :key="loadingKey" />
   </div>
   <Transition name="card">
     <ResultCard v-if="phase === `result` && result && !viewing" ref="resultCard" :key="result.key" :score="result.score" :distance="result.distance" :last-round="result.lastRound" @next="next" @view="viewResult" />
   </Transition>
   <Transition name="card">
-    <SummaryCard v-if="phase === `summary` && summary && !viewing" ref="summaryCard" :results="summary.results" :total="summary.total" :max="summary.max" :mode="gameMode" :seed="summary.seed" @menu="goHome" @again="newGame" @replay="replay" @view="viewRound" />
+    <SummaryCard v-if="phase === `summary` && summary && !viewing" ref="summaryCard" :results="summary.results" :total="summary.total" :max="summary.max" :mode="gameMode" :seed="summary.seed" @menu="goHome" @again="newGame" @replay="replay" @view="index => openView({ round: index })" />
   </Transition>
   <Transition name="card">
-    <div v-if="viewing" class="viewing">
-      <span>{{ viewing.loading ? "Loading photosphere" : `${viewing.title} photosphere` }}</span>
-      <button class="secondary" type="button" @click="closeView">{{ phase === "summary" ? "Back to results" : "Back to the map" }}</button>
+    <div v-if="viewing && !viewing.loading" class="viewing">
+      <span>{{ viewing.title }} photosphere</span>
+      <span v-if="viewing.unfound" class="viewing-best">You haven't found this one yet</span>
+      <span v-else-if="typeof viewing.best === `number`" class="viewing-best">Your closest guess <strong>{{ formatDistance(viewing.best) }}</strong></span>
+      <span v-else-if="viewing.best" class="viewing-best">{{ MISSED[viewing.best] }}</span>
+      <button class="secondary" type="button" @click="leaveView">{{ atlas ? "Back to the map" : phase === "summary" ? "Back to results" : "Back to the map" }}</button>
     </div>
   </Transition>
-  <SlideBackdrop ref="backdrop" :active="isMenu || intro" :timer="isMenu" />
+  <SlideBackdrop ref="backdrop" :active="(isMenu && !atlas) || intro" :timer="isMenu && !atlas" />
+  <AtlasScreen :visible="isMenu && atlas && !viewing" :ready="atlasReady" :found="atlasRounds.length" :total="pool.length" @back="goHome" />
   <ChallengeScreen :visible="isMenu && Boolean(challenge)" :ready="canPlay" :rules="challenge?.seed.rules" :games="challenge?.seed.games" :rounds="challenge?.seed.rounds.length || 0" :score="challenge?.score" :error="seedError" @play="playChallenge" @menu="goHome" />
-  <HomeScreen :visible="isMenu && !challenge && !setup && !choosing && !restoring" :count="pool.length" :ready="canPlay" :best="overall.best" :last="overall.last" :average="overall.average" @play="goGames" />
+  <HomeScreen :visible="isMenu && !challenge && !setup && !choosing && !atlas && !restoring" :count="pool.length" :found="found.size" :ready="canPlay" :best="overall.best" :last="overall.last" :average="overall.average" @play="goGames" @atlas="goAtlas" />
   <GamesScreen :visible="isMenu && !challenge && choosing" :ready="canPlay" :counts="counts" :location-counts="locationCounts" :available="choices.length" :games="games" :preview="previewGame" :lit="litAreas" :lit-tribes="litTribes" :tribe-areas="tribeAreas" :tribes="availableTribes" :tribe-filter="tribeFilter" :tribe-counts="tribeCounts" :matched="chosenGames !== 'custom'" :custom-rules="customRules" :seed="seedInput" :seed-error="seedError" @games="setGames" @rule="setRule" @tribe-filter="setTribeFilter" @next="goSetup" @back="goHome" @seed="openChallenge" />
   <SetupScreen :visible="isMenu && !challenge && setup" :ready="canPlay" :scored="scored" :available="choices.length" :rounds="roundCount" :games="chosenGames" :mode="mode" :custom-rules="customRules" :best="best" :last="last" :average="average" @start="newGame" @back="goHome" @mode="setMode" @rule="setRule" />
   <RoundIntro :visible="intro" :number="status.index" :count="status.count" :progress="status.progress" :label="status.label" :tip="status.tip" :mode="gameMode" :countdown="status.countdown" :steps="COUNTDOWN" :waiting="status.waiting" :held="status.held" @begin="startHeld" />
@@ -908,6 +1091,51 @@ onBeforeUnmount(() => {
   transition: opacity 0.45s ease;
 }
 
+.bigmap.atlas :deep(.marker:not(.atlas)), .bigmap.atlas :deep(.map-line) {
+  display: none;
+}
+
+.bigmap :deep(.map-view) {
+  transition: opacity 0.45s ease;
+}
+
+.bigmap.waiting :deep(.map-view) {
+  opacity: 0;
+}
+
+.map-loading {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.view-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  background: #000;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.3s ease, visibility 0s linear 0.3s;
+}
+
+.view-loading.shown {
+  opacity: 1;
+  visibility: visible;
+  transition: none;
+}
+
+.bigmap.waiting .map-loading {
+  opacity: 1;
+}
+
 .bigmap :deep(.map-canvas) {
   cursor: grab;
 }
@@ -931,6 +1159,17 @@ onBeforeUnmount(() => {
 .viewing span {
   font-size: 14px;
   white-space: nowrap;
+}
+
+.viewing .viewing-best {
+  padding-left: 16px;
+  border-left: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.viewing-best strong {
+  color: var(--text);
+  font-weight: 600;
 }
 
 .viewing button {

@@ -2,6 +2,12 @@ import { createCompass } from "./compass.js"
 import { areaAt, tileLocation } from "./locations.js"
 
 const UNIT_METRES = 256
+const REVEAL_PIXELS_PER_UNIT = 24
+const REVEAL_MAX_PIXELS = 4096
+const REVEAL_SOLID = 0.3
+const CLOUD_METRES = 16384
+const CELL_FADE_METRES = 150
+const CELL_ROUND_METRES = 150
 const HATCH_METRES = 128
 const FOV = 30 * Math.PI / 180
 const MESH = 128
@@ -84,6 +90,11 @@ const fragmentSource = `#version 300 es
   uniform sampler2D uBorder;
   uniform sampler2D uHatch;
   uniform sampler2D uOccupancy;
+  uniform sampler2D uReveal;
+  uniform sampler2D uClouds;
+  uniform vec4 uRevealRect;
+  uniform float uRevealOn;
+  uniform float uTime;
   uniform vec4 uDomain;
   uniform vec3 uGrid;
   uniform vec2 uOffset;
@@ -100,8 +111,80 @@ const fragmentSource = `#version 300 es
       discard;
     }
     float shade = 1.0 - uSolid * step(0.001, vSkirt);
-    outColor = gl_FrontFacing ? vec4(texture(uColor, vUv).rgb * alpha * shade, alpha) : vec4(0.0, 0.0, 0.0, 1.0);
+    vec3 color = texture(uColor, vUv).rgb;
+    if (uRevealOn > 0.5) {
+      vec2 revealUv = vec2(vWorld.x - uRevealRect.x, uRevealRect.y - vWorld.y) / uRevealRect.zw;
+      bool inside = all(greaterThanEqual(revealUv, vec2(0.0))) && all(lessThanEqual(revealUv, vec2(1.0)));
+      float seenMask = inside ? texture(uReveal, revealUv).r : 0.0;
+      float unseen = 1.0 - seenMask;
+      vec2 cloudUv = vec2(vWorld.x, -vWorld.y) * ${(UNIT_METRES / CLOUD_METRES).toFixed(6)};
+      vec2 drift = uTime * vec2(0.003, 0.001);
+      vec3 large = texture(uClouds, cloudUv * 3.0 + drift).rgb;
+      vec3 small = texture(uClouds, cloudUv * 20.0 + drift).rgb;
+      float thin = clamp((unseen - (large.b + small.b) * 0.5) / max(unseen, 0.00001), 0.0, 1.0);
+      float thick = unseen * unseen * thin;
+      float cover = clamp(unseen * 4.3333 * max(thick, unseen * 0.65) - 0.6667, 0.0, 1.0);
+      float amount = cover * 0.75;
+      vec3 linear = pow(color, vec3(2.2));
+      float luma = dot(linear, vec3(0.2126, 0.7152, 0.0722));
+      linear = (thick * 0.48 + 0.3) * amount + (linear * (1.0 - amount) + cover * 0.2625 * luma) * (1.0 - amount);
+      vec3 normal = normalize(vec3((large.rg + small.rg) * 2.0 - 2.0, sqrt(clamp(1.0 - dot(large.rg * 2.0 - 1.0, large.rg * 2.0 - 1.0), 0.0, 1.0)) + sqrt(clamp(1.0 - dot(small.rg * 2.0 - 1.0, small.rg * 2.0 - 1.0), 0.0, 1.0))));
+      float light = clamp(dot(normal, vec3(0.70014, 0.70014, 0.14003)), 0.0, 1.0);
+      color = pow(linear * (1.0 - amount + amount * (light * light * (3.0 - 2.0 * light) * 0.505 + 0.595)), vec3(1.0 / 2.2));
+    }
+    outColor = gl_FrontFacing ? vec4(color * alpha * shade, alpha) : vec4(0.0, 0.0, 0.0, 1.0);
   }`
+
+const sharedFiles = new Map()
+
+function shared(url, load) {
+  if (!sharedFiles.has(url)) {
+    sharedFiles.set(url, load(url).catch(error => {
+      sharedFiles.delete(url)
+      throw error
+    }))
+  }
+  return sharedFiles.get(url)
+}
+
+async function decodeBitmap(url) {
+  const response = await fetch(url)
+  if (!response.ok) {
+    throw new Error(`${url}: ${response.status}`)
+  }
+  return createImageBitmap(await response.blob(), { premultiplyAlpha: "none", colorSpaceConversion: "none" })
+}
+
+function blurMask(context, width, height, sigma) {
+  const image = context.getImageData(0, 0, width, height)
+  const radius = Math.ceil(sigma * 3)
+  const kernel = Array.from({ length: radius * 2 + 1 }, (_, n) => Math.exp(-((n - radius) ** 2) / (2 * sigma * sigma)))
+  const total = kernel.reduce((sum, value) => sum + value)
+  let values = Float32Array.from({ length: width * height }, (_, n) => image.data[n * 4])
+  for (const [dx, dy] of [[1, 0], [0, 1]]) {
+    const next = new Float32Array(values.length)
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        let sum = 0
+        for (let k = -radius; k <= radius; k++) {
+          const sx = Math.min(Math.max(x + k * dx, 0), width - 1), sy = Math.min(Math.max(y + k * dy, 0), height - 1)
+          sum += values[sy * width + sx] * kernel[k + radius]
+        }
+        next[y * width + x] = sum / total
+      }
+    }
+    values = next
+  }
+  values.forEach((value, n) => {
+    image.data[n * 4] = image.data[n * 4 + 1] = image.data[n * 4 + 2] = value
+    image.data[n * 4 + 3] = 255
+  })
+  context.putImageData(image, 0, 0)
+}
+
+async function fetchJson(url) {
+  return (await fetch(url)).json()
+}
 
 export async function createMap(container, { root, onPick, onHover, onView, pois = false, scale = false, modes = false, minZoom = 0 }) {
   const canvas = document.createElement("canvas")
@@ -159,7 +242,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
   const anisotropy = gl.getExtension("EXT_texture_filter_anisotropic")
   const program = createProgram(vertexSource, fragmentSource)
   const uniforms = {}
-  for (const name of ["uViewProj", "uRect", "uUv", "uRelief", "uSkirt", "uSolid", "uDepth", "uColor", "uBorder", "uHatch", "uOccupancy", "uDomain", "uGrid", "uOffset"]) {
+  for (const name of ["uViewProj", "uRect", "uUv", "uRelief", "uSkirt", "uSolid", "uDepth", "uColor", "uBorder", "uHatch", "uOccupancy", "uReveal", "uClouds", "uRevealRect", "uRevealOn", "uTime", "uDomain", "uGrid", "uOffset"]) {
     uniforms[name] = gl.getUniformLocation(program, name)
   }
 
@@ -169,11 +252,17 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
   const uploads = []
   const markers = new Set()
   let inflight = 0
+  let readyWaiters = []
   let evictable = 0
   let frame = 0
   let layers = []
   let extent
   let hatchTexture
+  let reveal = null
+  let cloudsTexture = null
+  let cloudsFallback = null
+  const clouds = shared(`${root}clouds.avif`, decodeBitmap)
+  clouds.catch(error => console.warn(error))
   let lines = []
   let pendingFit = null
 
@@ -262,7 +351,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     return texture
   }
 
-  function uploadTexture(bitmap, { single, mipmaps, wrap }) {
+  function uploadTexture(bitmap, { single, mipmaps, wrap, keep }) {
     const texture = gl.createTexture()
     gl.bindTexture(gl.TEXTURE_2D, texture)
     if (single) {
@@ -282,7 +371,9 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     } else {
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
     }
-    bitmap.close()
+    if (!keep) {
+      bitmap.close()
+    }
     return texture
   }
 
@@ -1106,6 +1197,9 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
       hoverMoved = false
       updateHover()
     }
+    if (reveal && cloudsTexture && (canvas.checkVisibility?.({ visibilityProperty: true }) ?? true)) {
+      needsDraw = true
+    }
     if (!needsDraw) {
       return
     }
@@ -1131,6 +1225,17 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     gl.uniform1i(uniforms.uBorder, 2)
     gl.uniform1i(uniforms.uHatch, 3)
     gl.uniform1i(uniforms.uOccupancy, 4)
+    gl.uniform1i(uniforms.uReveal, 5)
+    gl.uniform1i(uniforms.uClouds, 6)
+    gl.uniform1f(uniforms.uRevealOn, reveal ? 1 : 0)
+    gl.uniform1f(uniforms.uTime, (performance.now() / 1000) % 10000)
+    if (reveal) {
+      gl.uniform4f(uniforms.uRevealRect, reveal.x, reveal.y, reveal.width, reveal.height)
+      gl.activeTexture(gl.TEXTURE5)
+      gl.bindTexture(gl.TEXTURE_2D, reveal.texture)
+      gl.activeTexture(gl.TEXTURE6)
+      gl.bindTexture(gl.TEXTURE_2D, cloudsTexture || cloudsFallback)
+    }
     gl.activeTexture(gl.TEXTURE3)
     gl.bindTexture(gl.TEXTURE_2D, hatchTexture)
     drawn = []
@@ -1146,6 +1251,10 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
       wanted.filter(node => node.layer === layer).forEach(drawNode)
     }
     const gameZoom = updateMarkers()
+    if (readyWaiters.length && !pendingFit && !flight && (!reveal || cloudsTexture) && wanted.every(node => ["ready", "error"].includes(cache.get(key(node.layer, node.level, node.i, node.j))?.state))) {
+      readyWaiters.forEach(resolve => resolve())
+      readyWaiters = []
+    }
     if (onView) {
       onView({ zoom: gameZoom, pending: inflight + uploads.length })
     }
@@ -1518,7 +1627,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
 
   async function loadOverlay(url, wrap, fallback) {
     try {
-      return uploadTexture(await fetchBitmap(url, "none"), { single: true, mipmaps: true, wrap })
+      return uploadTexture(await shared(url, decodeBitmap), { single: true, mipmaps: true, wrap, keep: true })
     } catch (error) {
       console.warn(error)
       return placeholderTexture(fallback)
@@ -1558,7 +1667,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     return { index, id: config.id, game: config.game, regions: config.regions, tiles: config.tiles, scale, offset, domain, levels: Math.log2(domain.tiles) + 2, cells: grid, occupancy, occupancyTexture, tileLocations, visible: true, grid: [offset[0] + domain.minX * scale, offset[1] + (domain.maxY + 1) * scale, n * scale], hidden, borderTexture, border: [offset[0] + mask.left * scale, offset[1] + mask.top * scale, mask.width * scale, mask.height * scale] }
   }
 
-  const world = await (await fetch(`${root}world.json`)).json()
+  const world = await shared(`${root}world.json`, fetchJson)
   games = world.games
   hatchTexture = await loadOverlay(`${root}hatch.avif`, gl.REPEAT, 0)
   const masks = new Map()
@@ -1648,6 +1757,127 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     }
   }
 
+  function pieceOf(point) {
+    return (locate(point.x, point.y) || nearestPiece(point.x, point.y))?.layer
+  }
+
+  function tileSquares(layer) {
+    return layer.tiles.map(([col, row]) => [layer.offset[0] + (layer.domain.minX + col) * layer.scale, layer.offset[1] + (layer.domain.maxY - row) * layer.scale, layer.scale])
+  }
+
+  function clipCell(polygon, point, other) {
+    const dx = other.x - point.x, dy = other.y - point.y
+    const mx = (point.x + other.x) / 2, my = (point.y + other.y) / 2
+    const result = []
+    for (let i = 0; i < polygon.length; i++) {
+      const a = polygon[i], b = polygon[(i + 1) % polygon.length]
+      const sa = (a[0] - mx) * dx + (a[1] - my) * dy, sb = (b[0] - mx) * dx + (b[1] - my) * dy
+      if (sa <= 0) {
+        result.push(a)
+      }
+      if ((sa < 0 && sb > 0) || (sa > 0 && sb < 0)) {
+        const t = sa / (sa - sb)
+        result.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t])
+      }
+    }
+    return result
+  }
+
+  function revealCells(points, sites) {
+    const sitesByPiece = new Map()
+    for (const site of sites) {
+      const layer = pieceOf(site)
+      if (layer) {
+        sitesByPiece.set(layer, (sitesByPiece.get(layer) || []).concat(site))
+      }
+    }
+    const cells = []
+    for (const point of points) {
+      const layer = pieceOf(point)
+      if (!layer) {
+        continue
+      }
+      const squares = tileSquares(layer)
+      const minX = Math.min(...squares.map(s => s[0])), maxX = Math.max(...squares.map(s => s[0] + s[2]))
+      const minY = Math.min(...squares.map(s => s[1])), maxY = Math.max(...squares.map(s => s[1] + s[2]))
+      let polygon = [[minX, minY], [maxX, minY], [maxX, maxY], [minX, maxY]]
+      for (const other of sitesByPiece.get(layer) || []) {
+        if (polygon.length && (other.x !== point.x || other.y !== point.y)) {
+          polygon = clipCell(polygon, point, other)
+        }
+      }
+      if (polygon.length > 2) {
+        cells.push({ layer, polygon })
+      }
+    }
+    return cells
+  }
+
+  function revealMask(points, radius, sites) {
+    const cells = revealCells(points, sites)
+    const xs = [0].concat(points.map(p => p.x - radius), points.map(p => p.x + radius), ...cells.map(cell => cell.polygon.map(v => v[0])))
+    const ys = [0].concat(points.map(p => p.y - radius), points.map(p => p.y + radius), ...cells.map(cell => cell.polygon.map(v => v[1])))
+    const minX = Math.min(...xs), maxX = Math.max(...xs)
+    const minY = Math.min(...ys), maxY = Math.max(...ys)
+    const density = Math.min(REVEAL_PIXELS_PER_UNIT, REVEAL_MAX_PIXELS / Math.max(maxX - minX, maxY - minY))
+    const mask = document.createElement("canvas")
+    mask.width = Math.ceil((maxX - minX) * density)
+    mask.height = Math.ceil((maxY - minY) * density)
+    const context = mask.getContext("2d")
+    context.fillStyle = "#000"
+    context.fillRect(0, 0, mask.width, mask.height)
+    context.globalCompositeOperation = "lighten"
+    const soften = Math.max(1, CELL_FADE_METRES / UNIT_METRES * density)
+    const small = document.createElement("canvas")
+    small.width = Math.ceil(mask.width / soften)
+    small.height = Math.ceil(mask.height / soften)
+    const smallContext = small.getContext("2d")
+    const piece = document.createElement("canvas")
+    piece.width = mask.width
+    piece.height = mask.height
+    const pieceContext = piece.getContext("2d")
+    for (const layer of new Set(cells.map(cell => cell.layer))) {
+      smallContext.fillStyle = "#000"
+      smallContext.fillRect(0, 0, small.width, small.height)
+      smallContext.fillStyle = "#fff"
+      for (const cell of cells.filter(cell => cell.layer === layer)) {
+        smallContext.beginPath()
+        for (const [x, y] of cell.polygon) {
+          smallContext.lineTo((x - minX) * density / soften, (maxY - y) * density / soften)
+        }
+        smallContext.fill()
+      }
+      blurMask(smallContext, small.width, small.height, CELL_ROUND_METRES / UNIT_METRES * density / soften)
+      pieceContext.globalCompositeOperation = "copy"
+      pieceContext.imageSmoothingEnabled = true
+      pieceContext.drawImage(small, 0, 0, small.width * soften, small.height * soften)
+      pieceContext.fillStyle = "#fff"
+      pieceContext.globalCompositeOperation = "destination-in"
+      pieceContext.beginPath()
+      for (const [x, y, size] of tileSquares(layer)) {
+        pieceContext.rect((x - minX) * density, (maxY - y - size) * density, size * density, size * density)
+      }
+      pieceContext.fill()
+      context.drawImage(piece, 0, 0)
+    }
+    for (const point of points) {
+      const cx = (point.x - minX) * density, cy = (maxY - point.y) * density, r = radius * density
+      const gradient = context.createRadialGradient(cx, cy, r * REVEAL_SOLID, cx, cy, r)
+      gradient.addColorStop(0, "#fff")
+      gradient.addColorStop(1, "#000")
+      context.fillStyle = gradient
+      context.fillRect(cx - r, cy - r, r * 2, r * 2)
+    }
+    const texture = gl.createTexture()
+    gl.bindTexture(gl.TEXTURE_2D, texture)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, gl.RED, gl.UNSIGNED_BYTE, mask)
+    return { texture, x: minX, y: maxY, width: maxX - minX, height: maxY - minY }
+  }
+
   return {
     place,
     locate(x, y) {
@@ -1690,6 +1920,10 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     refresh() {
       needsDraw = true
     },
+    whenReady() {
+      needsDraw = true
+      return new Promise(resolve => readyWaiters.push(resolve))
+    },
     setLocations(locations) {
       shownLocations = locations ? new Set(locations) : null
       for (const layer of layers) {
@@ -1704,6 +1938,28 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
         gl.bindTexture(gl.TEXTURE_2D, layer.occupancyTexture)
         gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1)
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, n, n, 0, gl.RED, gl.UNSIGNED_BYTE, grid)
+      }
+      needsDraw = true
+    },
+    setReveal(points, radius, sites = points) {
+      if (reveal) {
+        gl.deleteTexture(reveal.texture)
+        reveal = null
+      }
+      if (points) {
+        reveal = revealMask(points, radius, sites)
+        if (!cloudsTexture) {
+          if (!cloudsFallback) {
+            cloudsFallback = gl.createTexture()
+            gl.bindTexture(gl.TEXTURE_2D, cloudsFallback)
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([128, 128, 255, 255]))
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+          }
+          clouds.then(bitmap => {
+            cloudsTexture ??= uploadTexture(bitmap, { mipmaps: true, wrap: gl.REPEAT, keep: true })
+            needsDraw = true
+          }).catch(() => {})
+        }
       }
       needsDraw = true
     },
