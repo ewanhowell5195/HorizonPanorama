@@ -568,10 +568,24 @@ a.mark[href]:hover {
   left: 10px;
   bottom: 10px;
   display: grid;
+  grid-template-columns: auto auto;
   justify-items: start;
-  gap: 3px;
+  align-items: baseline;
+  gap: 3px 10px;
   pointer-events: none;
   user-select: none;
+}
+
+.map-scale-label {
+  grid-area: 1 / 1;
+}
+
+.map-elevation {
+  grid-area: 1 / 2;
+}
+
+.map-scale-bar {
+  grid-area: 2 / 1;
 }
 
 .map-mode {
