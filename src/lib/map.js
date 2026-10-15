@@ -6,6 +6,7 @@ const REVEAL_PIXELS_PER_UNIT = 24
 const REVEAL_MAX_PIXELS = 4096
 const REVEAL_SOLID = 0.3
 const CLOUD_METRES = 16384
+const CLOUD_SPEED = 8
 const CELL_FADE_METRES = 150
 const CELL_ROUND_METRES = 150
 const HATCH_METRES = 256
@@ -1228,7 +1229,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     gl.uniform1i(uniforms.uReveal, 5)
     gl.uniform1i(uniforms.uClouds, 6)
     gl.uniform1f(uniforms.uRevealOn, reveal ? 1 : 0)
-    gl.uniform1f(uniforms.uTime, (performance.now() / 1000) % 10000)
+    gl.uniform1f(uniforms.uTime, (performance.now() / 1000 * CLOUD_SPEED) % 10000)
     if (reveal) {
       gl.uniform4f(uniforms.uRevealRect, reveal.x, reveal.y, reveal.width, reveal.height)
       gl.activeTexture(gl.TEXTURE5)
