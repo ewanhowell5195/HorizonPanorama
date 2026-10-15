@@ -12,7 +12,7 @@ export const LOCATIONS = [
   { id: "frozenWilds", game: "hzd", name: "The Frozen Wilds" },
   { id: "forbiddenWest", game: "hfw", name: "Forbidden West" },
   { id: "burningShores", game: "hfw", name: "Burning Shores" },
-  { id: "farZenith", game: "hfw", name: "Far Zenith Launch Facility" }
+  { id: "farZenith", game: "hfw", name: "Far Zenith Facility" }
 ]
 
 export const TRIBES = [
@@ -22,9 +22,9 @@ export const TRIBES = [
   { id: "tribeShadowCarja", tribe: "shadowCarja", name: "Shadow Carja", games: ["hzd"] },
   { id: "tribeOseram", tribe: "oseram", name: "Oseram", games: ["hzd", "hfw"] },
   { id: "tribeUtaru", tribe: "utaru", name: "Utaru", games: ["hfw"] },
-  { id: "tribeTenakthLowlandClan", tribe: "tenakthLowlandClan", name: "Tenakth Lowland Clan", games: ["hfw"] },
-  { id: "tribeTenakthDesertClan", tribe: "tenakthDesertClan", name: "Tenakth Desert Clan", games: ["hfw"] },
-  { id: "tribeTenakthSkyClan", tribe: "tenakthSkyClan", name: "Tenakth Sky Clan", games: ["hfw"] },
+  { id: "tribeTenakthLowlandClan", tribe: "tenakthLowlandClan", name: "Tenakth Lowland", games: ["hfw"] },
+  { id: "tribeTenakthDesertClan", tribe: "tenakthDesertClan", name: "Tenakth Desert", games: ["hfw"] },
+  { id: "tribeTenakthSkyClan", tribe: "tenakthSkyClan", name: "Tenakth Sky", games: ["hfw"] },
   { id: "tribeQuen", tribe: "quen", name: "Quen", games: ["hfw"] },
   { id: "tribeFarZenith", tribe: "farZenith", name: "Far Zenith", games: ["hfw"] },
   { id: "tribeNone", tribe: null, name: "No tribe", games: ["hzd", "hfw"] },

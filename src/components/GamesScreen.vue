@@ -66,7 +66,15 @@ const placement = computed(() => {
   })
 })
 
-onBeforeUnmount(() => resize.disconnect())
+const wideQuery = matchMedia("(min-width: 1841px)")
+const wide = ref(wideQuery.matches)
+const updateWide = () => wide.value = wideQuery.matches
+wideQuery.addEventListener("change", updateWide)
+
+onBeforeUnmount(() => {
+  resize.disconnect()
+  wideQuery.removeEventListener("change", updateWide)
+})
 
 watch(() => props.tribes.map(tribe => tribe.id).join(), async () => {
   const list = tribeList.value?.$el
@@ -117,7 +125,7 @@ function playSeed() {
 </script>
 
 <template>
-  <MenuScreen :class="{ custom }" :visible="visible" :width="900">
+  <MenuScreen :class="{ custom }" :visible="visible" :width="custom && tribeFilter && wide ? 962 : 900">
     <p class="eyebrow rise" style="--i: 1">New game</p>
     <h1 class="screen-title rise" style="--i: 2"><span>Choose</span><span class="outline">Area</span></h1>
     <div class="picks rise" style="--i: 3" role="radiogroup" aria-label="Area">
@@ -142,7 +150,7 @@ function playSeed() {
           <div class="collapse" :class="{ open: tribeFilter }" :inert="!tribeFilter">
             <div class="collapse-inner">
               <TransitionGroup ref="tribeList" tag="div" name="tribe" class="rules tribes" @before-leave="leaving">
-                <button v-for="tribe in tribes" :key="tribe.id" class="choice rule" :class="{ on: customRules[tribe.id] }" type="button" role="switch" :aria-checked="customRules[tribe.id]" @click="emit('rule', tribe.id, !customRules[tribe.id])"><span class="switch"></span><strong>{{ tribe.name }}</strong><span>{{ plural(tribeCounts?.[tribe.id] || 0) }}</span></button>
+                <button v-for="tribe in tribes" :key="tribe.id" class="choice rule" :class="{ on: customRules[tribe.id] }" type="button" role="switch" :aria-checked="customRules[tribe.id]" @click="emit('rule', tribe.id, !customRules[tribe.id])"><span class="switch"></span><strong>{{ tribe.name }}</strong><span>{{ tribeCounts?.[tribe.id] || 0 }}</span></button>
               </TransitionGroup>
             </div>
           </div>
@@ -258,6 +266,7 @@ function playSeed() {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
+  max-width: 900px;
 }
 
 .pick {
@@ -302,6 +311,21 @@ function playSeed() {
   text-transform: uppercase;
 }
 
+.tribes .rule {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 46px;
+}
+
+.tribes .rule .switch {
+  grid-row: auto;
+}
+
+.tribes .rule > span:last-child {
+  justify-self: end;
+  padding-left: 2px;
+  white-space: nowrap;
+}
+
 .collapse .rules {
   padding: 8px 0 0;
 }
@@ -315,7 +339,6 @@ function playSeed() {
   align-items: center;
   gap: 12px;
   width: 100%;
-  max-width: 860px;
   margin: 20px 0 0;
   padding: 0;
   font-size: 11px;
@@ -332,6 +355,13 @@ function playSeed() {
   flex: 1;
   height: 1px;
   background: var(--border);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toggle.on::after {
+  transform: none;
 }
 
 .toggle:hover, .toggle.on {
@@ -341,8 +371,8 @@ function playSeed() {
 
 .tribes {
   position: relative;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  max-width: 860px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  max-width: none;
   transition: height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -405,6 +435,13 @@ function playSeed() {
   margin: 0;
   font-size: 13px;
   color: var(--error);
+}
+
+@media (max-width: 1840px) {
+  .tribes {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    max-width: 768px;
+  }
 }
 
 @media (max-width: 1100px) {

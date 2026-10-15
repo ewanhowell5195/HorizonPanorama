@@ -378,6 +378,7 @@ a.mark[href]:hover {
 .screen-main {
   align-self: safe center;
   max-width: 680px;
+  transition: max-width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .screen-title {
@@ -822,7 +823,7 @@ a.mark[href]:hover {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
-  max-width: 640px;
+  max-width: 574px;
 }
 
 .rule {
