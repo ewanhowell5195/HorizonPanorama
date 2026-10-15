@@ -9,12 +9,15 @@ const TABS = [{ id: "map", name: "Map" }, { id: "photospheres", name: "Photosphe
     <header class="atlas-top">
       <span class="mark mark-slot" aria-hidden="true"><i class="mark-emblem"></i>Horizon Wayfinder</span>
     </header>
-    <nav class="atlas-tabs" role="tablist">
-      <button v-for="option in TABS" :key="option.id" type="button" role="tab" :class="{ selected: tab === option.id }" :aria-selected="tab === option.id" @click="emit('tab', option.id)">{{ option.name }}</button>
-    </nav>
-    <div class="atlas-card" :class="{ hidden: tab !== 'photospheres' }">
-      <p class="eyebrow">Photospheres</p>
-      <strong>{{ found }} / {{ total }} found</strong>
+    <div class="atlas-card">
+      <nav class="atlas-tabs" role="tablist">
+        <button v-for="option in TABS" :key="option.id" type="button" role="tab" :class="{ selected: tab === option.id }" :aria-selected="tab === option.id" @click="emit('tab', option.id)">{{ option.name }}</button>
+      </nav>
+      <div class="atlas-extra" :class="{ open: tab === 'photospheres' }">
+        <div>
+          <strong>{{ found }} / {{ total }} found</strong>
+        </div>
+      </div>
     </div>
   </section>
 </template>
@@ -61,12 +64,11 @@ const TABS = [{ id: "map", name: "Map" }, { id: "photospheres", name: "Photosphe
   top: clamp(20px, 3.6vh, 34px);
   right: 56px;
   display: grid;
-  gap: 6px;
-  padding: 14px 20px 16px;
+  padding: 4px;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 10px;
   backdrop-filter: blur(8px);
+  pointer-events: auto;
   opacity: 0;
   transition: opacity 0.45s ease;
 }
@@ -75,26 +77,13 @@ const TABS = [{ id: "map", name: "Map" }, { id: "photospheres", name: "Photosphe
   opacity: 1;
 }
 
-.atlas.ready .atlas-card.hidden {
-  opacity: 0;
-}
-
 .atlas-tabs {
-  position: fixed;
-  top: clamp(14px, 2.8vh, 26px);
-  left: 50%;
   display: flex;
   gap: 4px;
-  padding: 4px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  backdrop-filter: blur(8px);
-  translate: -50% 0;
-  pointer-events: auto;
 }
 
 .atlas-tabs button {
+  flex: 1;
   padding: 8px 16px;
   font-size: 12px;
   letter-spacing: 0.18em;
@@ -114,11 +103,26 @@ const TABS = [{ id: "map", name: "Map" }, { id: "photospheres", name: "Photosphe
   background: rgba(255, 255, 255, 0.12);
 }
 
-.atlas-card .eyebrow {
-  margin: 0;
+.atlas-extra {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
 }
 
-.atlas-card strong {
+.atlas-extra.open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.atlas-extra > div {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.atlas-extra strong {
+  display: block;
+  padding: 12px 12px 8px;
   font-family: "Hunter Condensed", "Oita Norm", sans-serif;
   font-weight: 400;
   font-size: 24px;

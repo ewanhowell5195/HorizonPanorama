@@ -36,6 +36,8 @@ const ATLAS_RADIUS_METRES = 400
 const ATLAS_READY_TIMEOUT_MS = 10000
 // the .bigmap opacity transition
 const MAP_FADE_MS = 450
+// the .marker.atlas opacity transition in styles.css
+const PIN_FADE_MS = 400
 const REVEAL_HASH = "#reveal"
 const SECRET = "horizon-panorama"
 const SAVED_GAME = "savedGame"
@@ -219,13 +221,15 @@ function setMapTab(tab) {
 
 function applyMapTab() {
   const map = atlasMap.value && mapTab.value === "map"
-  bigmap.value?.setFeatures({ modes: map, readouts: map, compass: map, icons: map })
+  bigmap.value?.setFeatures({ modes: map, readouts: map, compass: map, icons: map, instant: !atlasMap.value })
   bigmap.value?.setIconZoom(map)
 }
 
 function clearAtlas() {
-  atlasMarkers.forEach(marker => marker.remove())
+  const leaving = atlasMarkers
   atlasMarkers = []
+  leaving.forEach(({ element }) => element.classList.add("leaving"))
+  setTimeout(() => leaving.forEach(({ marker }) => marker.remove()), PIN_FADE_MS)
   bigmap.value?.setReveal(null)
 }
 
@@ -248,7 +252,7 @@ async function drawAtlas() {
     element.classList.add("atlas")
     element.title = LOCATIONS.find(location => location.id === round.location)?.name || ""
     element.querySelector(".dot").addEventListener("click", () => openView({ atlas: round.name }))
-    atlasMarkers.push(bigmap.value.addMarker(element, place.x, place.y))
+    atlasMarkers.push({ element, marker: bigmap.value.addMarker(element, place.x, place.y) })
     return { x: place.x, y: place.y }
   })
   const sites = pool.value.map(round => {

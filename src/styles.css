@@ -363,6 +363,15 @@ a.mark[href]:hover {
   background: rgba(242, 165, 65, 0.12);
 }
 
+.map-mode, .map-scale, .map-compass-frame {
+  transition: opacity 0.4s ease;
+}
+
+.map-mode.off, .map-scale.off, .map-compass-frame.off {
+  opacity: 0;
+  pointer-events: none;
+}
+
 .map-mode[hidden], .map-scale[hidden] {
   display: none;
 }
@@ -402,6 +411,25 @@ a.mark[href]:hover {
 .marker.removable svg {
   pointer-events: auto;
   cursor: pointer;
+}
+
+.marker.atlas {
+  transition: opacity 0.4s ease;
+  animation: atlas-pin-in 0.4s ease backwards;
+}
+
+.marker.atlas.leaving {
+  opacity: 0;
+}
+
+.marker.atlas.leaving .dot {
+  pointer-events: none;
+}
+
+@keyframes atlas-pin-in {
+  from {
+    opacity: 0;
+  }
 }
 
 .marker.atlas .dot {

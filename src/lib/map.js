@@ -8,6 +8,9 @@ const REVEAL_SOLID = 0.3
 const CLOUD_METRES = 16384
 const CLOUD_SPEED = 8
 const CELL_FADE_METRES = 150
+const REVEAL_FADE_SECONDS = 0.4
+// the .map-mode, .map-scale and .map-compass-frame opacity transition in styles.css
+const FEATURE_FADE_MS = 400
 const CELL_ROUND_METRES = 150
 const HATCH_METRES = 256
 const FOV = 30 * Math.PI / 180
@@ -114,11 +117,11 @@ const fragmentSource = `#version 300 es
     }
     float shade = 1.0 - uSolid * step(0.001, vSkirt);
     vec3 color = texture(uColor, vUv).rgb;
-    if (uRevealOn > 0.5) {
+    if (uRevealOn > 0.0) {
       vec2 revealUv = vec2(vWorld.x - uRevealRect.x, uRevealRect.y - vWorld.y) / uRevealRect.zw;
       bool inside = all(greaterThanEqual(revealUv, vec2(0.0))) && all(lessThanEqual(revealUv, vec2(1.0)));
       float seenMask = inside ? texture(uReveal, revealUv).r : 0.0;
-      float unseen = 1.0 - seenMask;
+      float unseen = (1.0 - seenMask) * uRevealOn;
       vec2 cloudUv = vec2(vWorld.x, -vWorld.y) * ${(UNIT_METRES / CLOUD_METRES).toFixed(6)};
       vec2 drift = uTime * vec2(0.003, 0.001);
       vec3 large = texture(uClouds, cloudUv * 3.0 + drift).rgb;
@@ -262,6 +265,8 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
   let extent
   let hatchTexture
   let reveal = null
+  let revealShown = false
+  let revealAmount = 0
   let cloudsTexture = null
   let cloudsFallback = null
   const clouds = shared(`${root}clouds.avif`, decodeBitmap)
@@ -955,6 +960,17 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
   function step(now) {
     const dt = Math.min((now - lastTime) / 1000, 0.1)
     lastTime = now
+    if (reveal) {
+      const target = revealShown ? 1 : 0
+      if (revealAmount !== target) {
+        revealAmount = target > revealAmount ? Math.min(target, revealAmount + dt / REVEAL_FADE_SECONDS) : Math.max(target, revealAmount - dt / REVEAL_FADE_SECONDS)
+        needsDraw = true
+      }
+      if (!revealShown && revealAmount === 0) {
+        gl.deleteTexture(reveal.texture)
+        reveal = null
+      }
+    }
     const ease = Math.min(1, dt * 8)
     relief = approach(relief, threeD ? fullRelief : fullRelief / 2, ease, 1e-4)
     camera.tilt = approach(camera.tilt, camera.tiltTarget, ease, 1e-4)
@@ -1230,7 +1246,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     gl.uniform1i(uniforms.uOccupancy, 4)
     gl.uniform1i(uniforms.uReveal, 5)
     gl.uniform1i(uniforms.uClouds, 6)
-    gl.uniform1f(uniforms.uRevealOn, reveal ? 1 : 0)
+    gl.uniform1f(uniforms.uRevealOn, reveal ? revealAmount : 0)
     gl.uniform1f(uniforms.uTime, (performance.now() / 1000 * CLOUD_SPEED) % 10000)
     if (reveal) {
       gl.uniform4f(uniforms.uRevealRect, reveal.x, reveal.y, reveal.width, reveal.height)
@@ -1254,7 +1270,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
       wanted.filter(node => node.layer === layer).forEach(drawNode)
     }
     const gameZoom = updateMarkers()
-    if (readyWaiters.length && !pendingFit && !flight && (!reveal || cloudsTexture) && wanted.every(node => ["ready", "error"].includes(cache.get(key(node.layer, node.level, node.i, node.j))?.state))) {
+    if (readyWaiters.length && !pendingFit && !flight && (!reveal || (cloudsTexture && revealAmount === (revealShown ? 1 : 0))) && wanted.every(node => ["ready", "error"].includes(cache.get(key(node.layer, node.level, node.i, node.j))?.state))) {
       readyWaiters.forEach(resolve => resolve())
       readyWaiters = []
     }
@@ -1286,8 +1302,25 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     needsDraw = true
   }
 
+  function fadeFeature(element, shown, instant) {
+    clearTimeout(element.fadeTimer)
+    if (shown) {
+      element.hidden = false
+      void element.offsetWidth
+      element.classList.remove("off")
+    } else {
+      element.classList.add("off")
+      if (instant) {
+        element.hidden = true
+      } else {
+        element.fadeTimer = setTimeout(() => element.hidden = true, FEATURE_FADE_MS)
+      }
+    }
+  }
+
   function setMode(on, instant = false) {
     threeD = on
+    zoomAnchor = null
     spin = { heading: 0, tilt: 0 }
     if (on) {
       if (camera.tiltTarget === 0) {
@@ -1945,11 +1978,11 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
       needsDraw = true
     },
     setReveal(points, radius, sites = points) {
-      if (reveal) {
-        gl.deleteTexture(reveal.texture)
-        reveal = null
-      }
+      revealShown = Boolean(points)
       if (points) {
+        if (reveal) {
+          gl.deleteTexture(reveal.texture)
+        }
         reveal = revealMask(points, radius, sites)
         if (!cloudsTexture) {
           if (!cloudsFallback) {
@@ -1970,13 +2003,13 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
       poiZoom = game ? GAME_POI_ZOOM : POI_ZOOM
       needsDraw = true
     },
-    setFeatures({ modes: modesOn = true, readouts = true, compass: compassOn = true, icons = true }) {
-      modeToggle.hidden = !modesOn
+    setFeatures({ modes: modesOn = true, readouts = true, compass: compassOn = true, icons = true, instant = true }) {
+      fadeFeature(modeToggle, modesOn, instant)
       if (!modesOn) {
-        setMode(false, true)
+        setMode(false, instant)
       }
-      scaleBar.hidden = !readouts
-      compassFrame.hidden = !compassOn
+      fadeFeature(scaleBar, readouts, instant)
+      fadeFeature(compassFrame, compassOn, instant)
       iconsOn = icons
       needsDraw = true
     },
