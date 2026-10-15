@@ -303,6 +303,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
   let drawn = []
   let lastTile = null
   let flight = null
+  let zoomAnchor = null
   const viewSize = { width: 0, height: 0 }
 
   function compile(type, source) {
@@ -1005,6 +1006,12 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
       camera.distance = camera.target
       needsDraw = true
     }
+    if (zoomAnchor) {
+      holdZoomAnchor()
+      if (camera.distance === camera.target) {
+        zoomAnchor = null
+      }
+    }
     if (!dragging && (spin.heading || spin.tilt)) {
       turn(camera.heading + spin.heading * dt, camera.tilt + spin.tilt * dt)
       const decay = Math.exp(-dt * SPIN_DECAY)
@@ -1032,6 +1039,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
       anchorPivot(false)
     }
     velocity = { x: 0, y: 0 }
+    zoomAnchor = null
     if (snap) {
       flight = null
       camera.x = to.x
@@ -1387,6 +1395,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
   }
 
   function startGrab(x, y) {
+    zoomAnchor = null
     updateCamera()
     grab = pick(x, y)
     velocity = { x: 0, y: 0 }
@@ -1411,6 +1420,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
   }
 
   function panBy(dx, dy) {
+    zoomAnchor = null
     const k = camera.distance * 2 * Math.tan(FOV / 2) / Math.max(viewSize.height, 1)
     const sh = Math.sin(camera.heading), ch = Math.cos(camera.heading)
     camera.x += (dy * sh - dx * ch) * k
@@ -1621,10 +1631,25 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     event.preventDefault()
     flight = null
     const delta = event.deltaY * (event.deltaMode === 1 ? 33 : event.deltaMode === 2 ? 400 : 1)
+    updateCamera()
+    const point = pick(event.clientX, event.clientY) || planeHit(event.clientX, event.clientY, 0)
+    zoomAnchor = point && { point, x: event.clientX, y: event.clientY }
     camera.target *= Math.exp(delta * 0.0018)
     velocity = { x: 0, y: 0 }
     clampCamera()
     needsDraw = true
+  }
+
+  function holdZoomAnchor() {
+    updateCamera()
+    const now = planeHit(zoomAnchor.x, zoomAnchor.y, zoomAnchor.point.z)
+    if (!now) {
+      return
+    }
+    camera.x += zoomAnchor.point.x - now.x
+    camera.y += zoomAnchor.point.y - now.y
+    pivotSet = false
+    clampCamera()
   }
 
   canvas.addEventListener("wheel", zoomWheel, { passive: false })
@@ -2086,6 +2111,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     },
     zoomBy(factor) {
       flight = null
+      zoomAnchor = null
       camera.target *= factor
       clampCamera()
       needsDraw = true
