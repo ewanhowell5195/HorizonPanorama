@@ -38,6 +38,7 @@ const POI_MARGIN = 40
 const POI_HOVER_RADIUS = 24
 const POI_SPACING = 44
 const POI_OCCLUSION_RADIUS = 30
+const POI_OCCLUSION_HEIGHT = 1080
 const POI_OCCLUSION_SAMPLES = 8
 const OCCLUSION_STEPS = 32
 const OCCLUSION_END = 0.97
@@ -1077,7 +1078,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     if (screen.x < -POI_MARGIN || screen.y < -POI_MARGIN || screen.x > viewSize.width + POI_MARGIN || screen.y > viewSize.height + POI_MARGIN) {
       return false
     }
-    const radius = POI_OCCLUSION_RADIUS * Math.hypot(eye[0] - x, eye[1] - y, eye[2] - z) * 2 * Math.tan(FOV / 2) / Math.max(viewSize.height, 1)
+    const radius = POI_OCCLUSION_RADIUS * Math.min(viewSize.height / POI_OCCLUSION_HEIGHT, 1) * Math.hypot(eye[0] - x, eye[1] - y, eye[2] - z) * 2 * Math.tan(FOV / 2) / Math.max(viewSize.height, 1)
     const st = Math.sin(camera.tilt), ct = Math.cos(camera.tilt)
     const sh = Math.sin(camera.heading), ch = Math.cos(camera.heading)
     for (let k = 0; k <= POI_OCCLUSION_SAMPLES; k++) {
