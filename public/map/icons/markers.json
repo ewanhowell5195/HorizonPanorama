@@ -495,11 +495,11 @@
     ],
     "tallnecks": [
       { "x": -4111.62, "y": -1367.25, "z": 260.01, "icon": "tallneck", "name": "Tallneck: Landfall" },
-      { "x": -2017.71, "y": -795.83, "z": 235.23, "icon": "tallneck", "name": "Tallneck: The Stand of the Sentinels" },
-      { "x": -422.6, "y": 852.38, "z": 235.23, "icon": "tallneck", "name": "Tallneck: Salt Bite" },
+      { "x": -2014.4, "y": -586.37, "z": 322.69, "icon": "tallneck", "name": "Tallneck: The Stand of the Sentinels" },
+      { "x": -186.36, "y": 796.61, "z": 495.29, "icon": "tallneck", "name": "Tallneck: Salt Bite" },
       { "x": 36.46, "y": -457.85, "z": 410.65, "icon": "tallneck", "name": "Tallneck: The Shining Wastes" },
-      { "x": 91.86, "y": -1594.43, "z": 318.84, "icon": "tallneck", "name": "Tallneck: The Stillsands" },
-      { "x": 2196.44, "y": -196.75, "z": 351.45, "icon": "tallneck", "name": "Tallneck: Cinnabar Sands" }
+      { "x": 731.85, "y": -1333.83, "z": 414.63, "icon": "tallneck", "name": "Tallneck: The Stillsands" },
+      { "x": 2106.45, "y": -175.13, "z": 449.37, "icon": "tallneck", "name": "Tallneck: Cinnabar Sands" }
     ],
     "cauldrons": [
       { "x": -2682.63, "y": 113.66, "z": 252.21, "icon": "cauldron-kappa", "name": "Cauldron: KAPPA" },
