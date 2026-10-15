@@ -755,7 +755,7 @@ async function submitGuess() {
   const spot = bigmap.value.locate(guess.x, guess.y)
   const miss = spot.layer.game !== round.game ? "Wrong game" : spot.layer.id !== answer.layer.id && (spot.layer.id === SEPARATE_PIECE || answer.layer.id === SEPARATE_PIECE) ? "Too far away" : null
   const metres = miss ? null : Math.hypot(spot.worldX - round.x, spot.worldY - round.y)
-  const score = miss ? 0 : points(metres)
+  const score = miss ? 0 : points(metres, round.game)
   game.total += score
   const entry = { guess, answer: { x: answer.x, y: answer.y }, metres, miss, score }
   game.results.push(entry)

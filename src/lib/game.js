@@ -1,10 +1,11 @@
 export const ROUNDS = 5
 export const MAX_POINTS = 5000
 const PERFECT_METRES = 25
-const FALLOFF_METRES = 2000
+// hzd is 2000 m scaled by its world.json piece's diagonal against hfw-main
+const FALLOFF_METRES = { hfw: 2000, hzd: 1598 }
 
-export function points(metres) {
-  return metres <= PERFECT_METRES ? MAX_POINTS : Math.round(MAX_POINTS * Math.exp(-(metres - PERFECT_METRES) / FALLOFF_METRES))
+export function points(metres, game) {
+  return metres <= PERFECT_METRES ? MAX_POINTS : Math.round(MAX_POINTS * Math.exp(-(metres - PERFECT_METRES) / FALLOFF_METRES[game]))
 }
 
 export function distanceLabel(entry) {
