@@ -127,9 +127,5 @@ function play() {
   .steps, .count {
     display: none;
   }
-
-  .home-bottom {
-    margin-top: 24px;
-  }
 }
 </style>
