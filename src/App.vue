@@ -31,6 +31,8 @@ const MAP_DELAY_MS = 1200
 const SWAP_FADE_MS = 200
 const SCREEN_PATHS = { home: "", games: "play", setup: "setup", challenge: "challenge", game: "game", atlas: "map" }
 const FOUND = "found"
+const RECENT = "recentRounds"
+const RECENT_GAMES = 2
 const BEST_GUESSES = "bestGuesses"
 const MISSED = { "Wrong game": "You guessed the wrong game", "Too far away": "Your guess was too far away" }
 const ATLAS_RADIUS_METRES = 400
@@ -211,6 +213,17 @@ function goGames() {
 function goAtlas() {
   enter("atlas")
   show("atlas")
+}
+
+function rememberRecent(rounds) {
+  const recent = (readJson(RECENT) || []).filter(name => !rounds.some(round => round.name === name))
+  writeStore(RECENT, JSON.stringify(rounds.map(round => round.name).concat(recent).slice(0, ROUNDS * RECENT_GAMES)))
+}
+
+function pickRounds(available) {
+  const recent = new Set(readJson(RECENT) || [])
+  const tier = round => !found.value.has(round.name) ? 0 : recent.has(round.name) ? 2 : 1
+  return shuffle(shuffle(available).sort((a, b) => tier(a) - tier(b)).slice(0, ROUNDS))
 }
 
 function addFound(name) {
@@ -977,6 +990,7 @@ function begin(rounds, gameRulesValue) {
   closeView()
   paused = null
   game = { rounds, index: 0, total: 0, results: [], state: "round", guess: null, rules: fullRules(gameRulesValue), games: gamesOf(fullRules(gameRulesValue)) }
+  rememberRecent(rounds)
   game.seed = encodeSeed(game)
   game.id = Math.random().toString(36).slice(2, 8)
   const url = `${screenUrl("game")}?seed=${game.seed}&id=${game.id}`
@@ -999,7 +1013,7 @@ async function newGame() {
   if (!choices.value.length) {
     return
   }
-  begin(shuffle(choices.value).slice(0, ROUNDS).map(round => Object.assign({}, round, { code: randomCode() })), rules.value)
+  begin(pickRounds(choices.value).map(round => Object.assign({}, round, { code: randomCode() })), rules.value)
 }
 
 async function playSeed(input) {
