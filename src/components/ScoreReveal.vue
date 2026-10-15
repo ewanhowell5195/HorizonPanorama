@@ -7,7 +7,6 @@ const CARD_WIDTH = 770
 const CARD_HEIGHT = 380
 const VISIBLE_TOP = 6
 const VISIBLE_BOTTOM = 297
-const DOCK_SCALE = 0.6
 const DOCK_BOTTOM = 112
 // 61 frames at CARD_FRAME_MS in tools/game/build_cauldrons.py
 const CARD_MS = 61 * 33
@@ -16,6 +15,7 @@ const HOLD_EARLY_MS = 60
 const props = defineProps({ card: String, score: Number, distance: String, miss: Boolean, lastRound: Boolean, docked: Boolean, animate: Boolean, viewing: Boolean })
 const emit = defineEmits(["next", "view", "back"])
 const src = ref(null)
+const root = ref(null)
 const label = computed(() => props.miss ? props.distance : `${props.distance} away`)
 const still = computed(() => `/cauldrons/card-${props.card}-end.avif`)
 let objectUrl = null
@@ -26,7 +26,8 @@ function cardHeight() {
 }
 
 function dockedHeight() {
-  return DOCK_BOTTOM + cardHeight() * DOCK_SCALE * (VISIBLE_BOTTOM - VISIBLE_TOP) / CARD_HEIGHT
+  const scale = Number(getComputedStyle(root.value).getPropertyValue("--dock-scale"))
+  return DOCK_BOTTOM + cardHeight() * scale * (VISIBLE_BOTTOM - VISIBLE_TOP) / CARD_HEIGHT
 }
 
 function played() {
@@ -61,7 +62,7 @@ defineExpose({ dockedHeight })
 </script>
 
 <template>
-  <div class="reveal" :class="{ docked, animate, reviewing: viewing }">
+  <div ref="root" class="reveal" :class="{ docked, animate, reviewing: viewing }">
     <div class="stage">
       <img v-if="src" :src="src" alt="" @load="played">
       <div class="band">
@@ -80,6 +81,7 @@ defineExpose({ dockedHeight })
 .reveal {
   --w: min(770px, 92vw);
   --h: calc(var(--w) * 380 / 770);
+  --dock-scale: 0.6;
   position: fixed;
   inset: 0;
   z-index: 6;
@@ -102,8 +104,8 @@ defineExpose({ dockedHeight })
 }
 
 .reveal.docked .stage {
-  top: calc(100% - 112px - var(--h) * 0.169);
-  transform: translate(-50%, -50%) scale(0.6);
+  top: calc(100% - 112px - var(--h) * var(--dock-scale) * 0.2816);
+  transform: translate(-50%, -50%) scale(var(--dock-scale));
 }
 
 .stage::before {
@@ -208,6 +210,12 @@ defineExpose({ dockedHeight })
 .swap-text-leave-to {
   opacity: 0;
   transform: translateX(-8px);
+}
+
+@media (max-width: 760px) {
+  .reveal {
+    --dock-scale: 0.85;
+  }
 }
 
 @keyframes band-in {

@@ -117,7 +117,8 @@ const TABS = [{ id: "map", name: "Map" }, { id: "photospheres", name: "Photosphe
   }
 
   .atlas-card {
-    top: 22px;
+    top: 64px;
+    left: 20px;
     right: 20px;
   }
 }

@@ -113,6 +113,16 @@ function play() {
   }
 }
 
+@media (max-width: 560px) {
+  .button-row {
+    width: auto;
+  }
+
+  .atlas small {
+    display: none;
+  }
+}
+
 @media (max-width: 760px) {
   .steps, .count {
     display: none;

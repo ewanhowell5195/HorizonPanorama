@@ -69,7 +69,7 @@ function playSeed() {
 </script>
 
 <template>
-  <MenuScreen :visible="visible" :width="900">
+  <MenuScreen :class="{ custom }" :visible="visible" :width="900">
     <p class="eyebrow rise" style="--i: 1">New game</p>
     <h1 class="screen-title rise" style="--i: 2"><span>Choose</span><span class="outline">Area</span></h1>
     <div class="picks rise" style="--i: 3" role="radiogroup" aria-label="Area">
@@ -347,7 +347,48 @@ function playSeed() {
   }
 }
 
+@media (max-height: 500px) {
+  .maps {
+    display: none;
+  }
+
+  .picks {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .pick {
+    padding: 12px 14px;
+  }
+
+  .pick strong {
+    font-size: 18px;
+  }
+
+  .pick span {
+    display: none;
+  }
+
+  .pick small {
+    margin: 4px 0 0;
+  }
+
+  .glyph {
+    height: 24px;
+    margin: 0 0 8px;
+  }
+
+  .glyph svg {
+    width: auto;
+    height: 24px;
+  }
+}
+
 @media (max-width: 760px) {
+  .custom .maps {
+    display: none;
+  }
+
   .maps {
     top: 64px;
     bottom: auto;

@@ -11,6 +11,7 @@ const cycling = ref(false)
 const timerStyle = { "--slide-ms": `${SLIDE_MS}ms` }
 let mounted
 const ready = new Promise(resolve => mounted = resolve).then(() => createBackdrop(canvas.value, {
+  fogTop: () => document.querySelector(".screen.visible .screen-main, .round-intro.visible .eyebrow")?.getBoundingClientRect().top,
   onSlide(entry) {
     game.value = entry.game
     label.value = entry.label || "Screenshot"
@@ -138,12 +139,6 @@ canvas {
 
 @media (max-width: 760px) {
   .credit {
-    top: 64px;
-    right: 20px;
-    bottom: auto;
-  }
-
-  .timer {
     display: none;
   }
 }

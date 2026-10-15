@@ -225,6 +225,15 @@ watch(() => props.hidden, () => open.value = false)
   display: none;
 }
 
+@media (max-width: 560px) {
+  .submit {
+    padding: 15px 12px;
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+  }
+}
+
 @media (hover: none), (max-width: 640px) {
   .guess, .guess:hover {
     left: 16px;

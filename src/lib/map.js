@@ -32,6 +32,7 @@ const PREFETCH_CHILDREN = 16
 const PREFETCH_NEIGHBOURS = 16
 const CLICK_DISTANCE = 6
 const FIT_TOP = 48
+const FIT_SIDE = 40
 const FLIGHT_MS = 900
 // HFW MapResource (group 72333) WidthInWorldCoords
 const MAP_WIDTH_METRES = 5760
@@ -1077,7 +1078,8 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     const top = inset ? FIT_TOP : 0
     const bottom = inset + hidden
     const usable = Math.max(height - bottom - top, height * 0.3) / height
-    const aspect = canvas.width / (canvas.height * usable)
+    const sides = Math.max(canvas.clientWidth - FIT_SIDE * 2, canvas.clientWidth * 0.5) / Math.max(canvas.clientWidth, 1)
+    const aspect = canvas.width * sides / (canvas.height * usable)
     const span = Math.max(box.maxY - box.minY, (box.maxX - box.minX) / aspect) * 1.2 / usable
     const to = { x: (box.minX + box.maxX) / 2, y: (box.minY + box.maxY) / 2 - span * (bottom - top) / height / 2, distance: Math.max(span / 2 / Math.tan(FOV / 2), limits().min * 40) }
     if (camera.z !== null) {
