@@ -989,7 +989,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     const base = orbitEye()
     camera.lift = approach(camera.lift, Math.max(heightAt(base[0], base[1]) + CAMERA_CLEARANCE_METRES / UNIT_METRES - base[2], 0), ease, 1e-5)
     if (flight) {
-      const t = Math.min((now - flight.start) / FLIGHT_MS, 1)
+      const t = Math.min(Math.max((now - flight.start) / flight.duration, 0), 1)
       const e = t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2
       camera.x = flight.from.x + (flight.to.x - flight.from.x) * e
       camera.y = flight.from.y + (flight.to.y - flight.from.y) * e
@@ -1028,7 +1028,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     }
   }
 
-  function fitBox(box, snap, inset, start, hidden = 0) {
+  function fitBox({ box, snap, inset, start, hidden = 0, delay = 0, duration = FLIGHT_MS }) {
     const height = canvas.clientHeight
     const top = inset ? FIT_TOP : 0
     const bottom = inset + hidden
@@ -1048,7 +1048,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
       camera.distance = camera.target = to.distance
     } else {
       const from = start ? { x: start.x, y: start.y, distance: to.distance * start.zoom } : { x: camera.x, y: camera.y, distance: camera.distance }
-      flight = { from, to, start: performance.now() }
+      flight = { from, to, start: performance.now() + delay, duration }
     }
     needsDraw = true
   }
@@ -1207,7 +1207,9 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
       position(marker, project(marker.x, marker.y, heightAt(marker.x, marker.y)))
     }
     for (const entry of lines) {
-      const [a, b] = entry.ends.map(end => project(end.x, end.y, heightAt(end.x, end.y)))
+      const [from, to] = entry.ends
+      const tip = { x: from.x + (to.x - from.x) * entry.progress, y: from.y + (to.y - from.y) * entry.progress }
+      const [a, b] = [from, tip].map(end => project(end.x, end.y, heightAt(end.x, end.y)))
       entry.element.setAttribute("x1", a.x)
       entry.element.setAttribute("y1", a.y)
       entry.element.setAttribute("x2", b.x)
@@ -1226,7 +1228,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
       return
     }
     if (pendingFit) {
-      fitBox(pendingFit.box, pendingFit.snap, pendingFit.inset, pendingFit.start, pendingFit.hidden)
+      fitBox(pendingFit)
       pendingFit = null
     }
     step(now)
@@ -2025,13 +2027,17 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
         const element = document.createElementNS("http://www.w3.org/2000/svg", "line")
         element.setAttribute("class", "map-line")
         overlay.append(element)
-        return { ends, element }
+        return { ends, element, progress: 1 }
       })
       needsDraw = true
     },
-    fit(points, { snap = false, inset = 0, start = null, game = null, hidden = 0 } = {}) {
+    setLineProgress(progress) {
+      lines.forEach(entry => entry.progress = progress)
+      needsDraw = true
+    },
+    fit(points, { snap = false, inset = 0, start = null, game = null, hidden = 0, delay = 0, duration = FLIGHT_MS } = {}) {
       const box = points?.length ? { minX: Math.min(...points.map(p => p.x)), maxX: Math.max(...points.map(p => p.x)), minY: Math.min(...points.map(p => p.y)), maxY: Math.max(...points.map(p => p.y)) } : tileExtent(game)
-      pendingFit = { box, snap, inset, start, hidden }
+      pendingFit = { box, snap, inset, start, hidden, delay, duration }
       needsDraw = true
     },
     refresh() {

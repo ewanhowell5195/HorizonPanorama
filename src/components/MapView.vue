@@ -22,6 +22,7 @@ defineExpose({
   locate: (x, y) => map.locate(x, y),
   addMarker: (element, x, y) => map.addMarker(element, x, y),
   setLines: pairs => map?.setLines(pairs),
+  setLineProgress: progress => map?.setLineProgress(progress),
   fit: (points, options) => map?.fit(points, options),
   refresh: () => map?.refresh(),
   whenReady: () => map?.whenReady(),

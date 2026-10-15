@@ -8,13 +8,14 @@ import GuessPanel from "./components/GuessPanel.vue"
 import HomeScreen from "./components/HomeScreen.vue"
 import MapView from "./components/MapView.vue"
 import PhotoSphere from "./components/PhotoSphere.vue"
-import ResultCard from "./components/ResultCard.vue"
+import ScoreReveal from "./components/ScoreReveal.vue"
 import RoundIntro from "./components/RoundIntro.vue"
 import SlideBackdrop from "./components/SlideBackdrop.vue"
 import GamesScreen from "./components/GamesScreen.vue"
 import SetupScreen from "./components/SetupScreen.vue"
 import SummaryCard from "./components/SummaryCard.vue"
 import { MAX_POINTS, ROUNDS, distanceLabel, formatDistance, points, readStore, shuffle, wait, writeStore } from "./lib/game.js"
+import { cauldronFor, loadCard } from "./lib/cauldrons.js"
 import { answerMarker, pin } from "./lib/markers.js"
 import { pointLocation } from "./lib/locations.js"
 import { LOCATIONS, MODE_RULES, TRIBES, fullRules, gamesOf, modeOf, offTribes, SHARED_TRIBES, tribeOn, tribeOrder, tribeRules, tribesOf, wholeGames, withGames } from "./lib/rules.js"
@@ -40,6 +41,9 @@ const MAP_FADE_MS = 450
 const MINIMAP_TUCK = 40 - 8 * Math.SQRT2
 // the .marker.atlas opacity transition in styles.css
 const PIN_FADE_MS = 400
+const REVEAL_COUNT_DELAY_MS = 1000
+const REVEAL_COUNT_MS = 1600
+const REVEAL_DOCK_MS = 3000
 const REVEAL_HASH = "#reveal"
 const SECRET = "horizon-panorama"
 const SAVED_GAME = "savedGame"
@@ -138,6 +142,7 @@ let game = null
 let world = null
 let tribeMaps = null
 let guessMarker = null
+let scoreReveal = null
 let resultMarkers = []
 let presentedRound = -1
 let presentedAtlas = null
@@ -474,6 +479,7 @@ function setHeading(value) {
 }
 
 function clearMarkers() {
+  stopReveal()
   guessMarker?.remove()
   guessMarker = null
   resultMarkers.forEach(marker => marker.remove())
@@ -592,6 +598,7 @@ async function startRound() {
   current.guess = null
   hasGuess.value = false
   status.index = current.index + 1
+  loadCard(cauldronFor(status.index)).catch(error => console.warn(error))
   status.count = current.rounds.length
   status.total = current.total
   status.progress = 0
@@ -773,17 +780,82 @@ async function submitGuess() {
   }
   game.state = "result"
   saveGame()
-  await showResult(entry)
+  await showResult(entry, true)
 }
 
-async function showResult(entry) {
+async function showResult(entry, animate = false) {
+  stopReveal()
   status.total = game.total
-  resultMarkers.push(bigmap.value.addMarker(pin("var(--accent)"), entry.guess.x, entry.guess.y), bigmap.value.addMarker(answerMarker(), entry.answer.x, entry.answer.y))
+  resultMarkers.push(bigmap.value.addMarker(pin("var(--accent)"), entry.guess.x, entry.guess.y))
   bigmap.value.setLines([[entry.guess, entry.answer]])
-  result.value = { key: game.index, score: entry.score, distance: distanceLabel(entry), lastRound: game.index + 1 >= game.rounds.length }
+  result.value = { key: game.index, card: cauldronFor(game.index + 1), score: entry.score, shown: animate ? 0 : entry.score, distance: distanceLabel(entry), miss: Boolean(entry.miss), lastRound: game.index + 1 >= game.rounds.length, docked: !animate, animate }
   phase.value = "result"
   await nextTick()
-  bigmap.value.fit([entry.guess, entry.answer], { inset: (resultCard.value?.$el.offsetHeight || 0) + 40, start: { x: entry.guess.x, y: entry.guess.y, zoom: 0.35 } })
+  const points = [entry.guess, entry.answer]
+  const inset = (resultCard.value?.dockedHeight() || 0) + 40
+  const start = { x: entry.guess.x, y: entry.guess.y, zoom: 0.35 }
+  if (!animate) {
+    resultMarkers.push(bigmap.value.addMarker(answerMarker(), entry.answer.x, entry.answer.y))
+    bigmap.value.fit(points, { inset, start })
+    return
+  }
+  bigmap.value.setLineProgress(0)
+  bigmap.value.fit(points, { inset, start, delay: REVEAL_COUNT_DELAY_MS, duration: REVEAL_COUNT_MS })
+  playReveal(entry, points, inset)
+}
+
+function playReveal(entry, points, inset) {
+  const begin = performance.now()
+  const current = { entry, points, inset, frame: 0, answered: false }
+  scoreReveal = current
+  function tick(now) {
+    if (scoreReveal !== current) {
+      return
+    }
+    const t = Math.min(Math.max((now - begin - REVEAL_COUNT_DELAY_MS) / REVEAL_COUNT_MS, 0), 1)
+    const eased = t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2
+    result.value.shown = Math.round(entry.score * eased)
+    bigmap.value.setLineProgress(eased)
+    if (t >= 1) {
+      revealAnswer(current)
+    }
+    if (now - begin >= REVEAL_DOCK_MS) {
+      finishReveal(false)
+      return
+    }
+    current.frame = requestAnimationFrame(tick)
+  }
+  current.frame = requestAnimationFrame(tick)
+}
+
+function revealAnswer(current) {
+  if (current.answered) {
+    return
+  }
+  current.answered = true
+  resultMarkers.push(bigmap.value.addMarker(answerMarker(), current.entry.answer.x, current.entry.answer.y))
+}
+
+function finishReveal(skipped) {
+  const current = scoreReveal
+  if (!current) {
+    return
+  }
+  stopReveal()
+  revealAnswer(current)
+  result.value.shown = current.entry.score
+  result.value.docked = true
+  bigmap.value.setLineProgress(1)
+  if (skipped) {
+    bigmap.value.fit(current.points, { inset: current.inset })
+  }
+}
+
+function stopReveal() {
+  if (scoreReveal) {
+    cancelAnimationFrame(scoreReveal.frame)
+    scoreReveal = null
+  }
 }
 
 async function showSummary(record = true) {
@@ -978,7 +1050,11 @@ function onKey(event) {
     submitGuess()
   } else if (game?.state === "result") {
     event.preventDefault()
-    next()
+    if (scoreReveal) {
+      finishReveal(true)
+    } else {
+      next()
+    }
   }
 }
 
@@ -1093,7 +1169,7 @@ onBeforeUnmount(() => {
     <LoadingEmblem :key="loadingKey" />
   </div>
   <Transition name="card">
-    <ResultCard v-if="phase === `result` && result && !viewing" ref="resultCard" :key="result.key" :score="result.score" :distance="result.distance" :last-round="result.lastRound" @next="next" @view="viewResult" />
+    <ScoreReveal v-if="phase === `result` && result" v-show="!viewing" ref="resultCard" :key="result.key" :card="result.card" :score="result.shown" :distance="result.distance" :miss="result.miss" :last-round="result.lastRound" :docked="result.docked" :animate="result.animate" @next="next" @view="viewResult" />
   </Transition>
   <Transition name="card">
     <SummaryCard v-if="phase === `summary` && summary && !viewing" ref="summaryCard" :results="summary.results" :total="summary.total" :max="summary.max" :mode="gameMode" :seed="summary.seed" @menu="goHome" @again="newGame" @replay="replay" @view="index => openView({ round: index })" />
