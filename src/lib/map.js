@@ -20,7 +20,7 @@ const FIT_TOP = 48
 const FLIGHT_MS = 900
 // HFW MapResource (group 72333) WidthInWorldCoords
 const MAP_WIDTH_METRES = 5760
-const POI_ZOOM = { "campfire": 5, "machine-site": 5, "settlement": 2, "tallneck": 3.5, "cauldron": 2 }
+const POI_ZOOM = { "campfire": 5, "machine-site": 5, "hunting-ground": 5, "settlement": 2, "tallneck": 3.5, "cauldron": 2, "camp": 3.5, "ruins": 3.5, "shelter": 5, "landmark": 2, "location": 3.5 }
 const POI_MARGIN = 40
 const POI_HOVER_RADIUS = 24
 const POI_SPACING = 44
@@ -1622,6 +1622,24 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
         }
         for (const marker of data[game].cauldrons || []) {
           addPointOfInterest(game, "cauldron", marker.icon, marker)
+        }
+        for (const marker of data[game].huntingGrounds || []) {
+          addPointOfInterest(game, "hunting-ground", marker.icon, marker)
+        }
+        for (const marker of data[game].camps || []) {
+          addPointOfInterest(game, "camp", marker.icon, marker)
+        }
+        for (const marker of data[game].ruins || []) {
+          addPointOfInterest(game, "ruins", marker.icon, marker)
+        }
+        for (const marker of data[game].shelters || []) {
+          addPointOfInterest(game, "shelter", marker.icon, marker)
+        }
+        for (const marker of data[game].landmarks || []) {
+          addPointOfInterest(game, "landmark", marker.icon, marker)
+        }
+        for (const marker of data[game].locations || []) {
+          addPointOfInterest(game, "location", marker.icon, marker)
         }
       }
       needsDraw = true
