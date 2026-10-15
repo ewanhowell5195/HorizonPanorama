@@ -1128,6 +1128,17 @@ onBeforeUnmount(() => {
   pointer-events: auto;
 }
 
+.map-full :deep(.map-mode) {
+  top: 16px;
+  right: 16px;
+  bottom: auto;
+  left: auto;
+}
+
+.map-full.shown :deep(.map-scale) {
+  left: 10px;
+}
+
 .bigmap {
   position: fixed;
   inset: 0;

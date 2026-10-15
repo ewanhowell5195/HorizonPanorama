@@ -331,33 +331,23 @@ a.mark[href]:hover {
   bottom: 10px;
   left: 10px;
   z-index: 2;
-  display: flex;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-  background: var(--panel);
-}
-
-.map-mode button {
-  height: 32px;
-  padding: 0 11px;
+  width: 34px;
+  height: 34px;
+  padding: 0;
   font-size: 12px;
-  font-weight: 600;
   color: var(--muted);
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  user-select: none;
+  background: var(--panel);
+  border: 1px solid var(--border);
 }
 
-.map-mode button:hover {
+.map-mode:hover:not(:disabled) {
   color: var(--text);
   filter: none;
 }
 
-.map-mode button.selected {
+.map-mode.selected, .map-mode.selected:hover:not(:disabled) {
   color: var(--accent);
-  background: rgba(242, 165, 65, 0.12);
+  background: linear-gradient(rgba(242, 165, 65, 0.16), rgba(242, 165, 65, 0.16)), var(--panel);
 }
 
 .map-mode, .map-scale, .map-compass-frame {
@@ -374,7 +364,7 @@ a.mark[href]:hover {
 }
 
 .map-mode:not([hidden]) ~ .map-scale {
-  left: 104px;
+  left: 52px;
 }
 
 .map-scale-label, .map-elevation {

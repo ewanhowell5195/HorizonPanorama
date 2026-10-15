@@ -209,16 +209,14 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     scaleBar.innerHTML = `<span class="map-elevation"></span><span class="map-scale-label"></span><span class="map-scale-bar"></span>`
   }
   const [elevationLabel, scaleLabel, scaleLine] = scaleBar.children
-  const modeToggle = document.createElement("div")
+  const modeToggle = document.createElement("button")
   if (modes) {
+    modeToggle.type = "button"
     modeToggle.className = "map-mode"
-    modeToggle.innerHTML = `<button type="button" data-mode="2d">2D</button><button type="button" data-mode="3d">3D</button>`
-    modeToggle.addEventListener("click", event => {
-      const button = event.target.closest("button")
-      if (button) {
-        setMode(button.dataset.mode === "3d")
-      }
-    })
+    modeToggle.textContent = "3D"
+    modeToggle.title = "3D view"
+    modeToggle.setAttribute("aria-pressed", "false")
+    modeToggle.addEventListener("click", () => setMode(!threeD))
     container.append(modeToggle)
   }
   const compass = createCompass()
@@ -1338,9 +1336,8 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
       camera.heading = camera.headingTarget
     }
     compassHolder.classList.toggle("shown", on)
-    for (const button of modeToggle.children) {
-      button.classList.toggle("selected", (button.dataset.mode === "3d") === on)
-    }
+    modeToggle.classList.toggle("selected", on)
+    modeToggle.setAttribute("aria-pressed", String(on))
     needsDraw = true
   }
 

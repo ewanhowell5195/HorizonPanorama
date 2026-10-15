@@ -60,6 +60,17 @@ watch(() => props.hidden, () => open.value = false)
   transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.5s;
 }
 
+.guess::before {
+  content: "";
+  position: absolute;
+  inset: -70px;
+  z-index: -1;
+  background: black;
+  filter: blur(100px);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 .guess:hover, .guess.open, .guess.resizing {
   width: min(720px, calc(100vw - 32px));
   transition-delay: 0s;
@@ -72,18 +83,32 @@ watch(() => props.hidden, () => open.value = false)
 }
 
 .map {
+  --tuck: calc(40px - 8px * sqrt(2));
   position: relative;
-  height: 220px;
-  overflow: hidden;
+  height: calc(220px + var(--tuck));
+  margin-bottom: calc(-1 * var(--tuck));
   background: #000;
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, calc(100% - var(--tuck)) calc(100% - var(--tuck)), 0 calc(100% - var(--tuck)));
   opacity: 0.8;
   transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.5s, opacity 0.4s ease 0.5s;
 }
 
+.map::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--border), var(--border)) left top / 100% 1px no-repeat,
+    linear-gradient(var(--border), var(--border)) left top / 1px calc(100% - var(--tuck)) no-repeat,
+    linear-gradient(var(--border), var(--border)) right top / 1px 100% no-repeat,
+    linear-gradient(var(--border), var(--border)) left 0 bottom var(--tuck) / calc(100% - var(--tuck)) 1px no-repeat,
+    linear-gradient(to top right, transparent 50%, var(--border) 50%, var(--border) calc(50% + 1px), transparent calc(50% + 1px)) right bottom / var(--tuck) var(--tuck) no-repeat;
+}
+
 .guess:hover .map, .guess.open .map, .guess.resizing .map {
-  height: min(480px, calc(100vh - 140px));
+  height: calc(min(480px, calc(100vh - 140px)) + var(--tuck));
   opacity: 1;
   transition-delay: 0s;
 }
@@ -93,7 +118,7 @@ watch(() => props.hidden, () => open.value = false)
 }
 
 .guess.large:hover .map, .guess.large.resizing .map {
-  height: min(880px, calc(100vh - 110px));
+  height: calc(min(880px, calc(100vh - 110px)) + var(--tuck));
 }
 
 .size-toggle, .swap-toggle {
@@ -114,7 +139,7 @@ watch(() => props.hidden, () => open.value = false)
   transition: opacity 0.15s ease 0.5s;
 }
 
-.swap-toggle {
+.size-toggle {
   right: 48px;
 }
 
@@ -127,6 +152,18 @@ watch(() => props.hidden, () => open.value = false)
   opacity: 1;
   pointer-events: auto;
   transition-delay: 0s;
+}
+
+.guess .map :deep(.map-scale) {
+  left: 10px;
+  bottom: calc(10px + var(--tuck));
+}
+
+.map :deep(.map-mode) {
+  top: 8px;
+  right: 88px;
+  bottom: auto;
+  left: auto;
 }
 
 .map :deep(.map-scale), .map :deep(.map-mode) {
@@ -207,7 +244,7 @@ watch(() => props.hidden, () => open.value = false)
 
   .guess.open .map {
     display: block;
-    height: min(480px, calc(100vh - 140px));
+    height: calc(min(480px, calc(100vh - 140px)) + var(--tuck));
   }
 
   .map-toggle {
@@ -216,6 +253,10 @@ watch(() => props.hidden, () => open.value = false)
 
   .size-toggle {
     display: none;
+  }
+
+  .map :deep(.map-mode) {
+    right: 48px;
   }
 }
 </style>
