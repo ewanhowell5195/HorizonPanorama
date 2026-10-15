@@ -99,14 +99,19 @@ function play() {
 }
 
 .cta {
-  display: flex;
+  --tuck: calc(40px - 8px * sqrt(2));
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
   align-items: center;
-  gap: 24px;
+  gap: 8px;
+  width: fit-content;
 }
 
 .play, .atlas {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 14px;
   padding: 17px 30px 17px 34px;
   font-size: 17px;
@@ -115,20 +120,58 @@ function play() {
   clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
 }
 
+.cta > :not(:first-child) {
+  position: relative;
+  clip-path: polygon(calc(-1 * var(--tuck)) 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%, 0 var(--tuck));
+}
+
+.cta > :not(:first-child)::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 100%;
+  width: var(--tuck);
+  height: var(--tuck);
+  background: inherit;
+}
+
+.cta > :not(:last-child) {
+  clip-path: polygon(0 0, calc(100% - 32px) 0, 100% 32px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+}
+
+.cta > :not(:first-child):not(:last-child) {
+  clip-path: polygon(calc(-1 * var(--tuck)) 0, calc(100% - 32px) 0, 100% 32px, 100% 100%, 0 100%, 0 var(--tuck));
+}
+
 .play svg {
   transition: transform 0.25s ease;
+}
+
+.play {
+  transition: filter 0.2s ease;
 }
 
 .atlas {
   align-items: baseline;
   border: 0;
   background: rgba(255, 255, 255, 0.1);
+  transition: background 0.2s ease;
+}
+
+.atlas:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+  filter: none;
 }
 
 .atlas small {
   font-size: 11px;
   letter-spacing: 0.14em;
   color: var(--muted);
+  transition: color 0.2s ease;
+}
+
+.atlas:hover:not(:disabled) small {
+  color: var(--text);
 }
 
 .play:hover:not(:disabled) svg {
