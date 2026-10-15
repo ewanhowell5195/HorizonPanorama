@@ -4,13 +4,7 @@
       "tileMetres": 256,
       "seaLevel": 94,
       "domain": { "left": -32, "top": 32, "size": 64 },
-      "mask": {
-        "file": "border_full.png",
-        "left": -20.84375,
-        "top": 5.84375,
-        "width": 48.90625,
-        "height": 32.03125
-      }
+      "mask": { "file": "border_full.png", "left": -20.59375, "top": 5.5625, "width": 48.375, "height": 31.5 }
     },
     "hzd": {
       "tileMetres": 512,
