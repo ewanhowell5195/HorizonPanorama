@@ -1213,7 +1213,7 @@ onBeforeUnmount(() => {
   <div class="menu-mark" :class="{ shown: Boolean(markLabel) }">
     <a class="mark" :href="homeShown ? null : '/'" :title="homeShown ? null : 'Main menu'" @click.exact="markClick"><i class="mark-emblem"></i><Transition name="mark" mode="out-in"><span v-if="markLabel" :key="markLabel" class="mark-text">{{ markLabel }}</span></Transition></a>
   </div>
-  <SlideBackdrop ref="backdrop" :active="((isMenu && !atlas) || intro) && !restoring" :timer="isMenu && !atlas && !restoring" />
+  <SlideBackdrop ref="backdrop" :active="((isMenu && !atlas) || intro) && !restoring" :timer="isMenu && !atlas && !restoring" :caption="!choosing" />
   <AtlasScreen :visible="isMenu && atlas && !viewing" :ready="atlasReady" :found="atlasRounds.length" :total="pool.length" :tab="mapTab" @tab="setMapTab" />
   <ChallengeScreen :visible="isMenu && Boolean(challenge)" :ready="canPlay" :rules="challenge?.seed.rules" :games="challenge?.seed.games" :rounds="challenge?.seed.rounds.length || 0" :score="challenge?.score" :error="seedError" @play="playChallenge" />
   <HomeScreen :visible="homeShown" :count="pool.length" :found="found.size" :ready="canPlay" :best="overall.best" :last="overall.last" :average="overall.average" @play="goGames" @atlas="goAtlas" />

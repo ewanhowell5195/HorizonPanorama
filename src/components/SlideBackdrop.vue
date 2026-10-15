@@ -2,7 +2,7 @@
 import { onMounted, ref, watch } from "vue"
 import { SLIDE_MS, createBackdrop } from "../lib/backdrop.js"
 
-const props = defineProps({ active: Boolean, timer: Boolean })
+const props = defineProps({ active: Boolean, timer: Boolean, caption: { type: Boolean, default: true } })
 const canvas = ref(null)
 const game = ref("")
 const label = ref("Screenshot")
@@ -43,7 +43,7 @@ defineExpose({
   <div class="backdrop" :class="{ shown: active }">
     <canvas ref="canvas"></canvas>
     <div class="shade"></div>
-    <div class="credit">
+    <div class="credit" :class="{ hidden: !caption }">
       <small>{{ label }}</small>
       <span>{{ game }}</span>
       <div :key="slide" class="timer" :class="{ running: cycling, hidden: !timer }" :style="timerStyle"></div>
@@ -91,6 +91,11 @@ canvas {
   justify-items: end;
   gap: 6px;
   text-align: right;
+  transition: opacity 0.4s ease;
+}
+
+.credit.hidden {
+  opacity: 0;
 }
 
 .credit small {
