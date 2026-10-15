@@ -6,7 +6,8 @@ const FOG_COLOR = [7 / 255, 9 / 255, 12 / 255]
 const FOG_OPACITY = 0.9
 const PORTRAIT_FOG = 0.45
 const PORTRAIT_FOG_MARGIN = 32
-const PORTRAIT_FOG_EASE = 6
+const FOG_MARGIN = 160
+const FOG_EASE = 6
 const DARK_MS = 250
 // must match CLOSE_UPS in tools/game/build_map_previews.py
 const MAP_CLOSE_UPS = 8
@@ -66,7 +67,7 @@ const fragmentSource = `#version 300 es
     outColor = vec4(mix(shaded, vec3(0.0), uDark * (1.0 - fog)), uAlpha);
   }`
 
-export async function createBackdrop(canvas, { onSlide, fogTop } = {}) {
+export async function createBackdrop(canvas, { onSlide, onFog, fogTop, fogRight } = {}) {
   const gl = canvas.getContext("webgl2", { antialias: false, alpha: false })
   if (!gl) {
     throw new Error("WebGL2 is not available in this browser.")
@@ -148,6 +149,7 @@ export async function createBackdrop(canvas, { onSlide, fogTop } = {}) {
   let darkTarget = 0
   let lastDraw = 0
   let fogMiddle = null
+  let fogPortrait = null
 
   function hatchTexture() {
     return texture(hatchImage || new ImageData(new Uint8ClampedArray([128, 128, 128, 255]), 1, 1), gl.REPEAT)
@@ -238,13 +240,18 @@ export async function createBackdrop(canvas, { onSlide, fogTop } = {}) {
     }
     const portrait = screenWidth < 760
     const band = portrait ? screenHeight * 0.5 : 900
-    let middle = Math.min(Math.max(screenWidth * 0.52, 940), screenWidth * 0.72)
+    let target
     if (portrait) {
       const top = fogTop?.()
-      const target = Math.max(screenHeight * PORTRAIT_FOG, top === undefined || top === null ? 0 : screenHeight - top + PORTRAIT_FOG_MARGIN) + band * 0.3
-      fogMiddle = fogMiddle === null ? target : fogMiddle + (target - fogMiddle) * Math.min(1, (now - lastDraw) / 1000 * PORTRAIT_FOG_EASE)
-      middle = fogMiddle
+      target = Math.max(screenHeight * PORTRAIT_FOG, top === undefined || top === null ? 0 : screenHeight - top + PORTRAIT_FOG_MARGIN) + band * 0.3
+    } else {
+      const right = fogRight?.()
+      target = right === undefined || right === null ? Math.min(Math.max(screenWidth * 0.52, 940), screenWidth * 0.72) : Math.max(screenWidth / 2, right + FOG_MARGIN)
     }
+    fogMiddle = fogMiddle === null || fogPortrait !== portrait ? target : fogMiddle + (target - fogMiddle) * Math.min(1, (now - lastDraw) / 1000 * FOG_EASE)
+    fogPortrait = portrait
+    const middle = fogMiddle
+    onFog?.(portrait ? null : middle)
     gl.viewport(0, 0, width, height)
     gl.useProgram(program)
     gl.activeTexture(gl.TEXTURE1)

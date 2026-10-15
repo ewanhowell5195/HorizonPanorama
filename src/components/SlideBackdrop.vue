@@ -10,8 +10,17 @@ const slide = ref(0)
 const cycling = ref(false)
 const timerStyle = { "--slide-ms": `${SLIDE_MS}ms` }
 let mounted
+let fogValue = null
 const ready = new Promise(resolve => mounted = resolve).then(() => createBackdrop(canvas.value, {
   fogTop: () => document.querySelector(".screen.visible .screen-main, .round-intro.visible .eyebrow")?.getBoundingClientRect().top,
+  fogRight: () => document.querySelector(".screen.visible .screen-main")?.getBoundingClientRect().right,
+  onFog(middle) {
+    const value = middle === null ? "" : `${Math.round(middle)}px`
+    if (value !== fogValue) {
+      fogValue = value
+      document.documentElement.style.setProperty("--fog-middle", value)
+    }
+  },
   onSlide(entry) {
     game.value = entry.game
     label.value = entry.label || "Screenshot"

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, ref, watch } from "vue"
+import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from "vue"
 import { LOCATIONS } from "../lib/rules.js"
 import ArrowIcon from "./ArrowIcon.vue"
 import MenuScreen from "./MenuScreen.vue"
@@ -11,7 +11,7 @@ const GAMES = [
   { id: "custom", name: "Custom", detail: "Pick the areas yourself" }
 ]
 
-const props = defineProps({ visible: Boolean, ready: Boolean, counts: Object, locationCounts: Object, available: Number, games: String, preview: String, lit: Array, litTribes: Array, tribeAreas: Object, tribes: Array, tribeFilter: Boolean, tribeCounts: Object, matched: Boolean, customRules: Object, seed: String, seedError: String })
+const props = defineProps({ visible: Boolean, ready: Boolean, counts: Object, locationCounts: Object, available: Number, games: String, preview: String, lit: Array, litTribes: Array, tribeAreas: Object, frames: Object, tribes: Array, tribeFilter: Boolean, tribeCounts: Object, matched: Boolean, customRules: Object, seed: String, seedError: String })
 const emit = defineEmits(["games", "rule", "tribe-filter", "next", "seed"])
 const seedText = ref(props.seed || "")
 const custom = computed(() => props.games === "custom")
@@ -19,6 +19,54 @@ const rows = ["hzd", "hfw"].map(game => LOCATIONS.filter(location => location.ga
 const maps = computed(() => props.games === "custom" || props.preview === "both" ? ["hzd", "hfw"] : props.preview ? [props.preview] : [])
 const areas = Object.fromEntries(["hzd", "hfw"].map(game => [game, LOCATIONS.filter(location => location.game === game).map(location => location.id)]))
 const tribeList = ref(null)
+const MAP_GAP = 28
+const mapsBox = reactive({ width: 0, height: 0 })
+const imageSizes = reactive({})
+const resize = new ResizeObserver(([entry]) => Object.assign(mapsBox, { width: entry.contentRect.width, height: entry.contentRect.height }))
+
+function observeMaps(element) {
+  resize.disconnect()
+  if (element) {
+    resize.observe(element)
+  }
+}
+
+function measure(game, image) {
+  imageSizes[game] ??= [image.naturalWidth, image.naturalHeight]
+}
+
+function mapRect(game) {
+  const frame = props.frames?.[game], size = imageSizes[game]
+  return frame && size && { minX: -frame.originX / frame.scale, maxX: (size[0] - frame.originX) / frame.scale, minY: (frame.originY - size[1]) / frame.scale, maxY: frame.originY / frame.scale }
+}
+
+const placement = computed(() => {
+  const rects = maps.value.map(mapRect)
+  const { width, height } = mapsBox
+  if (!rects.length || rects.some(rect => !rect) || !width || !height) {
+    return null
+  }
+  const union = { minX: Math.min(...rects.map(rect => rect.minX)), maxX: Math.max(...rects.map(rect => rect.maxX)), minY: Math.min(...rects.map(rect => rect.minY)), maxY: Math.max(...rects.map(rect => rect.maxY)) }
+  const unionWidth = union.maxX - union.minX, unionHeight = union.maxY - union.minY
+  const world = Math.min(width / unionWidth, height / unionHeight)
+  const stackWidth = Math.max(...rects.map(rect => rect.maxX - rect.minX))
+  const stackHeight = rects.reduce((sum, rect) => sum + rect.maxY - rect.minY, 0)
+  const gaps = MAP_GAP * (rects.length - 1)
+  const stacked = Math.min(width / stackWidth, (height - gaps) / stackHeight)
+  const box = (left, top, rect, scale) => ({ left: `${left}px`, top: `${top}px`, width: `${(rect.maxX - rect.minX) * scale}px`, height: `${(rect.maxY - rect.minY) * scale}px` })
+  if (world >= stacked) {
+    const left = (width - unionWidth * world) / 2, top = (height - unionHeight * world) / 2
+    return rects.map(rect => box(left + (rect.minX - union.minX) * world, top + (union.maxY - rect.maxY) * world, rect, world))
+  }
+  let top = (height - stackHeight * stacked - gaps) / 2
+  return rects.map(rect => {
+    const style = box((width - (rect.maxX - rect.minX) * stacked) / 2, top, rect, stacked)
+    top += (rect.maxY - rect.minY) * stacked + MAP_GAP
+    return style
+  })
+})
+
+onBeforeUnmount(() => resize.disconnect())
 
 watch(() => props.tribes.map(tribe => tribe.id).join(), async () => {
   const list = tribeList.value?.$el
@@ -116,15 +164,17 @@ function playSeed() {
     </form>
     <template #bottom>
       <Transition name="maps" mode="out-in">
-        <div :key="maps.join()" class="maps" :class="{ pair: maps.length > 1 }" aria-hidden="true">
-          <div v-for="game in maps" :key="game" class="map">
-            <div class="glow">
-              <template v-for="area in areas[game]" :key="area">
-                <img v-for="tribe in tribeAreas?.[game]?.[area]" :key="tribe" class="tribe" :class="{ off: !lit?.includes(area) || !litTribes?.includes(tribe) }" :style="{ '--mask': `url(/map/tribes/${game}-${tribe}.webp)` }" :src="`/backgrounds/area-${area}.avif`" alt="">
-                <img v-if="!tribeAreas" :class="{ off: !lit?.includes(area) }" :src="`/backgrounds/area-${area}.avif`" alt="">
-              </template>
+        <div :key="maps.join()" :ref="observeMaps" class="maps" :class="{ cramped: mapsBox.width < 200 }" aria-hidden="true">
+          <div class="map-row" :class="{ placed: placement }">
+            <div v-for="(game, n) in maps" :key="game" class="map" :style="placement?.[n]">
+              <div class="glow">
+                <template v-for="area in areas[game]" :key="area">
+                  <img v-for="tribe in tribeAreas?.[game]?.[area]" :key="tribe" class="tribe" :class="{ off: !lit?.includes(area) || !litTribes?.includes(tribe) }" :style="{ '--mask': `url(/map/tribes/${game}-${tribe}.webp)` }" :src="`/backgrounds/area-${area}.avif`" alt="">
+                  <img v-if="!tribeAreas" :class="{ off: !lit?.includes(area) }" :src="`/backgrounds/area-${area}.avif`" alt="">
+                </template>
+              </div>
+              <img v-for="area in areas[game]" :key="area" class="area dim" :src="`/backgrounds/area-${area}.avif`" alt="" @load="event => measure(game, event.target)">
             </div>
-            <img v-for="area in areas[game]" :key="area" class="area dim" :src="`/backgrounds/area-${area}.avif`" alt="">
           </div>
         </div>
       </Transition>
@@ -137,13 +187,29 @@ function playSeed() {
   position: fixed;
   top: 80px;
   bottom: 96px;
-  left: calc(min(max(52vw, 940px), 72vw) + 108px);
+  left: calc(var(--fog-middle, 50vw) + 60px);
   right: 40px;
+  pointer-events: none;
+}
+
+.maps.cramped {
+  visibility: hidden;
+}
+
+.map-row {
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 28px;
-  pointer-events: none;
+  height: 100%;
+}
+
+.map-row.placed {
+  position: relative;
+}
+
+.map-row.placed .map {
+  position: absolute;
 }
 
 .map {
@@ -401,8 +467,7 @@ function playSeed() {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .maps.pair {
-    flex-direction: row;
+  .map-row {
     gap: 16px;
   }
 

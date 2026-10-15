@@ -126,6 +126,7 @@ const rules = computed(() => customLocations(mode.value === "custom" ? customRul
 const scored = computed(() => modeOf(rules.value) !== "custom")
 const litAreas = computed(() => LOCATIONS.filter(location => rules.value[location.id]).map(location => location.id))
 const tribeAreas = ref(null)
+const tribeFrames = ref(null)
 const availableTribes = computed(() => {
   const on = LOCATIONS.filter(location => customRules.value[location.id])
   if (!tribeAreas.value) {
@@ -518,6 +519,7 @@ async function loadPool() {
         return {}
       })
       tribeAreas.value = Object.fromEntries(Object.entries(tribeMaps).map(([key, map]) => [key, map.info.areas || {}]))
+      tribeFrames.value = Object.fromEntries(Object.entries(tribeMaps).map(([key, map]) => [key, map.info.frame]))
       const entries = Object.entries(await response.json()).flatMap(([game, spheres]) => Object.entries(spheres).map(([name, text]) => ({ name, game, text })))
       pool.value = await Promise.all(entries.map(async ({ name, game, text }) => {
         const [x, y, z] = await decodePosition(name, text)
@@ -1217,7 +1219,7 @@ onBeforeUnmount(() => {
   <AtlasScreen :visible="isMenu && atlas && !viewing" :ready="atlasReady" :found="atlasRounds.length" :total="pool.length" :tab="mapTab" @tab="setMapTab" />
   <ChallengeScreen :visible="isMenu && Boolean(challenge)" :ready="canPlay" :rules="challenge?.seed.rules" :games="challenge?.seed.games" :rounds="challenge?.seed.rounds.length || 0" :score="challenge?.score" :error="seedError" @play="playChallenge" />
   <HomeScreen :visible="homeShown" :count="pool.length" :found="found.size" :ready="canPlay" :best="overall.best" :last="overall.last" :average="overall.average" @play="goGames" @atlas="goAtlas" />
-  <GamesScreen :visible="isMenu && !challenge && choosing" :ready="canPlay" :counts="counts" :location-counts="locationCounts" :available="choices.length" :games="games" :preview="previewGame" :lit="litAreas" :lit-tribes="litTribes" :tribe-areas="tribeAreas" :tribes="availableTribes" :tribe-filter="tribeFilter" :tribe-counts="tribeCounts" :matched="chosenGames !== 'custom'" :custom-rules="customRules" :seed="seedInput" :seed-error="seedError" @games="setGames" @rule="setRule" @tribe-filter="setTribeFilter" @next="goSetup" @seed="openChallenge" />
+  <GamesScreen :visible="isMenu && !challenge && choosing" :ready="canPlay" :counts="counts" :location-counts="locationCounts" :available="choices.length" :games="games" :preview="previewGame" :lit="litAreas" :lit-tribes="litTribes" :tribe-areas="tribeAreas" :frames="tribeFrames" :tribes="availableTribes" :tribe-filter="tribeFilter" :tribe-counts="tribeCounts" :matched="chosenGames !== 'custom'" :custom-rules="customRules" :seed="seedInput" :seed-error="seedError" @games="setGames" @rule="setRule" @tribe-filter="setTribeFilter" @next="goSetup" @seed="openChallenge" />
   <SetupScreen :visible="isMenu && !challenge && setup" :ready="canPlay" :scored="scored" :available="choices.length" :rounds="roundCount" :games="chosenGames" :mode="mode" :custom-rules="customRules" :best="best" :last="last" :average="average" @start="newGame" @mode="setMode" @rule="setRule" />
   <RoundIntro :visible="intro" :number="status.index" :count="status.count" :progress="status.progress" :label="status.label" :tip="status.tip" :mode="gameMode" :countdown="status.countdown" :steps="COUNTDOWN" :waiting="status.waiting" :held="status.held" @begin="startHeld" />
 </template>
