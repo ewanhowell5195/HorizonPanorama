@@ -1264,6 +1264,15 @@ onBeforeUnmount(() => {
   display: none;
 }
 
+.bigmap.atlas :deep(.map-mode) {
+  right: 10px;
+  left: auto;
+}
+
+.bigmap.atlas :deep(.map-mode ~ .map-scale) {
+  left: 10px;
+}
+
 .bigmap :deep(.map-view) {
   transition: opacity 0.45s ease;
 }
