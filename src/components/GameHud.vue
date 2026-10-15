@@ -10,7 +10,7 @@ const emblem = computed(() => `/cauldrons/${cauldronFor(props.round)}.webp`)
 
 <template>
   <div class="hud" :class="{ hidden }">
-    <div class="stats">
+    <div class="panel stats">
       <img class="emblem" :src="emblem" alt="">
       <div class="stat"><span>Round</span><strong>{{ round }} / {{ count }}</strong></div>
       <div class="stat"><span>Score</span><strong>{{ score.toLocaleString() }}</strong></div>
@@ -45,9 +45,6 @@ const emblem = computed(() => `/cauldrons/${cauldronFor(props.round)}.webp`)
   display: flex;
   gap: 18px;
   padding: 8px 14px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  backdrop-filter: blur(6px);
 }
 
 .stat span {

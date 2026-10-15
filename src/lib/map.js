@@ -224,7 +224,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
   const modeToggle = document.createElement("button")
   if (modes) {
     modeToggle.type = "button"
-    modeToggle.className = "map-mode"
+    modeToggle.className = "icon-button map-mode"
     modeToggle.textContent = "3D"
     modeToggle.title = "3D view"
     modeToggle.setAttribute("aria-pressed", "false")

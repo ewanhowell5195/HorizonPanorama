@@ -2,6 +2,8 @@
 import { computed } from "vue"
 import { MAX_POINTS } from "../lib/game.js"
 import { RULES } from "../lib/rules.js"
+import ArrowIcon from "./ArrowIcon.vue"
+import MenuScreen from "./MenuScreen.vue"
 import TickerNumber from "./TickerNumber.vue"
 
 const GAME_NAMES = { both: "Both games", hzd: "Zero Dawn", hfw: "Forbidden West", custom: "Custom locations" }
@@ -21,133 +23,55 @@ const maxLabel = computed(() => count.value ? `Up to ${(props.rounds * MAX_POINT
 </script>
 
 <template>
-  <section class="setup" :class="{ visible }">
-    <header class="setup-top">
-      <span class="mark mark-slot" aria-hidden="true"><i class="mark-emblem"></i>Horizon Wayfinder</span>
-    </header>
-    <div class="setup-main">
-      <p class="eyebrow rise" style="--i: 1">{{ GAME_NAMES[games] }}</p>
-      <h1 class="title rise" style="--i: 2"><span>Game</span><span class="outline">Setup</span></h1>
-      <div class="group rise" style="--i: 3">
-        <small>Mode</small>
-        <div class="options" role="radiogroup" aria-label="Mode">
-          <button v-for="option in MODES" :key="option.id" class="option" :class="{ selected: mode === option.id }" type="button" role="radio" :aria-checked="mode === option.id" @click="emit('mode', option.id)"><strong>{{ option.name }}</strong><span>{{ option.detail }}</span></button>
-        </div>
+  <MenuScreen :visible="visible">
+    <p class="eyebrow rise" style="--i: 1">{{ GAME_NAMES[games] }}</p>
+    <h1 class="screen-title rise" style="--i: 2"><span>Game</span><span class="outline">Setup</span></h1>
+    <div class="group rise" style="--i: 3">
+      <small class="label">Mode</small>
+      <div class="options" role="radiogroup" aria-label="Mode">
+        <button v-for="option in MODES" :key="option.id" class="choice option" :class="{ selected: mode === option.id }" type="button" role="radio" :aria-checked="mode === option.id" @click="emit('mode', option.id)"><strong>{{ option.name }}</strong><span>{{ option.detail }}</span></button>
       </div>
-      <div class="rise" style="--i: 4">
-        <div class="collapse" :class="{ open: custom }" :inert="!custom">
-          <div class="collapse-inner">
-            <div class="group">
-              <small>Custom rules</small>
-              <div class="rules">
-                <button v-for="rule in RULES" :key="rule.id" class="rule" :class="{ on: customRules[rule.id] }" type="button" role="switch" :aria-checked="customRules[rule.id]" @click="emit('rule', rule.id, !customRules[rule.id])"><span class="switch"></span><strong>{{ rule.name }}</strong><span>{{ rule.detail }}</span></button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="cta rise" style="--i: 5">
-        <button class="play" type="button" :disabled="!ready || !count" @click="emit('start')">Start<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4" /></svg></button>
-        <div class="cta-meta"><strong>{{ roundsLabel }}</strong><span>{{ maxLabel }}</span></div>
-      </div>
-      <div class="rise" style="--i: 6">
-        <div class="collapse" :class="{ open: !scored }" :inert="scored">
-          <div class="collapse-inner">
-            <p class="unscored">Custom games are not scored, but you can still share them.</p>
-          </div>
-        </div>
-        <div class="collapse" :class="{ open: scored }" :inert="!scored">
-          <div class="collapse-inner">
-            <div class="stats">
-              <div class="stat-block"><small>Best score</small><strong><TickerNumber :value="best" :pad="5" /></strong></div>
-              <div class="stat-block"><small>Last game</small><strong><TickerNumber :value="last" :pad="5" /></strong></div>
-              <div class="stat-block"><small>Average</small><strong><TickerNumber :value="average" :pad="5" /></strong></div>
+    </div>
+    <div class="rise" style="--i: 4">
+      <div class="collapse" :class="{ open: custom }" :inert="!custom">
+        <div class="collapse-inner">
+          <div class="group">
+            <small class="label">Custom rules</small>
+            <div class="rules">
+              <button v-for="rule in RULES" :key="rule.id" class="choice rule" :class="{ on: customRules[rule.id] }" type="button" role="switch" :aria-checked="customRules[rule.id]" @click="emit('rule', rule.id, !customRules[rule.id])"><span class="switch"></span><strong>{{ rule.name }}</strong><span>{{ rule.detail }}</span></button>
             </div>
           </div>
         </div>
       </div>
     </div>
-  </section>
+    <div class="cta rise" style="--i: 5">
+      <button class="action" type="button" :disabled="!ready || !count" @click="emit('start')">Start<ArrowIcon /></button>
+      <div class="cta-meta"><strong>{{ roundsLabel }}</strong><span>{{ maxLabel }}</span></div>
+    </div>
+    <div class="rise" style="--i: 6">
+      <div class="collapse" :class="{ open: !scored }" :inert="scored">
+        <div class="collapse-inner">
+          <p class="unscored">Custom games are not scored, but you can still share them.</p>
+        </div>
+      </div>
+      <div class="collapse" :class="{ open: scored }" :inert="!scored">
+        <div class="collapse-inner">
+          <div class="stat-row stats">
+            <div class="stat-block"><small class="label">Best score</small><strong><TickerNumber :value="best" :pad="5" /></strong></div>
+            <div class="stat-block"><small class="label">Last game</small><strong><TickerNumber :value="last" :pad="5" /></strong></div>
+            <div class="stat-block"><small class="label">Average</small><strong><TickerNumber :value="average" :pad="5" /></strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </MenuScreen>
 </template>
 
 <style scoped>
-.setup {
-  position: fixed;
-  inset: 0;
-  z-index: 11;
-  display: grid;
-  grid-template-rows: auto 1fr;
-  padding: clamp(20px, 3.6vh, 34px) 56px;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.5s ease, visibility 0s linear 0.5s;
-}
-
-.setup.visible {
-  opacity: 1;
-  visibility: visible;
-  transition: opacity 0.5s ease;
-}
-
-.setup.visible .rise {
-  animation: rise 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  animation-delay: calc(var(--i, 0) * 90ms + 150ms);
-}
-
-.setup-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  font-size: 12px;
-  letter-spacing: 0.26em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.mark {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: var(--text);
-}
-
-.setup-main {
-  align-self: center;
-  max-width: 680px;
-}
-
-.title {
-  margin: clamp(10px, 2vh, 22px) 0 clamp(18px, 3.4vh, 36px);
-  font-family: "Hunter", "Oita Norm", sans-serif;
-  font-weight: 400;
-  font-size: clamp(48px, min(7.6vw, 10vh), 116px);
-  line-height: 0.88;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-}
-
-.title span {
-  display: block;
-}
-
-.title .outline {
-  white-space: nowrap;
-  color: transparent;
-  -webkit-text-stroke: 1.5px var(--accent);
-}
-
 .group {
   display: grid;
   gap: 8px;
   margin: 0 0 clamp(14px, 2.4vh, 24px);
-}
-
-.group > small, .stat-block small {
-  font-size: 11px;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
-  color: var(--muted);
 }
 
 .options {
@@ -161,18 +85,10 @@ const maxLabel = computed(() => count.value ? `Up to ${(props.rounds * MAX_POINT
   gap: 2px;
   min-width: 170px;
   padding: 10px 16px;
-  text-align: left;
-  text-transform: none;
-  letter-spacing: normal;
-  color: var(--muted);
-  background: rgba(10, 12, 16, 0.55);
-  border: 1px solid var(--border);
-  border-radius: 0;
-  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
 }
 
 .option strong {
-  font-family: "Hunter Condensed", "Oita Norm", sans-serif;
+  font-family: var(--font-condensed);
   font-weight: 400;
   font-size: 20px;
   letter-spacing: 0.06em;
@@ -184,25 +100,8 @@ const maxLabel = computed(() => count.value ? `Up to ${(props.rounds * MAX_POINT
   font-weight: 400;
 }
 
-.option:hover {
-  color: var(--text);
-  filter: none;
-}
-
-.option.selected {
-  color: var(--text);
-  background: rgba(242, 165, 65, 0.12);
-  border-color: var(--accent);
-}
-
-.option.selected strong {
-  color: var(--accent);
-}
-
 .unscored {
   margin: clamp(18px, 3.2vh, 34px) 0 0;
-  font-size: 13px;
-  color: var(--muted);
 }
 
 .cta {
@@ -210,25 +109,6 @@ const maxLabel = computed(() => count.value ? `Up to ${(props.rounds * MAX_POINT
   align-items: center;
   gap: 24px;
   margin-top: clamp(4px, 1vh, 10px);
-}
-
-.play {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 17px 30px 17px 34px;
-  font-size: 17px;
-  letter-spacing: 0.22em;
-  border-radius: 0;
-  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
-}
-
-.play svg {
-  transition: transform 0.25s ease;
-}
-
-.play:hover:not(:disabled) svg {
-  transform: translateX(4px);
 }
 
 .cta-meta {
@@ -244,41 +124,13 @@ const maxLabel = computed(() => count.value ? `Up to ${(props.rounds * MAX_POINT
 }
 
 .stats {
-  display: flex;
-  gap: 40px;
   margin: clamp(18px, 3.2vh, 34px) 0 0;
 }
 
-.stat-block {
-  display: grid;
-  gap: 4px;
-}
-
-.stat-block strong {
-  font-family: "Hunter Condensed", "Oita Norm", sans-serif;
-  font-weight: 400;
-  font-size: 30px;
-  line-height: 1;
-  letter-spacing: 0.04em;
-}
-
 @media (max-width: 760px) {
-  .setup {
-    padding: 22px 20px 24px;
-  }
-
-  .setup-main {
-    align-self: end;
-    padding-bottom: 12px;
-  }
-
   .option {
     flex: 1;
     min-width: 0;
-  }
-
-  .stats {
-    gap: 24px;
   }
 }
 </style>

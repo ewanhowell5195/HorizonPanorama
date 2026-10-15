@@ -6,10 +6,10 @@ const TABS = [{ id: "map", name: "Map" }, { id: "photospheres", name: "Photosphe
 
 <template>
   <section class="atlas" :class="{ visible, ready }">
-    <header class="atlas-top">
+    <header class="screen-top">
       <span class="mark mark-slot" aria-hidden="true"><i class="mark-emblem"></i>Horizon Wayfinder</span>
     </header>
-    <div class="atlas-card">
+    <div class="panel atlas-card">
       <nav class="atlas-tabs" role="tablist">
         <button v-for="option in TABS" :key="option.id" type="button" role="tab" :class="{ selected: tab === option.id }" :aria-selected="tab === option.id" @click="emit('tab', option.id)">{{ option.name }}</button>
       </nav>
@@ -44,30 +44,12 @@ const TABS = [{ id: "map", name: "Map" }, { id: "photospheres", name: "Photosphe
   transition: opacity 0.45s ease;
 }
 
-.atlas-top {
-  display: flex;
-  font-size: 12px;
-  letter-spacing: 0.26em;
-  text-transform: uppercase;
-}
-
-.mark {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: var(--text);
-  pointer-events: auto;
-}
-
 .atlas-card {
   position: fixed;
   top: clamp(20px, 3.6vh, 34px);
   right: 56px;
   display: grid;
   padding: 4px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  backdrop-filter: blur(8px);
   pointer-events: auto;
   opacity: 0;
   transition: opacity 0.45s ease;
@@ -122,7 +104,7 @@ const TABS = [{ id: "map", name: "Map" }, { id: "photospheres", name: "Photosphe
 .atlas-extra strong {
   display: block;
   padding: 12px 12px 8px;
-  font-family: "Hunter Condensed", "Oita Norm", sans-serif;
+  font-family: var(--font-condensed);
   font-weight: 400;
   font-size: 24px;
   letter-spacing: 0.04em;

@@ -17,7 +17,7 @@ const digit = computed(() => props.waiting || props.countdown <= 0 ? "" : props.
     <div class="number rise" style="--i: 1"><span>{{ number }}</span><small>/ {{ count }}</small></div>
     <div class="start rise" style="--i: 2">
       <Transition name="swap" mode="out-in">
-        <button v-if="held" class="begin" type="button" @click="emit('begin')">Start round</button>
+        <button v-if="held" class="action begin" type="button" @click="emit('begin')">Start round</button>
         <div v-else class="countdown" :class="{ waiting }">
           <span :key="`${number}-${countdown}`" class="pulse"></span>
           <svg :key="number" viewBox="0 0 64 64" width="64" height="64">
@@ -74,7 +74,7 @@ const digit = computed(() => props.waiting || props.countdown <= 0 ? "" : props.
   align-items: baseline;
   gap: 14px;
   margin: 18px 0 0;
-  font-family: "Hunter", "Oita Norm", sans-serif;
+  font-family: var(--font-display);
   font-size: clamp(110px, min(20vw, 24vh), 240px);
   line-height: 0.8;
 }
@@ -94,7 +94,7 @@ const digit = computed(() => props.waiting || props.countdown <= 0 ? "" : props.
 }
 
 .number small {
-  font-family: "Hunter Condensed", "Oita Norm", sans-serif;
+  font-family: var(--font-condensed);
   font-size: 0.24em;
   color: var(--muted);
 }
@@ -157,7 +157,7 @@ const digit = computed(() => props.waiting || props.countdown <= 0 ? "" : props.
 }
 
 .digit {
-  font-family: "Hunter", "Oita Norm", sans-serif;
+  font-family: var(--font-display);
   font-size: 30px;
   line-height: 1;
   animation: pop 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
@@ -190,10 +190,6 @@ const digit = computed(() => props.waiting || props.countdown <= 0 ? "" : props.
 
 .begin {
   flex: none;
-  padding: 17px 30px 17px 34px;
-  font-size: 17px;
-  letter-spacing: 0.22em;
-  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
   transition: filter 0.2s ease, opacity 0.25s ease, transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
@@ -219,7 +215,6 @@ const digit = computed(() => props.waiting || props.countdown <= 0 ? "" : props.
 .load .bar {
   height: 3px;
   margin: 4px 0 0;
-  border-radius: 0;
   background: rgba(255, 255, 255, 0.16);
 }
 

@@ -35,8 +35,8 @@ watch(() => props.hidden, () => open.value = false)
     <div class="map">
       <slot />
       <div id="sphere-box" class="sphere-box"></div>
-      <button class="swap-toggle" type="button" :title="swapTitle" :aria-label="swapTitle" @click="emit('swap')"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 5.5h10M10 3l2.5 2.5L10 8M13.5 10.5h-10M6 8l-2.5 2.5L6 13" /></svg></button>
-      <button class="size-toggle" type="button" :title="sizeTitle" @click="toggleSize">
+      <button class="icon-button swap-toggle" type="button" :title="swapTitle" :aria-label="swapTitle" @click="emit('swap')"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 5.5h10M10 3l2.5 2.5L10 8M13.5 10.5h-10M6 8l-2.5 2.5L6 13" /></svg></button>
+      <button class="icon-button size-toggle" type="button" :title="sizeTitle" @click="toggleSize">
         <svg class="grow" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2.5h4v4M13.5 2.5 9 7M6.5 13.5h-4v-4M2.5 13.5 7 9" /></svg>
         <svg class="shrink" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 6.5h-4v-4M9.5 6.5 14 2M2.5 9.5h4v4M6.5 9.5 2 14" /></svg>
       </button>
@@ -126,14 +126,7 @@ watch(() => props.hidden, () => open.value = false)
   top: 8px;
   right: 8px;
   z-index: 2;
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  padding: 0;
   color: var(--text);
-  background: var(--panel);
-  border: 1px solid var(--border);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.15s ease 0.5s;

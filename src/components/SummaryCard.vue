@@ -39,7 +39,7 @@ function view(index) {
 </script>
 
 <template>
-  <div class="card">
+  <div class="panel card">
     <h2>{{ total.toLocaleString() }} points</h2>
     <p>out of {{ max.toLocaleString() }}<template v-if="mode !== 'normal'"> in {{ mode }} mode</template></p>
     <div class="bar"><div :style="bar"></div></div>
@@ -52,7 +52,7 @@ function view(index) {
       </div>
     </div>
     <div class="share">
-      <small>Seed</small>
+      <small class="label">Seed</small>
       <code :title="link">{{ seed }}</code>
       <button class="secondary" type="button" @click="copy">{{ copied ? "Copied" : "Copy link" }}</button>
     </div>
@@ -65,6 +65,42 @@ function view(index) {
 </template>
 
 <style scoped>
+.card {
+  position: fixed;
+  z-index: 6;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  width: min(560px, calc(100vw - 32px));
+  padding: 18px 22px;
+  text-align: center;
+}
+
+h2 {
+  margin: 0 0 4px;
+  font-size: 26px;
+  font-variant-numeric: tabular-nums;
+}
+
+p {
+  margin: 0 0 12px;
+  color: var(--muted);
+}
+
+.bar {
+  height: 8px;
+  margin: 0 0 16px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.bar div {
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  transition: width 0.6s ease;
+}
+
 .rounds {
   display: grid;
   gap: 4px;
@@ -83,6 +119,7 @@ function view(index) {
 
 .rounds span {
   flex: 1;
+  color: var(--muted);
 }
 
 .rounds .score {
@@ -93,10 +130,6 @@ function view(index) {
 .rounds .view {
   padding: 3px 10px;
   font-size: 12px;
-}
-
-.rounds span {
-  color: var(--muted);
 }
 
 .share {
@@ -110,10 +143,7 @@ function view(index) {
 }
 
 .share small {
-  font-size: 11px;
   letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--muted);
 }
 
 .share code {

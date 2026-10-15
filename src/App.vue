@@ -1195,7 +1195,7 @@ onBeforeUnmount(() => {
     <SummaryCard v-if="phase === `summary` && summary && !viewing" ref="summaryCard" :results="summary.results" :total="summary.total" :max="summary.max" :mode="gameMode" :seed="summary.seed" @menu="goHome" @again="newGame" @replay="replay" @view="index => openView({ round: index })" />
   </Transition>
   <Transition name="card">
-    <div v-if="viewing && !viewing.loading" class="viewing">
+    <div v-if="viewing && !viewing.loading" class="panel viewing">
       <span>{{ viewing.title }} photosphere</span>
       <span v-if="viewing.unfound" class="viewing-best">You haven't found this one yet</span>
       <span v-else-if="typeof viewing.best === `number`" class="viewing-best">Your closest guess <strong>{{ formatDistance(viewing.best) }}</strong></span>
@@ -1311,9 +1311,6 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 16px;
   padding: 8px 8px 8px 18px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  backdrop-filter: blur(8px);
   transform: translateX(-50%);
 }
 

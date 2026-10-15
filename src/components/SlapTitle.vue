@@ -49,7 +49,7 @@ function land(event) {
 <style scoped>
 .title {
   margin: clamp(10px, 2vh, 22px) 0 0;
-  font-family: "Hunter", "Oita Norm", sans-serif;
+  font-family: var(--font-display);
   font-weight: 400;
   font-size: clamp(54px, min(9.2vw, 12vh), 136px);
   line-height: 0.88;
@@ -61,7 +61,7 @@ function land(event) {
   display: block;
 }
 
-.visible .rise {
+.title.visible .rise {
   animation: rise 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) 330ms both;
 }
 

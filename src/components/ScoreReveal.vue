@@ -136,7 +136,7 @@ defineExpose({ dockedHeight })
 }
 
 .band strong {
-  font-family: "Hunter", "Oita Norm", sans-serif;
+  font-family: var(--font-display);
   font-weight: 400;
   font-size: calc(var(--h) * 0.17);
   line-height: 1;
