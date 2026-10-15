@@ -9,12 +9,17 @@ const VISIBLE_TOP = 6
 const VISIBLE_BOTTOM = 297
 const DOCK_SCALE = 0.6
 const DOCK_BOTTOM = 84
+// 61 frames at CARD_FRAME_MS in tools/game/build_cauldrons.py
+const CARD_MS = 61 * 33
+const HOLD_EARLY_MS = 60
 
 const props = defineProps({ card: String, score: Number, distance: String, miss: Boolean, lastRound: Boolean, docked: Boolean, animate: Boolean })
 const emit = defineEmits(["next", "view"])
 const src = ref(null)
 const label = computed(() => props.miss ? props.distance : `${props.distance} away`)
+const still = computed(() => `/cauldrons/card-${props.card}-end.avif`)
 let objectUrl = null
+let holdTimer = 0
 
 function cardHeight() {
   return Math.min(CARD_WIDTH, window.innerWidth * 0.92) * CARD_HEIGHT / CARD_WIDTH
@@ -24,21 +29,29 @@ function dockedHeight() {
   return DOCK_BOTTOM + cardHeight() * DOCK_SCALE * (VISIBLE_BOTTOM - VISIBLE_TOP) / CARD_HEIGHT
 }
 
+function played() {
+  if (src.value === objectUrl) {
+    holdTimer = setTimeout(() => src.value = still.value, CARD_MS - HOLD_EARLY_MS)
+  }
+}
+
 onMounted(async () => {
   if (!props.animate) {
-    src.value = `/cauldrons/card-${props.card}-end.webp`
+    src.value = still.value
     return
   }
+  new Image().src = still.value
   try {
     objectUrl = URL.createObjectURL(await loadCard(props.card))
     src.value = objectUrl
   } catch (error) {
     console.warn(error)
-    src.value = `/cauldrons/card-${props.card}-end.webp`
+    src.value = still.value
   }
 })
 
 onBeforeUnmount(() => {
+  clearTimeout(holdTimer)
   if (objectUrl) {
     URL.revokeObjectURL(objectUrl)
   }
@@ -50,7 +63,7 @@ defineExpose({ dockedHeight })
 <template>
   <div class="reveal" :class="{ docked, animate }">
     <div class="stage">
-      <img v-if="src" :src="src" alt="">
+      <img v-if="src" :src="src" alt="" @load="played">
       <div class="band">
         <strong>{{ score.toLocaleString() }}</strong>
         <span>{{ label }}</span>

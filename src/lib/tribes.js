@@ -7,7 +7,7 @@ export async function loadTribes() {
   const data = await (await fetch("/map/tribes/tribes.json")).json()
   const maps = {}
   for (const [game, info] of Object.entries(data)) {
-    const bitmap = await createImageBitmap(await (await fetch(`/map/tribes/${game}.png`)).blob(), { colorSpaceConversion: "none", premultiplyAlpha: "none" })
+    const bitmap = await createImageBitmap(await (await fetch(`/map/tribes/${game}.webp`)).blob(), { colorSpaceConversion: "none", premultiplyAlpha: "none" })
     const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
     const context = canvas.getContext("2d", { willReadFrequently: true })
     context.drawImage(bitmap, 0, 0)

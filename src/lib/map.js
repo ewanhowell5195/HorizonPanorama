@@ -1788,7 +1788,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
 
   const world = await shared(`${root}world.json`, fetchJson)
   games = world.games
-  hatchTexture = await loadOverlay(`${root}hatch.avif`, gl.REPEAT, 0)
+  hatchTexture = await loadOverlay(`${root}hatch.webp`, gl.REPEAT, 0)
   const masks = new Map()
   layers = await Promise.all(world.layers.map((config, index) => loadLayer(config, world.games, masks, index)))
   extent = tileExtent()

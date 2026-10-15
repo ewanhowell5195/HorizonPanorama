@@ -5,7 +5,7 @@ import HudCompass from "./HudCompass.vue"
 
 const props = defineProps({ round: Number, count: Number, score: Number, heading: Number, hidden: Boolean, mode: String, compass: Boolean, swapped: Boolean, faded: Boolean })
 
-const emblem = computed(() => `/cauldrons/${cauldronFor(props.round)}.png`)
+const emblem = computed(() => `/cauldrons/${cauldronFor(props.round)}.webp`)
 </script>
 
 <template>

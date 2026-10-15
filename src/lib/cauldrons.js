@@ -8,7 +8,7 @@ export function cauldronFor(round) {
 
 export function loadCard(name) {
   if (!cardBlobs.has(name)) {
-    cardBlobs.set(name, fetch(`/cauldrons/card-${name}.webp`).then(response => response.ok ? response.blob() : Promise.reject(new Error(response.status))).catch(error => {
+    cardBlobs.set(name, fetch(`/cauldrons/card-${name}.avif`).then(response => response.ok ? response.blob() : Promise.reject(new Error(response.status))).catch(error => {
       cardBlobs.delete(name)
       throw error
     }))

@@ -176,7 +176,7 @@ a.mark[href]:hover {
   width: 34px;
   height: 17px;
   background: var(--accent);
-  mask: url("/cauldrons/iota.png") center / contain no-repeat;
+  mask: url("/cauldrons/iota.webp") center / contain no-repeat;
 }
 
 .eyebrow {
@@ -548,7 +548,7 @@ a.mark[href]:hover {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  mask-image: url("/hud/compass-mask.png");
+  mask-image: url("/hud/compass-mask.webp");
   mask-size: 100% 100%;
 }
 
@@ -558,7 +558,7 @@ a.mark[href]:hover {
   left: calc(50% - 2048 * var(--u));
   width: calc(4096 * var(--u));
   height: 100%;
-  background: url("/hud/compass-strip.png") repeat-x;
+  background: url("/hud/compass-strip.webp") repeat-x;
   background-size: calc(2048 * var(--u)) 100%;
   background-position-x: calc(var(--x) * var(--u));
 }
@@ -585,7 +585,7 @@ a.mark[href]:hover {
 }
 
 .compass-line {
-  background-image: url("/hud/compass-line.avif");
+  background-image: url("/hud/compass-line.webp");
 }
 
 .compass-marks {

@@ -4,13 +4,13 @@
       "tileMetres": 256,
       "seaLevel": 94,
       "domain": { "left": -32, "top": 32, "size": 64 },
-      "mask": { "file": "border_full.png", "left": -20.59375, "top": 5.5625, "width": 48.375, "height": 31.5 }
+      "mask": { "file": "border_full.webp", "left": -20.59375, "top": 5.5625, "width": 48.375, "height": 31.5 }
     },
     "hzd": {
       "tileMetres": 512,
       "domain": { "left": -6, "top": 8, "size": 16 },
       "mask": {
-        "file": "border_dlc.avif",
+        "file": "border_dlc.webp",
         "left": -3.265625,
         "top": 6.3125,
         "width": 11.6015625,

@@ -120,7 +120,7 @@ export async function createBackdrop(canvas, { onSlide } = {}) {
   }
 
   const entries = Object.entries(await (await fetch("/backgrounds/backgrounds.json")).json()).flatMap(([game, files]) => files.map(file => ({ file, game })))
-  const hatchImage = await bitmap("/map/hatch.avif", { colorSpaceConversion: "none" }).catch(() => null)
+  const hatchImage = await bitmap("/map/hatch.webp", { colorSpaceConversion: "none" }).catch(() => null)
   const hatch = texture(hatchImage || new ImageData(new Uint8ClampedArray([128, 128, 128, 255]), 1, 1), gl.REPEAT)
   const blank = texture(new ImageData(new Uint8ClampedArray(FOG_COLOR.map(value => Math.round(value * 255)).concat(255)), 1, 1), gl.CLAMP_TO_EDGE)
   const cache = new Map()

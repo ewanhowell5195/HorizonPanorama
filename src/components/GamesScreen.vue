@@ -122,7 +122,7 @@ function playSeed() {
         <div v-for="game in maps" :key="game" class="map">
           <div class="glow">
             <template v-for="area in areas[game]" :key="area">
-              <img v-for="tribe in tribeAreas?.[game]?.[area]" :key="tribe" class="tribe" :class="{ off: !lit?.includes(area) || !litTribes?.includes(tribe) }" :style="{ '--mask': `url(/map/tribes/${game}-${tribe}.png)` }" :src="`/backgrounds/area-${area}.avif`" alt="">
+              <img v-for="tribe in tribeAreas?.[game]?.[area]" :key="tribe" class="tribe" :class="{ off: !lit?.includes(area) || !litTribes?.includes(tribe) }" :style="{ '--mask': `url(/map/tribes/${game}-${tribe}.webp)` }" :src="`/backgrounds/area-${area}.avif`" alt="">
               <img v-if="!tribeAreas" :class="{ off: !lit?.includes(area) }" :src="`/backgrounds/area-${area}.avif`" alt="">
             </template>
           </div>
