@@ -96,6 +96,8 @@ const summaryCard = ref(null)
 
 const isMenu = computed(() => phase.value === "menu")
 const isRound = computed(() => phase.value === "round")
+const homeShown = computed(() => isMenu.value && !challenge.value && !setup.value && !choosing.value && !atlas.value && !restoring.value)
+const markLabel = computed(() => !isMenu.value || restoring.value || viewing.value ? null : homeShown.value ? "Photosphere guessing game" : "Horizon Wayfinder")
 const showsMap = computed(() => (phase.value === "result" || phase.value === "summary" || atlas.value) && !viewing.value)
 const revealAll = ref(location.hash === REVEAL_HASH)
 const atlasRounds = computed(() => revealAll.value ? pool.value : pool.value.filter(round => found.value.has(round.name)))
@@ -165,6 +167,13 @@ function openChallenge(input) {
   seedError.value = ""
   enter("challenge", seedLink(found.seed.code, found.score))
   show("challenge")
+}
+
+function markClick(event) {
+  if (!homeShown.value) {
+    event.preventDefault()
+    goHome()
+  }
 }
 
 function goHome() {
@@ -1055,12 +1064,15 @@ onBeforeUnmount(() => {
       <button class="secondary" type="button" @click="leaveView">{{ atlas ? "Back to the map" : phase === "summary" ? "Back to results" : "Back to the map" }}</button>
     </div>
   </Transition>
+  <div class="menu-mark" :class="{ shown: Boolean(markLabel) }">
+    <a class="mark" :href="homeShown ? null : '/'" :title="homeShown ? null : 'Main menu'" @click.exact="markClick"><i class="mark-emblem"></i><Transition name="mark" mode="out-in"><span v-if="markLabel" :key="markLabel" class="mark-text">{{ markLabel }}</span></Transition></a>
+  </div>
   <SlideBackdrop ref="backdrop" :active="(isMenu && !atlas) || intro" :timer="isMenu && !atlas" />
-  <AtlasScreen :visible="isMenu && atlas && !viewing" :ready="atlasReady" :found="atlasRounds.length" :total="pool.length" @back="goHome" />
-  <ChallengeScreen :visible="isMenu && Boolean(challenge)" :ready="canPlay" :rules="challenge?.seed.rules" :games="challenge?.seed.games" :rounds="challenge?.seed.rounds.length || 0" :score="challenge?.score" :error="seedError" @play="playChallenge" @menu="goHome" />
-  <HomeScreen :visible="isMenu && !challenge && !setup && !choosing && !atlas && !restoring" :count="pool.length" :found="found.size" :ready="canPlay" :best="overall.best" :last="overall.last" :average="overall.average" @play="goGames" @atlas="goAtlas" />
-  <GamesScreen :visible="isMenu && !challenge && choosing" :ready="canPlay" :counts="counts" :location-counts="locationCounts" :available="choices.length" :games="games" :preview="previewGame" :lit="litAreas" :lit-tribes="litTribes" :tribe-areas="tribeAreas" :tribes="availableTribes" :tribe-filter="tribeFilter" :tribe-counts="tribeCounts" :matched="chosenGames !== 'custom'" :custom-rules="customRules" :seed="seedInput" :seed-error="seedError" @games="setGames" @rule="setRule" @tribe-filter="setTribeFilter" @next="goSetup" @back="goHome" @seed="openChallenge" />
-  <SetupScreen :visible="isMenu && !challenge && setup" :ready="canPlay" :scored="scored" :available="choices.length" :rounds="roundCount" :games="chosenGames" :mode="mode" :custom-rules="customRules" :best="best" :last="last" :average="average" @start="newGame" @back="goHome" @mode="setMode" @rule="setRule" />
+  <AtlasScreen :visible="isMenu && atlas && !viewing" :ready="atlasReady" :found="atlasRounds.length" :total="pool.length" />
+  <ChallengeScreen :visible="isMenu && Boolean(challenge)" :ready="canPlay" :rules="challenge?.seed.rules" :games="challenge?.seed.games" :rounds="challenge?.seed.rounds.length || 0" :score="challenge?.score" :error="seedError" @play="playChallenge" />
+  <HomeScreen :visible="homeShown" :count="pool.length" :found="found.size" :ready="canPlay" :best="overall.best" :last="overall.last" :average="overall.average" @play="goGames" @atlas="goAtlas" />
+  <GamesScreen :visible="isMenu && !challenge && choosing" :ready="canPlay" :counts="counts" :location-counts="locationCounts" :available="choices.length" :games="games" :preview="previewGame" :lit="litAreas" :lit-tribes="litTribes" :tribe-areas="tribeAreas" :tribes="availableTribes" :tribe-filter="tribeFilter" :tribe-counts="tribeCounts" :matched="chosenGames !== 'custom'" :custom-rules="customRules" :seed="seedInput" :seed-error="seedError" @games="setGames" @rule="setRule" @tribe-filter="setTribeFilter" @next="goSetup" @seed="openChallenge" />
+  <SetupScreen :visible="isMenu && !challenge && setup" :ready="canPlay" :scored="scored" :available="choices.length" :rounds="roundCount" :games="chosenGames" :mode="mode" :custom-rules="customRules" :best="best" :last="last" :average="average" @start="newGame" @mode="setMode" @rule="setRule" />
   <RoundIntro :visible="intro" :number="status.index" :count="status.count" :progress="status.progress" :label="status.label" :tip="status.tip" :mode="gameMode" :countdown="status.countdown" :steps="COUNTDOWN" :waiting="status.waiting" :held="status.held" @begin="startHeld" />
 </template>
 

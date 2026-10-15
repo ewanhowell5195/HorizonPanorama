@@ -5,7 +5,7 @@ import { LOCATIONS, locationNames, missingRules, modeOf, tribesOf } from "../lib
 import SlapTitle from "./SlapTitle.vue"
 
 const props = defineProps({ visible: Boolean, ready: Boolean, rules: Object, games: String, rounds: Number, score: Number, error: String })
-const emit = defineEmits(["play", "menu"])
+const emit = defineEmits(["play"])
 
 const hasScore = computed(() => props.score !== null && props.score !== undefined)
 const mode = computed(() => props.rules ? modeOf(props.rules) : "normal")
@@ -30,15 +30,12 @@ function play() {
   emit("play")
 }
 
-function menu() {
-  emit("menu")
-}
 </script>
 
 <template>
   <section class="challenge" :class="{ visible }">
-    <header class="challenge-top rise">
-      <a class="mark" href="/" title="Main menu" @click.exact.prevent="menu"><i class="mark-emblem"></i>Horizon Wayfinder</a>
+    <header class="challenge-top">
+      <span class="mark mark-slot" aria-hidden="true"><i class="mark-emblem"></i>Horizon Wayfinder</span>
     </header>
     <div class="challenge-main">
       <p class="eyebrow rise" style="--i: 1">Shared game</p>

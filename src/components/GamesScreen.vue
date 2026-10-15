@@ -10,7 +10,7 @@ const GAMES = [
 ]
 
 const props = defineProps({ visible: Boolean, ready: Boolean, counts: Object, locationCounts: Object, available: Number, games: String, preview: String, lit: Array, litTribes: Array, tribeAreas: Object, tribes: Array, tribeFilter: Boolean, tribeCounts: Object, matched: Boolean, customRules: Object, seed: String, seedError: String })
-const emit = defineEmits(["games", "rule", "tribe-filter", "next", "back", "seed"])
+const emit = defineEmits(["games", "rule", "tribe-filter", "next", "seed"])
 const seedText = ref(props.seed || "")
 const custom = computed(() => props.games === "custom")
 const rows = ["hzd", "hfw"].map(game => LOCATIONS.filter(location => location.game === game))
@@ -68,8 +68,8 @@ function playSeed() {
 
 <template>
   <section class="games" :class="{ visible }">
-    <header class="games-top rise">
-      <a class="mark" href="/" title="Main menu" @click.exact.prevent="emit('back')"><i class="mark-emblem"></i>Horizon Wayfinder</a>
+    <header class="games-top">
+      <span class="mark mark-slot" aria-hidden="true"><i class="mark-emblem"></i>Horizon Wayfinder</span>
     </header>
     <div class="games-main">
       <p class="eyebrow rise" style="--i: 1">New game</p>

@@ -12,7 +12,7 @@ const MODES = [
 ]
 
 const props = defineProps({ visible: Boolean, ready: Boolean, scored: Boolean, available: Number, rounds: Number, games: String, mode: String, customRules: Object, best: Number, last: Number, average: Number })
-const emit = defineEmits(["start", "back", "mode", "rule"])
+const emit = defineEmits(["start", "mode", "rule"])
 
 const custom = computed(() => props.mode === "custom")
 const count = computed(() => props.available || 0)
@@ -22,8 +22,8 @@ const maxLabel = computed(() => count.value ? `Up to ${(props.rounds * MAX_POINT
 
 <template>
   <section class="setup" :class="{ visible }">
-    <header class="setup-top rise">
-      <a class="mark" href="/" title="Main menu" @click.exact.prevent="emit('back')"><i class="mark-emblem"></i>Horizon Wayfinder</a>
+    <header class="setup-top">
+      <span class="mark mark-slot" aria-hidden="true"><i class="mark-emblem"></i>Horizon Wayfinder</span>
     </header>
     <div class="setup-main">
       <p class="eyebrow rise" style="--i: 1">{{ GAME_NAMES[games] }}</p>

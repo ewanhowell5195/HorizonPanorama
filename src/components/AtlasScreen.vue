@@ -1,12 +1,11 @@
 <script setup>
 defineProps({ visible: Boolean, ready: Boolean, found: Number, total: Number })
-const emit = defineEmits(["back"])
 </script>
 
 <template>
   <section class="atlas" :class="{ visible, ready }">
     <header class="atlas-top">
-      <a class="mark" href="/" title="Main menu" @click.exact.prevent="emit('back')"><i class="mark-emblem"></i>Horizon Wayfinder</a>
+      <span class="mark mark-slot" aria-hidden="true"><i class="mark-emblem"></i>Horizon Wayfinder</span>
     </header>
     <div class="atlas-card">
       <p class="eyebrow">Map</p>

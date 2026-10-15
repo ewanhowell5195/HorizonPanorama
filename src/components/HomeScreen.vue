@@ -17,9 +17,9 @@ function play() {
 
 <template>
   <section class="home" :class="{ visible }">
-    <header class="home-top rise">
-      <span class="mark"><i class="mark-emblem"></i>Photosphere guessing game</span>
-      <span class="count">{{ countLabel }}</span>
+    <header class="home-top">
+      <span class="mark mark-slot" aria-hidden="true"><i class="mark-emblem"></i>Photosphere guessing game</span>
+      <span class="count rise">{{ countLabel }}</span>
     </header>
     <div class="home-main">
       <p class="eyebrow rise" style="--i: 1">Guess the location</p>

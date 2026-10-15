@@ -91,7 +91,7 @@ a.mark {
   transition: color 0.2s ease;
 }
 
-a.mark:hover {
+a.mark[href]:hover {
   color: var(--accent);
 }
 
@@ -112,6 +112,64 @@ a.mark:hover {
   letter-spacing: 0.34em;
   text-transform: uppercase;
   color: var(--accent);
+}
+
+.mark-text {
+  display: inline-block;
+}
+
+.mark-slot {
+  visibility: hidden;
+}
+
+.menu-mark {
+  position: fixed;
+  z-index: 12;
+  top: clamp(20px, 3.6vh, 34px);
+  left: 56px;
+  display: flex;
+  font-size: 12px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.5s ease, visibility 0s linear 0.5s;
+}
+
+.menu-mark.shown {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.5s ease;
+}
+
+.menu-mark .mark {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text);
+  pointer-events: auto;
+}
+
+.mark-enter-active {
+  transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.mark-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.8, 0.2, 0.8, 0.2);
+}
+
+.mark-enter-from, .mark-leave-to {
+  opacity: 0;
+  transform: translateX(16px);
+}
+
+@media (max-width: 760px) {
+  .menu-mark {
+    top: 22px;
+    left: 20px;
+  }
 }
 
 @keyframes rise {
