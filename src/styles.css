@@ -83,6 +83,76 @@ button.secondary {
   border: 1px solid var(--border);
 }
 
+.button-row {
+  --tuck: calc(40px - 8px * sqrt(2));
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.button-row > * {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 16px;
+  font-size: 15px;
+  letter-spacing: 0.22em;
+  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+  transition: filter 0.2s ease, background 0.2s ease, opacity 0.2s ease;
+}
+
+.button-row > :not(:first-child) {
+  position: relative;
+  clip-path: polygon(calc(-1 * var(--tuck)) 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%, 0 var(--tuck));
+}
+
+.button-row > :not(:first-child)::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 100%;
+  width: var(--tuck);
+  height: var(--tuck);
+  background: inherit;
+}
+
+.button-row > :not(:last-child) {
+  clip-path: polygon(0 0, calc(100% - 32px) 0, 100% 32px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+}
+
+.button-row > :not(:first-child):not(:last-child) {
+  clip-path: polygon(calc(-1 * var(--tuck)) 0, calc(100% - 32px) 0, 100% 32px, 100% 100%, 0 100%, 0 var(--tuck));
+}
+
+.button-row > .secondary {
+  border: 0;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.button-row > .secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+  filter: none;
+}
+
+.button-row.bright > .secondary {
+  color: #111;
+  background: #e8eaed;
+}
+
+.button-row.bright > .secondary:hover:not(:disabled) {
+  background: #fff;
+}
+
+@media (max-width: 560px) {
+  .button-row > * {
+    padding: 12px 8px;
+    font-size: 13px;
+    letter-spacing: 0.1em;
+  }
+}
+
 a.mark {
   color: var(--text);
   text-decoration: none;

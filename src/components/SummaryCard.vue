@@ -56,7 +56,7 @@ function view(index) {
       <code :title="link">{{ seed }}</code>
       <button class="secondary" type="button" @click="copy">{{ copied ? "Copied" : "Copy link" }}</button>
     </div>
-    <div class="actions">
+    <div class="button-row bright">
       <button class="secondary" type="button" @click="menu">Menu</button>
       <button class="secondary" type="button" @click="replay">Replay</button>
       <button type="button" @click="again">Play again</button>
@@ -130,14 +130,5 @@ function view(index) {
   flex: none;
   padding: 6px 12px;
   font-size: 12px;
-}
-
-.actions {
-  display: flex;
-  gap: 8px;
-}
-
-.actions button {
-  flex: 1;
 }
 </style>

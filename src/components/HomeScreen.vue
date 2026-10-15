@@ -25,7 +25,7 @@ function play() {
       <p class="eyebrow rise" style="--i: 1">Guess the location</p>
       <SlapTitle :visible="visible" text="Wayfinder" />
       <p class="lede rise" style="--i: 3">Each round puts you somewhere in Horizon Zero Dawn or Horizon Forbidden West. Have a look around, then drop a pin on the map where you think you are.</p>
-      <div class="cta rise" style="--i: 4">
+      <div class="button-row rise" style="--i: 4">
         <button class="play" type="button" :disabled="!ready" @click="play">Play<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4" /></svg></button>
         <button class="secondary atlas" type="button" :disabled="!ready" @click="emit('atlas')">View Map<small>{{ found }} found</small></button>
       </div>
@@ -98,69 +98,22 @@ function play() {
   color: rgba(232, 234, 237, 0.84);
 }
 
-.cta {
-  --tuck: calc(40px - 8px * sqrt(2));
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 1fr;
-  align-items: center;
-  gap: 8px;
+.button-row {
   width: fit-content;
 }
 
 .play, .atlas {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   gap: 14px;
   padding: 17px 30px 17px 34px;
   font-size: 17px;
-  letter-spacing: 0.22em;
-  border-radius: 0;
-  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
-}
-
-.cta > :not(:first-child) {
-  position: relative;
-  clip-path: polygon(calc(-1 * var(--tuck)) 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%, 0 var(--tuck));
-}
-
-.cta > :not(:first-child)::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  right: 100%;
-  width: var(--tuck);
-  height: var(--tuck);
-  background: inherit;
-}
-
-.cta > :not(:last-child) {
-  clip-path: polygon(0 0, calc(100% - 32px) 0, 100% 32px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
-}
-
-.cta > :not(:first-child):not(:last-child) {
-  clip-path: polygon(calc(-1 * var(--tuck)) 0, calc(100% - 32px) 0, 100% 32px, 100% 100%, 0 100%, 0 var(--tuck));
 }
 
 .play svg {
   transition: transform 0.25s ease;
 }
 
-.play {
-  transition: filter 0.2s ease;
-}
-
 .atlas {
   align-items: baseline;
-  border: 0;
-  background: rgba(255, 255, 255, 0.1);
-  transition: background 0.2s ease;
-}
-
-.atlas:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.2);
-  filter: none;
 }
 
 .atlas small {
