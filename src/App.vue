@@ -36,7 +36,7 @@ const RECENT_GAMES = 2
 const BEST_GUESSES = "bestGuesses"
 const MISSED = { "Wrong game": "You guessed the wrong game", "Too far away": "Your guess was too far away" }
 const ATLAS_RADIUS_METRES = 400
-const ATLAS_READY_TIMEOUT_MS = 10000
+const MAP_READY_TIMEOUT_MS = 10000
 // the .bigmap opacity transition
 const MAP_FADE_MS = 450
 // --tuck in GuessPanel.vue
@@ -159,6 +159,7 @@ let atlasLeaving = null
 const atlasMap = ref(false)
 const mapTab = ref(readStore("mapTab") === "photospheres" ? "photospheres" : "map")
 const atlasReady = ref(false)
+const mapWaiting = ref(false)
 const loadingKey = ref(0)
 
 function readJson(key) {
@@ -283,7 +284,7 @@ async function drawAtlas() {
   if (!atlasFramed) {
     atlasFramed = true
     bigmap.value.fit(null, { snap: true })
-    await Promise.race([bigmap.value.whenReady(), wait(ATLAS_READY_TIMEOUT_MS)])
+    await Promise.race([bigmap.value.whenReady(), wait(MAP_READY_TIMEOUT_MS)])
     atlasReady.value = atlas.value
   }
 }
@@ -743,6 +744,7 @@ async function restoreGame(saved) {
     return
   }
   backdrop.value.cycle(false)
+  mapWaiting.value = true
   await loadMaps()
   showLocations(game)
   restoring.value = false
@@ -751,6 +753,8 @@ async function restoreGame(saved) {
   } else {
     await showSummary(false)
   }
+  await Promise.race([bigmap.value.whenReady(), wait(MAP_READY_TIMEOUT_MS)])
+  mapWaiting.value = false
 }
 
 function placeGuess(place) {
@@ -1124,7 +1128,7 @@ window.addEventListener("hashchange", () => {
   revealAll.value = location.hash === REVEAL_HASH
 })
 
-watch(() => Boolean(viewing.value?.loading || (atlas.value && !atlasReady.value)), shown => {
+watch(() => Boolean(viewing.value?.loading || (atlas.value && !atlasReady.value) || mapWaiting.value), shown => {
   if (shown) {
     loadingKey.value++
   }
@@ -1184,7 +1188,7 @@ onBeforeUnmount(() => {
       <MapView ref="minimap" pickable pois scale modes :faded="swapFading" @pick="placeGuess" />
     </Teleport>
   </GuessPanel>
-  <div class="bigmap" :class="{ shown: showsMap, waiting: atlas && !atlasReady, atlas: atlasMap }">
+  <div class="bigmap" :class="{ shown: showsMap, waiting: (atlas && !atlasReady) || mapWaiting, atlas: atlasMap }">
     <MapView ref="bigmap" pois scale modes />
     <LoadingEmblem :key="loadingKey" class="map-loading" />
   </div>
@@ -1192,10 +1196,10 @@ onBeforeUnmount(() => {
     <LoadingEmblem :key="loadingKey" />
   </div>
   <Transition name="card">
-    <ScoreReveal v-if="phase === `result` && result" ref="resultCard" :key="result.key" :card="result.card" :score="result.shown" :distance="result.distance" :miss="result.miss" :last-round="result.lastRound" :docked="result.docked" :animate="result.animate" :viewing="Boolean(viewing)" @next="next" @view="viewResult" @back="leaveView" />
+    <ScoreReveal v-if="phase === `result` && result" ref="resultCard" :class="{ held: mapWaiting }" :key="result.key" :card="result.card" :score="result.shown" :distance="result.distance" :miss="result.miss" :last-round="result.lastRound" :docked="result.docked" :animate="result.animate" :viewing="Boolean(viewing)" @next="next" @view="viewResult" @back="leaveView" />
   </Transition>
   <Transition name="card">
-    <SummaryCard v-if="phase === `summary` && summary && !viewing" ref="summaryCard" :results="summary.results" :total="summary.total" :max="summary.max" :mode="gameMode" :seed="summary.seed" @menu="goHome" @again="newGame" @replay="replay" @view="index => openView({ round: index })" />
+    <SummaryCard v-if="phase === `summary` && summary && !viewing" ref="summaryCard" :class="{ held: mapWaiting }" :results="summary.results" :total="summary.total" :max="summary.max" :mode="gameMode" :seed="summary.seed" @menu="goHome" @again="newGame" @replay="replay" @view="index => openView({ round: index })" />
   </Transition>
   <Transition name="card">
     <div v-if="viewing && !viewing.loading && (phase !== `result` || atlas)" class="panel viewing">
@@ -1209,7 +1213,7 @@ onBeforeUnmount(() => {
   <div class="menu-mark" :class="{ shown: Boolean(markLabel) }">
     <a class="mark" :href="homeShown ? null : '/'" :title="homeShown ? null : 'Main menu'" @click.exact="markClick"><i class="mark-emblem"></i><Transition name="mark" mode="out-in"><span v-if="markLabel" :key="markLabel" class="mark-text">{{ markLabel }}</span></Transition></a>
   </div>
-  <SlideBackdrop ref="backdrop" :active="(isMenu && !atlas) || intro" :timer="isMenu && !atlas" />
+  <SlideBackdrop ref="backdrop" :active="((isMenu && !atlas) || intro) && !restoring" :timer="isMenu && !atlas && !restoring" />
   <AtlasScreen :visible="isMenu && atlas && !viewing" :ready="atlasReady" :found="atlasRounds.length" :total="pool.length" :tab="mapTab" @tab="setMapTab" />
   <ChallengeScreen :visible="isMenu && Boolean(challenge)" :ready="canPlay" :rules="challenge?.seed.rules" :games="challenge?.seed.games" :rounds="challenge?.seed.rounds.length || 0" :score="challenge?.score" :error="seedError" @play="playChallenge" />
   <HomeScreen :visible="homeShown" :count="pool.length" :found="found.size" :ready="canPlay" :best="overall.best" :last="overall.last" :average="overall.average" @play="goGames" @atlas="goAtlas" />
@@ -1299,6 +1303,15 @@ onBeforeUnmount(() => {
 
 .bigmap.waiting .map-loading {
   opacity: 1;
+}
+
+.reveal, .card {
+  transition: opacity 0.45s ease;
+}
+
+.held {
+  opacity: 0;
+  visibility: hidden;
 }
 
 .bigmap :deep(.map-canvas) {
