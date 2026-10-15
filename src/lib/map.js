@@ -28,6 +28,7 @@ const FLIGHT_MS = 900
 // HFW MapResource (group 72333) WidthInWorldCoords
 const MAP_WIDTH_METRES = 5760
 const POI_ZOOM = { "campfire": 5, "machine-site": 5, "hunting-ground": 5, "settlement": 2, "tallneck": 3.5, "cauldron": 2, "camp": 3.5, "ruins": 3.5, "shelter": 5, "landmark": 2, "location": 3.5 }
+const GAME_POI_ZOOM = { "campfire": 1.4, "machine-site": 1.4, "hunting-ground": 0.75, "settlement": 0.75, "tallneck": 0.75, "cauldron": 0.75, "camp": 0.75, "ruins": 0.75, "shelter": 1.4, "landmark": 0.75, "location": 0.75 }
 const POI_MARGIN = 40
 const POI_HOVER_RADIUS = 24
 const POI_SPACING = 44
@@ -233,6 +234,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
   const pointsOfInterest = []
   const hiddenTypes = new Set()
   let iconsOn = true
+  let poiZoom = POI_ZOOM
   let shownLocations = null
   const tracksHover = Boolean(scale || onHover)
 
@@ -1123,7 +1125,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     const placed = []
     for (const poi of pointsOfInterest) {
       let z = null
-      const visibleZoom = POI_ZOOM[poi.type]
+      const visibleZoom = poiZoom[poi.type]
       let shown = gameZoom >= visibleZoom
       if (threeD) {
         const reach = zoomPerPixel * focal / visibleZoom
@@ -1962,6 +1964,10 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
           }).catch(() => {})
         }
       }
+      needsDraw = true
+    },
+    setIconZoom(game) {
+      poiZoom = game ? GAME_POI_ZOOM : POI_ZOOM
       needsDraw = true
     },
     setFeatures({ modes: modesOn = true, readouts = true, compass: compassOn = true, icons = true }) {

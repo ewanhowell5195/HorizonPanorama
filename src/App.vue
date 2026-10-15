@@ -146,6 +146,7 @@ let atlasMarkers = []
 let atlasFramed = false
 let atlasLeaving = null
 const atlasMap = ref(false)
+const mapTab = ref(readStore("mapTab") === "photospheres" ? "photospheres" : "map")
 const atlasReady = ref(false)
 const loadingKey = ref(0)
 
@@ -211,6 +212,17 @@ function addFound(name) {
   writeStore(FOUND, JSON.stringify(Array.from(found.value)))
 }
 
+function setMapTab(tab) {
+  mapTab.value = tab
+  writeStore("mapTab", tab)
+}
+
+function applyMapTab() {
+  const map = atlasMap.value && mapTab.value === "map"
+  bigmap.value?.setFeatures({ modes: map, readouts: map, compass: map, icons: map })
+  bigmap.value?.setIconZoom(map)
+}
+
 function clearAtlas() {
   atlasMarkers.forEach(marker => marker.remove())
   atlasMarkers = []
@@ -228,7 +240,9 @@ async function drawAtlas() {
   }
   clearAtlas()
   bigmap.value.setLocations(null)
-  const points = atlasRounds.value.map(round => {
+  applyMapTab()
+  const photospheres = mapTab.value === "photospheres"
+  const points = (photospheres ? atlasRounds.value : []).map(round => {
     const place = bigmap.value.place(round.game, round.x, round.y)
     const element = answerMarker()
     element.classList.add("atlas")
@@ -241,7 +255,7 @@ async function drawAtlas() {
     const place = bigmap.value.place(round.game, round.x, round.y)
     return { x: place.x, y: place.y }
   })
-  bigmap.value.setReveal(points, ATLAS_RADIUS_METRES / 256, sites)
+  bigmap.value.setReveal(photospheres ? points : null, ATLAS_RADIUS_METRES / 256, sites)
   if (!atlasFramed) {
     atlasFramed = true
     bigmap.value.fit(null, { snap: true })
@@ -551,6 +565,7 @@ function loadMaps() {
     const order = atlas.value ? [bigmap.value, minimap.value] : [minimap.value, bigmap.value]
     await order[0].load()
     await order[1].load()
+    applyMapTab()
     mapsReady.value = true
   })()
   return mapsLoading
@@ -975,6 +990,9 @@ onMounted(async () => {
   } else {
     const path = screenFromPath()
     sharedView = path === "atlas" ? new URLSearchParams(location.search).get("view") : null
+    if (sharedView) {
+      mapTab.value = "photospheres"
+    }
     replaceScreen(["games", "atlas"].includes(path) ? path : ["setup", "game"].includes(path) ? "setup" : "home", ["games", "atlas"].includes(path) ? screenUrl(path) + location.hash : undefined)
   }
   setup.value = history.state.screen === "setup"
@@ -1007,6 +1025,12 @@ watch(() => Boolean(viewing.value?.loading || (atlas.value && !atlasReady.value)
   }
 })
 
+watch(mapTab, () => {
+  if (atlas.value) {
+    drawAtlas()
+  }
+})
+
 watch([atlas, atlasRounds], () => {
   clearTimeout(atlasLeaving)
   if (atlas.value) {
@@ -1018,6 +1042,7 @@ watch([atlas, atlasRounds], () => {
     atlasLeaving = setTimeout(() => {
       atlasMap.value = false
       clearAtlas()
+      applyMapTab()
     }, MAP_FADE_MS)
   }
 })
@@ -1055,7 +1080,7 @@ onBeforeUnmount(() => {
     </Teleport>
   </GuessPanel>
   <div class="bigmap" :class="{ shown: showsMap, waiting: atlas && !atlasReady, atlas: atlasMap }">
-    <MapView ref="bigmap" />
+    <MapView ref="bigmap" pois scale modes />
     <LoadingEmblem :key="loadingKey" class="map-loading" />
   </div>
   <div class="view-loading" :class="{ shown: viewing?.loading }">
@@ -1080,7 +1105,7 @@ onBeforeUnmount(() => {
     <a class="mark" :href="homeShown ? null : '/'" :title="homeShown ? null : 'Main menu'" @click.exact="markClick"><i class="mark-emblem"></i><Transition name="mark" mode="out-in"><span v-if="markLabel" :key="markLabel" class="mark-text">{{ markLabel }}</span></Transition></a>
   </div>
   <SlideBackdrop ref="backdrop" :active="(isMenu && !atlas) || intro" :timer="isMenu && !atlas" />
-  <AtlasScreen :visible="isMenu && atlas && !viewing" :ready="atlasReady" :found="atlasRounds.length" :total="pool.length" />
+  <AtlasScreen :visible="isMenu && atlas && !viewing" :ready="atlasReady" :found="atlasRounds.length" :total="pool.length" :tab="mapTab" @tab="setMapTab" />
   <ChallengeScreen :visible="isMenu && Boolean(challenge)" :ready="canPlay" :rules="challenge?.seed.rules" :games="challenge?.seed.games" :rounds="challenge?.seed.rounds.length || 0" :score="challenge?.score" :error="seedError" @play="playChallenge" />
   <HomeScreen :visible="homeShown" :count="pool.length" :found="found.size" :ready="canPlay" :best="overall.best" :last="overall.last" :average="overall.average" @play="goGames" @atlas="goAtlas" />
   <GamesScreen :visible="isMenu && !challenge && choosing" :ready="canPlay" :counts="counts" :location-counts="locationCounts" :available="choices.length" :games="games" :preview="previewGame" :lit="litAreas" :lit-tribes="litTribes" :tribe-areas="tribeAreas" :tribes="availableTribes" :tribe-filter="tribeFilter" :tribe-counts="tribeCounts" :matched="chosenGames !== 'custom'" :custom-rules="customRules" :seed="seedInput" :seed-error="seedError" @games="setGames" @rule="setRule" @tribe-filter="setTribeFilter" @next="goSetup" @seed="openChallenge" />

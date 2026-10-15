@@ -27,6 +27,7 @@ defineExpose({
   whenReady: () => map?.whenReady(),
   setMode: (on, instant) => map?.setMode(on, instant),
   setFeatures: features => map?.setFeatures(features),
+  setIconZoom: game => map?.setIconZoom(game),
   setLocations: locations => map?.setLocations(locations),
   setReveal: (...args) => map?.setReveal(...args)
 })
