@@ -8,13 +8,13 @@ const CARD_HEIGHT = 380
 const VISIBLE_TOP = 6
 const VISIBLE_BOTTOM = 297
 const DOCK_SCALE = 0.6
-const DOCK_BOTTOM = 84
+const DOCK_BOTTOM = 112
 // 61 frames at CARD_FRAME_MS in tools/game/build_cauldrons.py
 const CARD_MS = 61 * 33
 const HOLD_EARLY_MS = 60
 
-const props = defineProps({ card: String, score: Number, distance: String, miss: Boolean, lastRound: Boolean, docked: Boolean, animate: Boolean })
-const emit = defineEmits(["next", "view"])
+const props = defineProps({ card: String, score: Number, distance: String, miss: Boolean, lastRound: Boolean, docked: Boolean, animate: Boolean, viewing: Boolean })
+const emit = defineEmits(["next", "view", "back"])
 const src = ref(null)
 const label = computed(() => props.miss ? props.distance : `${props.distance} away`)
 const still = computed(() => `/cauldrons/card-${props.card}-end.avif`)
@@ -61,7 +61,7 @@ defineExpose({ dockedHeight })
 </script>
 
 <template>
-  <div class="reveal" :class="{ docked, animate }">
+  <div class="reveal" :class="{ docked, animate, reviewing: viewing }">
     <div class="stage">
       <img v-if="src" :src="src" alt="" @load="played">
       <div class="band">
@@ -70,7 +70,7 @@ defineExpose({ dockedHeight })
       </div>
     </div>
     <div class="actions button-row bright">
-      <button class="secondary" type="button" @click="emit('view')">View photosphere</button>
+      <button class="secondary" type="button" @click="emit(viewing ? 'back' : 'view')"><Transition name="swap-text" mode="out-in"><span :key="viewing">{{ viewing ? "View map" : "View photosphere" }}</span></Transition></button>
       <button type="button" @click="emit('next')">{{ lastRound ? "See results" : "Next round" }}</button>
     </div>
   </div>
@@ -94,11 +94,15 @@ defineExpose({ dockedHeight })
   height: var(--h);
   transform: translate(-50%, -50%);
   user-select: none;
-  transition: top 0.7s cubic-bezier(0.65, 0, 0.35, 1), transform 0.7s cubic-bezier(0.65, 0, 0.35, 1);
+  transition: top 0.7s cubic-bezier(0.65, 0, 0.35, 1), transform 0.7s cubic-bezier(0.65, 0, 0.35, 1), opacity 0.3s ease;
+}
+
+.reveal.reviewing .stage {
+  opacity: 0;
 }
 
 .reveal.docked .stage {
-  top: calc(100% - 84px - var(--h) * 0.169);
+  top: calc(100% - 112px - var(--h) * 0.169);
   transform: translate(-50%, -50%) scale(0.6);
 }
 
@@ -129,6 +133,11 @@ defineExpose({ dockedHeight })
   justify-items: center;
   gap: calc(var(--h) * 0.012);
   text-align: center;
+}
+
+.band > * {
+  pointer-events: auto;
+  user-select: text;
 }
 
 .reveal.animate .band {
@@ -181,6 +190,24 @@ defineExpose({ dockedHeight })
   transform: translate(-50%, 0);
   pointer-events: auto;
   transition: opacity 0.4s ease 0.45s, transform 0.4s ease 0.45s;
+}
+
+.actions span {
+  display: inline-block;
+}
+
+.swap-text-enter-active, .swap-text-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.swap-text-enter-from {
+  opacity: 0;
+  transform: translateX(8px);
+}
+
+.swap-text-leave-to {
+  opacity: 0;
+  transform: translateX(-8px);
 }
 
 @keyframes band-in {

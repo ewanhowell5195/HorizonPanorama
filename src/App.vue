@@ -906,6 +906,9 @@ function next() {
   if (!game || game.state !== "result") {
     return
   }
+  if (history.state?.view) {
+    history.replaceState({ screen: history.state.screen, depth: currentDepth() }, "", location.href)
+  }
   closeView()
   if (game.index + 1 < game.rounds.length) {
     game.index++
@@ -1189,18 +1192,18 @@ onBeforeUnmount(() => {
     <LoadingEmblem :key="loadingKey" />
   </div>
   <Transition name="card">
-    <ScoreReveal v-if="phase === `result` && result" v-show="!viewing" ref="resultCard" :key="result.key" :card="result.card" :score="result.shown" :distance="result.distance" :miss="result.miss" :last-round="result.lastRound" :docked="result.docked" :animate="result.animate" @next="next" @view="viewResult" />
+    <ScoreReveal v-if="phase === `result` && result" ref="resultCard" :key="result.key" :card="result.card" :score="result.shown" :distance="result.distance" :miss="result.miss" :last-round="result.lastRound" :docked="result.docked" :animate="result.animate" :viewing="Boolean(viewing)" @next="next" @view="viewResult" @back="leaveView" />
   </Transition>
   <Transition name="card">
     <SummaryCard v-if="phase === `summary` && summary && !viewing" ref="summaryCard" :results="summary.results" :total="summary.total" :max="summary.max" :mode="gameMode" :seed="summary.seed" @menu="goHome" @again="newGame" @replay="replay" @view="index => openView({ round: index })" />
   </Transition>
   <Transition name="card">
-    <div v-if="viewing && !viewing.loading" class="panel viewing">
+    <div v-if="viewing && !viewing.loading && (phase !== `result` || atlas)" class="panel viewing">
       <span>{{ viewing.title }} photosphere</span>
       <span v-if="viewing.unfound" class="viewing-best">You haven't found this one yet</span>
       <span v-else-if="typeof viewing.best === `number`" class="viewing-best">Your closest guess <strong>{{ formatDistance(viewing.best) }}</strong></span>
       <span v-else-if="viewing.best" class="viewing-best">{{ MISSED[viewing.best] }}</span>
-      <button class="secondary" type="button" @click="leaveView">{{ atlas ? "Back to the map" : phase === "summary" ? "Back to results" : "Back to the map" }}</button>
+      <button class="secondary" type="button" @click="leaveView">{{ atlas ? "Back to the map" : "Back to results" }}</button>
     </div>
   </Transition>
   <div class="menu-mark" :class="{ shown: Boolean(markLabel) }">
