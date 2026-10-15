@@ -1,11 +1,10 @@
 import { TRIBES, bitsToRules, gamesOf, rulesToBits } from "./rules.js"
 
-const VERSION = "4"
+const VERSION = "5"
 const EPOCH = Date.UTC(2020, 0, 1) / 1000
 const TIME_DIGITS = 6
 const VIEW_DIGITS = 3
-const RULE_DIGITS = { 3: 3, 4: 5 }
-const ALL_TRIBES = rulesToBits(Object.fromEntries(TRIBES.map(tribe => [tribe.id, true])))
+const RULE_DIGITS = { 3: 3, 4: 5, 5: 6 }
 
 function checksum(text) {
   let sum = 0
@@ -78,7 +77,8 @@ export function decodeSeed(input) {
     const name = secondsToName(parseInt(body.slice(at, at + TIME_DIGITS), 36))
     rounds.push({ name, code: parseInt(body.slice(at + TIME_DIGITS, at + roundLength), 36) })
   }
-  const bits = parseInt(code.slice(1, head), 36)
-  const rules = bitsToRules(code[0] === "3" ? bits | ALL_TRIBES : bits)
+  const version = Number(code[0])
+  const unknown = TRIBES.filter(tribe => version === 3 || (tribe.since ?? 4) > version)
+  const rules = bitsToRules(parseInt(code.slice(1, head), 36) | rulesToBits(Object.fromEntries(unknown.map(tribe => [tribe.id, true]))))
   return { code, games: gamesOf(rules), rules, rounds }
 }

@@ -27,8 +27,15 @@ export const TRIBES = [
   { id: "tribeTenakthSkyClan", tribe: "tenakthSkyClan", name: "Tenakth Sky Clan", games: ["hfw"] },
   { id: "tribeQuen", tribe: "quen", name: "Quen", games: ["hfw"] },
   { id: "tribeFarZenith", tribe: "farZenith", name: "Far Zenith", games: ["hfw"] },
-  { id: "tribeNone", tribe: null, name: "No tribe", games: ["hzd", "hfw"] }
+  { id: "tribeNone", tribe: null, name: "No tribe", games: ["hzd", "hfw"] },
+  { id: "tribeNeutral", tribe: "neutral", name: "Neutral", games: ["hzd", "hfw"], since: 5 },
+  { id: "tribeEclipse", tribe: "eclipse", name: "Eclipse", games: ["hzd"], parent: "shadowCarja", after: "tribeShadowCarja", since: 5 },
+  { id: "tribeRebels", tribe: "tenakthRebels", name: "Tenakth Rebels", games: ["hfw"], parent: "tenakthAllClans", after: "tribeTenakthSkyClan", since: 5 },
+  { id: "tribeBandits", tribe: "bandits", name: "Bandits", games: ["hzd"], since: 5 }
 ]
+
+// keys are the ids build_tribes.py makes from the tribe painter's names
+export const SHARED_TRIBES = { tenakthAllClans: ["tribeTenakthLowlandClan", "tribeTenakthDesertClan", "tribeTenakthSkyClan"] }
 
 const SETTINGS = RULES.concat(LOCATIONS, TRIBES)
 const ALL = Object.fromEntries(SETTINGS.map(setting => [setting.id, true]))
@@ -78,6 +85,21 @@ export function bitsToRules(bits) {
 
 export function tribeRule(tribe) {
   return TRIBES.find(entry => entry.tribe === tribe)?.id || "tribeNone"
+}
+
+export function tribeRules(tribe) {
+  const entry = TRIBES.find(item => item.tribe === tribe)
+  return entry?.parent ? [entry.id].concat(tribeRules(entry.parent)) : SHARED_TRIBES[tribe] || [tribeRule(tribe)]
+}
+
+export function tribeOn(rules, tribe) {
+  const entry = TRIBES.find(item => item.tribe === tribe)
+  return entry?.parent ? Boolean(rules[entry.id]) && tribeOn(rules, entry.parent) : tribeRules(tribe).some(id => rules[id])
+}
+
+export function tribeOrder(list) {
+  const position = tribe => tribe.after ? TRIBES.findIndex(item => item.id === tribe.after) + 0.5 : TRIBES.indexOf(tribe)
+  return list.slice().sort((a, b) => position(a) - position(b))
 }
 
 export function missingRules(rules) {

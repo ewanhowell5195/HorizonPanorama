@@ -1,10 +1,10 @@
 {
   "hzd": {
     "frame": { "scale": 74.31059506531204, "originX": -1321.2322206095791, "originY": 755.9825834542814 },
-    "tribes": ["nora", "carja", "shadowCarja", "oseram", "banuk"],
+    "tribes": ["nora", "carja", "shadowCarja", "oseram", "banuk", "neutral", "eclipse", "bandits"],
     "areas": {
-      "zeroDawn": ["nora", "carja", "shadowCarja", "oseram", "banuk"],
-      "frozenWilds": ["nora", "banuk"]
+      "zeroDawn": ["nora", "carja", "shadowCarja", "oseram", "banuk", "neutral", "eclipse", "bandits"],
+      "frozenWilds": ["nora", "banuk", "neutral", "bandits"]
     }
   },
   "hfw": {
@@ -17,7 +17,10 @@
       "oseram",
       "carja",
       "quen",
-      "farZenith"
+      "farZenith",
+      "tenakthAllClans",
+      "neutral",
+      "tenakthRebels"
     ],
     "areas": {
       "forbiddenWest": [
@@ -28,9 +31,12 @@
         "oseram",
         "carja",
         "quen",
-        "farZenith"
+        "farZenith",
+        "tenakthAllClans",
+        "neutral",
+        "tenakthRebels"
       ],
-      "burningShores": ["quen"],
+      "burningShores": ["oseram", "quen", "farZenith", "neutral"],
       "farZenith": ["farZenith"]
     }
   }

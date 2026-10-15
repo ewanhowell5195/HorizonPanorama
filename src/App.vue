@@ -15,7 +15,7 @@ import SummaryCard from "./components/SummaryCard.vue"
 import { MAX_POINTS, ROUNDS, distanceLabel, points, readStore, shuffle, wait, writeStore } from "./lib/game.js"
 import { answerMarker, pin } from "./lib/markers.js"
 import { pointLocation } from "./lib/locations.js"
-import { LOCATIONS, MODE_RULES, TRIBES, fullRules, gamesOf, modeOf, offTribes, tribeRule, tribesOf, wholeGames, withGames } from "./lib/rules.js"
+import { LOCATIONS, MODE_RULES, TRIBES, fullRules, gamesOf, modeOf, offTribes, SHARED_TRIBES, tribeOn, tribeOrder, tribeRules, tribesOf, wholeGames, withGames } from "./lib/rules.js"
 import { loadTribes, tribeAt } from "./lib/tribes.js"
 import { decodeScore, decodeSeed, encodeSeed, randomCode, seededRandom, seedLink } from "./lib/seed.js"
 import { pickView } from "./lib/view.js"
@@ -88,8 +88,8 @@ const showsMap = computed(() => (phase.value === "result" || phase.value === "su
 const playing = computed(() => isRound.value && !intro.value)
 const swapView = computed(() => swapped.value && playing.value)
 const sphereActive = computed(() => playing.value || Boolean(viewing.value && !viewing.value.loading))
-const choices = computed(() => pool.value.filter(round => rules.value[round.location] && rules.value[tribeRule(round.tribe)]))
-const tribeCounts = computed(() => Object.fromEntries(TRIBES.map(tribe => [tribe.id, pool.value.filter(round => rules.value[round.location] && tribeRule(round.tribe) === tribe.id).length])))
+const choices = computed(() => pool.value.filter(round => rules.value[round.location] && tribeOn(rules.value, round.tribe)))
+const tribeCounts = computed(() => Object.fromEntries(TRIBES.map(tribe => [tribe.id, pool.value.filter(round => rules.value[round.location] && tribeRules(round.tribe).includes(tribe.id)).length])))
 const counts = computed(() => ({ both: pool.value.length, hzd: pool.value.filter(round => round.game === "hzd").length, hfw: pool.value.filter(round => round.game === "hfw").length }))
 const locationCounts = computed(() => Object.fromEntries(LOCATIONS.map(location => [location.id, pool.value.filter(round => round.location === location.id).length])))
 const roundCount = computed(() => Math.min(ROUNDS, choices.value.length))
@@ -101,11 +101,11 @@ const tribeAreas = ref(null)
 const availableTribes = computed(() => {
   const on = LOCATIONS.filter(location => customRules.value[location.id])
   if (!tribeAreas.value) {
-    return tribesOf(gamesOf(customRules.value)).filter(tribe => tribe.tribe)
+    return tribeOrder(tribesOf(gamesOf(customRules.value)).filter(tribe => tribe.tribe))
   }
-  return TRIBES.filter(tribe => on.some(location => tribeAreas.value[location.game]?.[location.id]?.includes(tribe.tribe)))
+  return tribeOrder(TRIBES.filter(tribe => on.some(location => tribeAreas.value[location.game]?.[location.id]?.some(present => tribeRules(present).includes(tribe.id)))))
 })
-const litTribes = computed(() => TRIBES.filter(tribe => rules.value[tribe.id]).map(tribe => tribe.tribe))
+const litTribes = computed(() => TRIBES.filter(tribe => tribe.tribe && tribeOn(rules.value, tribe.tribe)).map(tribe => tribe.tribe).concat(Object.keys(SHARED_TRIBES).filter(tribe => tribeOn(rules.value, tribe))))
 const chosenGames = computed(() => games.value === "custom" && choices.value.length && wholeGames(rules.value) && !offTribes(rules.value).length ? gamesOf(rules.value) : games.value)
 const previewGame = computed(() => isMenu.value && choosing.value && !challenge.value ? gamesOf(rules.value) : null)
 refreshScores()
