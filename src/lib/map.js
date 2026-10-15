@@ -2021,11 +2021,11 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
         }
       }
     },
-    setLines(pairs) {
+    setLines(pairs, classes = []) {
       overlay.replaceChildren()
-      lines = pairs.map(ends => {
+      lines = pairs.map((ends, n) => {
         const element = document.createElementNS("http://www.w3.org/2000/svg", "line")
-        element.setAttribute("class", "map-line")
+        element.setAttribute("class", classes[n] ? `map-line ${classes[n]}` : "map-line")
         overlay.append(element)
         return { ends, element, progress: 1 }
       })

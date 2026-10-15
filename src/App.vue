@@ -862,10 +862,16 @@ async function showSummary(record = true) {
   game.state = "summary"
   saveGame()
   clearMarkers()
+  const last = game.results.length - 1
   game.results.forEach((entry, n) => {
-    resultMarkers.push(bigmap.value.addMarker(pin("var(--accent)", n + 1), entry.guess.x, entry.guess.y), bigmap.value.addMarker(answerMarker(n + 1), entry.answer.x, entry.answer.y))
+    const guess = pin("var(--accent)", n + 1), answer = answerMarker(n + 1)
+    if (n < last) {
+      guess.classList.add("fade-in")
+      answer.classList.add("fade-in")
+    }
+    resultMarkers.push(bigmap.value.addMarker(guess, entry.guess.x, entry.guess.y), bigmap.value.addMarker(answer, entry.answer.x, entry.answer.y))
   })
-  bigmap.value.setLines(game.results.map(entry => [entry.guess, entry.answer]))
+  bigmap.value.setLines(game.results.map(entry => [entry.guess, entry.answer]), game.results.map((_, n) => n < last ? "fade-in" : null))
   if (record && modeOf(game.rules) !== "custom") {
     const key = name => scoreKey(name, modeOf(game.rules), game.games)
     writeStore(key("lastScore"), game.total)

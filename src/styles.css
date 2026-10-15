@@ -327,6 +327,10 @@ a.mark[href]:hover {
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
 }
 
+.marker.fade-in, .map-line.fade-in {
+  animation: fade-in 0.6s ease 0.2s backwards;
+}
+
 .map-markers {
   position: absolute;
   inset: 0;
@@ -472,7 +476,7 @@ a.mark[href]:hover {
 
 .marker.atlas {
   transition: opacity 0.4s ease;
-  animation: atlas-pin-in 0.4s ease backwards;
+  animation: fade-in 0.4s ease backwards;
 }
 
 .marker.atlas.leaving {
@@ -483,7 +487,7 @@ a.mark[href]:hover {
   pointer-events: none;
 }
 
-@keyframes atlas-pin-in {
+@keyframes fade-in {
   from {
     opacity: 0;
   }
