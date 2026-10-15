@@ -32,6 +32,7 @@
 }
 
 :root {
+  color-scheme: dark;
   --bg: #07090c;
   --panel: rgba(10, 12, 16, 0.78);
   --text: #e8eaed;
@@ -53,7 +54,7 @@
 html, body {
   margin: 0;
   height: 100%;
-  background: var(--bg);
+  background: #000;
   color: var(--text);
   font: 15px/1.4 "Oita Norm", system-ui, -apple-system, "Segoe UI", sans-serif;
   overflow: hidden;
