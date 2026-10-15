@@ -34,6 +34,8 @@ const BEST_GUESSES = "bestGuesses"
 const MISSED = { "Wrong game": "You guessed the wrong game", "Too far away": "Your guess was too far away" }
 const ATLAS_RADIUS_METRES = 400
 const ATLAS_READY_TIMEOUT_MS = 10000
+// the .bigmap opacity transition
+const MAP_FADE_MS = 450
 const REVEAL_HASH = "#reveal"
 const SECRET = "horizon-panorama"
 const SAVED_GAME = "savedGame"
@@ -142,6 +144,8 @@ let introRunning = false
 let beginRound = null
 let atlasMarkers = []
 let atlasFramed = false
+let atlasLeaving = null
+const atlasMap = ref(false)
 const atlasReady = ref(false)
 const loadingKey = ref(0)
 
@@ -366,10 +370,13 @@ function openView(view) {
 
 async function showView(view) {
   if (view.atlas) {
+    viewing.value ??= { title: "", loading: true }
     await poolLoading
     const round = pool.value.find(entry => entry.name === view.atlas)
     if (round && atlas.value) {
       viewAtlas(round)
+    } else if (viewing.value?.loading) {
+      viewing.value = null
     }
   } else if (game && view.round < game.rounds.length) {
     viewRound(view.round)
@@ -1001,12 +1008,17 @@ watch(() => Boolean(viewing.value?.loading || (atlas.value && !atlasReady.value)
 })
 
 watch([atlas, atlasRounds], () => {
+  clearTimeout(atlasLeaving)
   if (atlas.value) {
+    atlasMap.value = true
     drawAtlas()
   } else {
     atlasFramed = false
     atlasReady.value = false
-    clearAtlas()
+    atlasLeaving = setTimeout(() => {
+      atlasMap.value = false
+      clearAtlas()
+    }, MAP_FADE_MS)
   }
 })
 
@@ -1042,7 +1054,7 @@ onBeforeUnmount(() => {
       <MapView ref="minimap" pickable pois scale modes :faded="swapFading" @pick="placeGuess" />
     </Teleport>
   </GuessPanel>
-  <div class="bigmap" :class="{ shown: showsMap, waiting: atlas && !atlasReady, atlas }">
+  <div class="bigmap" :class="{ shown: showsMap, waiting: atlas && !atlasReady, atlas: atlasMap }">
     <MapView ref="bigmap" />
     <LoadingEmblem :key="loadingKey" class="map-loading" />
   </div>
