@@ -22,6 +22,9 @@ const QUAD_PIXELS = { flat: 16, relief: 8 }
 const TILE_PIXELS = 1024
 const MAX_INFLIGHT = 6
 const MAX_TILES = 96
+const LOW_MEMORY_TILES = 32
+const LOW_MEMORY = (navigator.deviceMemory ?? 8) <= 4 || matchMedia("(pointer: coarse)").matches
+const HIDDEN_CHECK_FRAMES = 60
 const KEEP_LEVELS = 3
 const LOD_SCALE = 0.85
 const UPLOAD_BUDGET_MS = 4
@@ -256,14 +259,14 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     throw new Error("WebGL2 is not available in this browser.")
   }
   const anisotropy = gl.getExtension("EXT_texture_filter_anisotropic")
-  const program = createProgram(vertexSource, fragmentSource)
+  const maxTiles = LOW_MEMORY ? LOW_MEMORY_TILES : MAX_TILES
   const uniforms = {}
-  for (const name of ["uViewProj", "uRect", "uUv", "uRelief", "uSkirt", "uSolid", "uDepth", "uColor", "uBorder", "uHatch", "uOccupancy", "uReveal", "uClouds", "uRevealRect", "uRevealOn", "uTime", "uDomain", "uGrid", "uOffset"]) {
-    uniforms[name] = gl.getUniformLocation(program, name)
-  }
-
-  const meshes = MESH_SIZES.map(createMesh)
+  let program = null
+  let meshes = []
   let boundMesh = null
+  let contextLost = false
+  let renders = 0
+  initGL()
   const cache = new Map()
   const uploads = []
   const markers = new Set()
@@ -275,6 +278,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
   let extent
   let hatchTexture
   let reveal = null
+  let revealArgs = null
   let revealShown = false
   let revealAmount = 0
   let cloudsTexture = null
@@ -306,6 +310,46 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
   let flight = null
   let zoomAnchor = null
   const viewSize = { width: 0, height: 0 }
+
+  function initGL() {
+    program = createProgram(vertexSource, fragmentSource)
+    for (const name of ["uViewProj", "uRect", "uUv", "uRelief", "uSkirt", "uSolid", "uDepth", "uColor", "uBorder", "uHatch", "uOccupancy", "uReveal", "uClouds", "uRevealRect", "uRevealOn", "uTime", "uDomain", "uGrid", "uOffset"]) {
+      uniforms[name] = gl.getUniformLocation(program, name)
+    }
+    meshes = MESH_SIZES.map(createMesh)
+    boundMesh = null
+  }
+
+  async function restoreGL() {
+    initGL()
+    cache.clear()
+    evictable = 0
+    drawn = []
+    lastTile = null
+    cloudsTexture = null
+    cloudsFallback = null
+    hatchTexture = await loadOverlay(`${root}hatch.webp`, gl.REPEAT, 0)
+    for (const layer of layers) {
+      layer.borderTexture = await loadOverlay(maskUrl(layer.game), gl.CLAMP_TO_EDGE, 255)
+      layer.occupancyTexture = null
+      uploadOccupancy(layer)
+    }
+    if (reveal) {
+      reveal = revealMask(...revealArgs)
+      ensureClouds()
+    }
+    needsDraw = true
+  }
+
+  canvas.addEventListener("webglcontextlost", event => {
+    event.preventDefault()
+    contextLost = true
+  })
+
+  canvas.addEventListener("webglcontextrestored", () => {
+    contextLost = false
+    restoreGL()
+  })
 
   function compile(type, source) {
     const shader = gl.createShader(type)
@@ -576,12 +620,12 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     }
   }
 
-  function evict() {
-    if (evictable <= MAX_TILES) {
+  function evict(limit = maxTiles) {
+    if (evictable <= limit) {
       return
     }
     const ready = Array.from(cache.values()).filter(entry => entry.state === "ready" && entry.level < entry.layer.levels - KEEP_LEVELS && entry.used < frame)
-    let excess = ready.length - MAX_TILES
+    let excess = ready.length - limit
     if (excess <= 0) {
       return
     }
@@ -1223,9 +1267,15 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
 
   function render(now) {
     requestAnimationFrame(render)
+    if (contextLost) {
+      return
+    }
     resize()
     if (!layers.length || !canvas.width || !canvas.height) {
       return
+    }
+    if (++renders % HIDDEN_CHECK_FRAMES === 0 && !(canvas.checkVisibility?.({ visibilityProperty: true }) ?? true)) {
+      evict(0)
     }
     if (pendingFit) {
       fitBox(pendingFit)
@@ -1722,12 +1772,12 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     const scale = game.tileMetres / UNIT_METRES
     const offset = [config.offsetMetres[0] / UNIT_METRES, config.offsetMetres[1] / UNIT_METRES]
     const mask = game.mask
-    const maskUrl = `${root}${config.game}/${mask.file}`
-    if (!masks.has(maskUrl)) {
-      masks.set(maskUrl, loadOverlay(maskUrl, gl.CLAMP_TO_EDGE, 255))
+    const url = maskUrl(config.game)
+    if (!masks.has(url)) {
+      masks.set(url, loadOverlay(url, gl.CLAMP_TO_EDGE, 255))
     }
-    const borderTexture = await masks.get(maskUrl)
-    const maskPixels = await shared(`${maskUrl}#pixels`, () => readMask(maskUrl)).catch(error => {
+    const borderTexture = await masks.get(url)
+    const maskPixels = await shared(`${url}#pixels`, () => readMask(url)).catch(error => {
       console.warn(error)
       return null
     })
@@ -1741,15 +1791,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
         occupancy[(row + 1) * (n + 1) + col + 1] = grid[row * n + col] + occupancy[row * (n + 1) + col + 1] + occupancy[(row + 1) * (n + 1) + col] - occupancy[row * (n + 1) + col]
       }
     }
-    const occupancyTexture = gl.createTexture()
     const tileLocations = config.tiles.map(([col, row]) => tileLocation(config.game, config.id, domain.minX + col, domain.maxY - row))
-    gl.bindTexture(gl.TEXTURE_2D, occupancyTexture)
-    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1)
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, n, n, 0, gl.RED, gl.UNSIGNED_BYTE, grid.map(value => value * 255))
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
     const hidden = new Set(config.hidden.map(([i, j]) => `${i}_${j}`))
     const border = [offset[0] + mask.left * scale, offset[1] + mask.top * scale, mask.width * scale, mask.height * scale]
     const tileLand = config.tiles.map(([col, row]) => {
@@ -1757,7 +1799,48 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
       const y = offset[1] + (domain.maxY - row) * scale
       return landBox({ minX: x, maxX: x + scale, minY: y, maxY: y + scale }, border, maskPixels)
     })
-    return { index, id: config.id, game: config.game, regions: config.regions, tiles: config.tiles, scale, offset, domain, levels: Math.log2(domain.tiles) + 2, cells: grid, occupancy, occupancyTexture, tileLocations, tileLand, visible: true, grid: [offset[0] + domain.minX * scale, offset[1] + (domain.maxY + 1) * scale, n * scale], hidden, borderTexture, maskPixels, border }
+    const layer = { index, id: config.id, game: config.game, regions: config.regions, tiles: config.tiles, scale, offset, domain, levels: Math.log2(domain.tiles) + 2, cells: grid, occupancy, occupancyTexture: null, tileLocations, tileLand, visible: true, grid: [offset[0] + domain.minX * scale, offset[1] + (domain.maxY + 1) * scale, n * scale], hidden, borderTexture, maskPixels, border }
+    uploadOccupancy(layer)
+    return layer
+  }
+
+  function maskUrl(game) {
+    return `${root}${game}/${games[game].mask.file}`
+  }
+
+  function uploadOccupancy(layer) {
+    const n = layer.domain.tiles
+    const grid = new Uint8Array(n * n)
+    layer.tiles.forEach(([col, row], index) => {
+      if (!shownLocations || shownLocations.has(layer.tileLocations[index])) {
+        grid[row * n + col] = 255
+      }
+    })
+    layer.visible = grid.some(Boolean)
+    layer.occupancyTexture ??= gl.createTexture()
+    gl.bindTexture(gl.TEXTURE_2D, layer.occupancyTexture)
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1)
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, n, n, 0, gl.RED, gl.UNSIGNED_BYTE, grid)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+  }
+
+  function ensureClouds() {
+    if (cloudsTexture) {
+      return
+    }
+    if (!cloudsFallback) {
+      cloudsFallback = gl.createTexture()
+      gl.bindTexture(gl.TEXTURE_2D, cloudsFallback)
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([128, 128, 255, 255]))
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+    }
+    clouds.then(bitmap => {
+      cloudsTexture ??= uploadTexture(bitmap, { mipmaps: true, wrap: gl.REPEAT, keep: true })
+      needsDraw = true
+    }).catch(() => {})
   }
 
   function landBox(tile, border, maskPixels) {
@@ -2049,19 +2132,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     },
     setLocations(locations) {
       shownLocations = locations ? new Set(locations) : null
-      for (const layer of layers) {
-        const n = layer.domain.tiles
-        const grid = new Uint8Array(n * n)
-        layer.tiles.forEach(([col, row], index) => {
-          if (!shownLocations || shownLocations.has(layer.tileLocations[index])) {
-            grid[row * n + col] = 255
-          }
-        })
-        layer.visible = grid.some(Boolean)
-        gl.bindTexture(gl.TEXTURE_2D, layer.occupancyTexture)
-        gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1)
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, n, n, 0, gl.RED, gl.UNSIGNED_BYTE, grid)
-      }
+      layers.forEach(uploadOccupancy)
       needsDraw = true
     },
     setReveal(points, radius, sites = points) {
@@ -2070,19 +2141,9 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
         if (reveal) {
           gl.deleteTexture(reveal.texture)
         }
+        revealArgs = [points, radius, sites]
         reveal = revealMask(points, radius, sites)
-        if (!cloudsTexture) {
-          if (!cloudsFallback) {
-            cloudsFallback = gl.createTexture()
-            gl.bindTexture(gl.TEXTURE_2D, cloudsFallback)
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([128, 128, 255, 255]))
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-          }
-          clouds.then(bitmap => {
-            cloudsTexture ??= uploadTexture(bitmap, { mipmaps: true, wrap: gl.REPEAT, keep: true })
-            needsDraw = true
-          }).catch(() => {})
-        }
+        ensureClouds()
       }
       needsDraw = true
     },

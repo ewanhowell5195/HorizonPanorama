@@ -80,21 +80,29 @@ export async function createBackdrop(canvas, { onSlide } = {}) {
     return shader
   }
 
-  const program = gl.createProgram()
-  gl.attachShader(program, compile(gl.VERTEX_SHADER, vertexSource))
-  gl.attachShader(program, compile(gl.FRAGMENT_SHADER, fragmentSource))
-  gl.bindAttribLocation(program, 0, "position")
-  gl.linkProgram(program)
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    throw new Error(gl.getProgramInfoLog(program))
+  let program = null
+  let uniforms = {}
+  let contextLost = false
+
+  function initGL() {
+    program = gl.createProgram()
+    gl.attachShader(program, compile(gl.VERTEX_SHADER, vertexSource))
+    gl.attachShader(program, compile(gl.FRAGMENT_SHADER, fragmentSource))
+    gl.bindAttribLocation(program, 0, "position")
+    gl.linkProgram(program)
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      throw new Error(gl.getProgramInfoLog(program))
+    }
+    uniforms = Object.fromEntries(["uImage", "uHatch", "uResolution", "uPixelRatio", "uView", "uAspect", "uFocus", "uAlpha", "uFog", "uHatchOffset", "uFogColor", "uFogOpacity", "uDark"].map(name => [name, gl.getUniformLocation(program, name)]))
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW)
+    gl.enableVertexAttribArray(0)
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0)
+    gl.enable(gl.BLEND)
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
   }
-  const uniforms = Object.fromEntries(["uImage", "uHatch", "uResolution", "uPixelRatio", "uView", "uAspect", "uFocus", "uAlpha", "uFog", "uHatchOffset", "uFogColor", "uFogOpacity", "uDark"].map(name => [name, gl.getUniformLocation(program, name)]))
-  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW)
-  gl.enableVertexAttribArray(0)
-  gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0)
-  gl.enable(gl.BLEND)
-  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+
+  initGL()
 
   function texture(source, wrap) {
     const result = gl.createTexture()
@@ -121,8 +129,8 @@ export async function createBackdrop(canvas, { onSlide } = {}) {
 
   const entries = Object.entries(await (await fetch("/backgrounds/backgrounds.json")).json()).flatMap(([game, files]) => files.map(file => ({ file, game })))
   const hatchImage = await bitmap("/map/hatch.webp", { colorSpaceConversion: "none" }).catch(() => null)
-  const hatch = texture(hatchImage || new ImageData(new Uint8ClampedArray([128, 128, 128, 255]), 1, 1), gl.REPEAT)
-  const blank = texture(new ImageData(new Uint8ClampedArray(FOG_COLOR.map(value => Math.round(value * 255)).concat(255)), 1, 1), gl.CLAMP_TO_EDGE)
+  let hatch = hatchTexture()
+  let blank = blankTexture()
   const cache = new Map()
   const phase = Math.random() * Math.PI * 2
   const hatchOffset = [Math.random(), Math.random()]
@@ -136,6 +144,31 @@ export async function createBackdrop(canvas, { onSlide } = {}) {
   let darkness = 0
   let darkTarget = 0
   let lastDraw = 0
+
+  function hatchTexture() {
+    return texture(hatchImage || new ImageData(new Uint8ClampedArray([128, 128, 128, 255]), 1, 1), gl.REPEAT)
+  }
+
+  function blankTexture() {
+    return texture(new ImageData(new Uint8ClampedArray(FOG_COLOR.map(value => Math.round(value * 255)).concat(255)), 1, 1), gl.CLAMP_TO_EDGE)
+  }
+
+  canvas.addEventListener("webglcontextlost", event => {
+    event.preventDefault()
+    contextLost = true
+  })
+
+  canvas.addEventListener("webglcontextrestored", () => {
+    contextLost = false
+    initGL()
+    hatch = hatchTexture()
+    blank = blankTexture()
+    cache.clear()
+    layers = [{ texture: blank, aspect: 16 / 9, start: -FADE_MS, drift: 0 }]
+    if (current) {
+      show(current)
+    }
+  })
 
   function nextEntry() {
     if (!order.length) {
@@ -177,7 +210,7 @@ export async function createBackdrop(canvas, { onSlide } = {}) {
 
   function frame(now) {
     requestAnimationFrame(frame)
-    if (active) {
+    if (active && !contextLost) {
       draw(now)
     }
   }

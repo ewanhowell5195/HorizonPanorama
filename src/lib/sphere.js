@@ -4,6 +4,8 @@ const SPIN_DECAY = 4
 const SPIN_MAX = 6
 const SPIN_STOP = 0.01
 const SPIN_HOLD_MS = 80
+const LOW_MEMORY_SIZE = 4096
+const LOW_MEMORY = (navigator.deviceMemory ?? 8) <= 4 || matchMedia("(pointer: coarse)").matches
 
 const vertexSource = `#version 300 es
   in vec2 position;
@@ -51,6 +53,10 @@ export function createSphere(canvas, { onHeading } = {}) {
   let spin = { yaw: 0, pitch: 0 }
   let lastMove = 0
   let lastFrame = performance.now()
+  let generation = 0
+  let shownUrl = null
+  let contextLost = false
+  const sources = new WeakMap()
 
   function compile(type, source) {
     const shader = gl.createShader(type)
@@ -62,23 +68,54 @@ export function createSphere(canvas, { onHeading } = {}) {
     return shader
   }
 
-  const program = gl.createProgram()
-  gl.attachShader(program, compile(gl.VERTEX_SHADER, vertexSource))
-  gl.attachShader(program, compile(gl.FRAGMENT_SHADER, fragmentSource))
-  gl.linkProgram(program)
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    throw new Error(gl.getProgramInfoLog(program))
-  }
-  const uniforms = Object.fromEntries(["panorama", "resolution", "yaw", "pitch", "tanHalf"].map(name => [name, gl.getUniformLocation(program, name)]))
+  let program = null
+  let uniforms = {}
 
-  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW)
-  const positionLocation = gl.getAttribLocation(program, "position")
-  gl.enableVertexAttribArray(positionLocation)
-  gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0)
+  function initGL() {
+    program = gl.createProgram()
+    gl.attachShader(program, compile(gl.VERTEX_SHADER, vertexSource))
+    gl.attachShader(program, compile(gl.FRAGMENT_SHADER, fragmentSource))
+    gl.linkProgram(program)
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      throw new Error(gl.getProgramInfoLog(program))
+    }
+    uniforms = Object.fromEntries(["panorama", "resolution", "yaw", "pitch", "tanHalf"].map(name => [name, gl.getUniformLocation(program, name)]))
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW)
+    const positionLocation = gl.getAttribLocation(program, "position")
+    gl.enableVertexAttribArray(positionLocation)
+    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0)
+  }
+
+  initGL()
+
+  canvas.addEventListener("webglcontextlost", event => {
+    event.preventDefault()
+    contextLost = true
+  })
+
+  canvas.addEventListener("webglcontextrestored", () => {
+    contextLost = false
+    generation++
+    initGL()
+    texture = null
+    if (shownUrl) {
+      reload(shownUrl)
+    }
+  })
+
+  async function reload(url) {
+    const bitmap = await decode(url)
+    if (shownUrl !== url || contextLost) {
+      bitmap.close()
+      return
+    }
+    texture = upload(bitmap)
+    needsDraw = true
+  }
 
   async function fitToTexture(source) {
-    const limit = gl.getParameter(gl.MAX_TEXTURE_SIZE)
+    const limit = Math.min(gl.getParameter(gl.MAX_TEXTURE_SIZE), LOW_MEMORY ? LOW_MEMORY_SIZE : Infinity)
     if (source.width <= limit && source.height <= limit) {
       return source
     }
@@ -113,7 +150,9 @@ export function createSphere(canvas, { onHeading } = {}) {
       blob = await response.blob()
     }
     onProgress?.(1)
-    return fitToTexture(await createImageBitmap(blob))
+    const bitmap = await fitToTexture(await createImageBitmap(blob))
+    sources.set(bitmap, url)
+    return bitmap
   }
 
   function upload(image) {
@@ -128,6 +167,7 @@ export function createSphere(canvas, { onHeading } = {}) {
     if (anisotropy) {
       gl.texParameterf(gl.TEXTURE_2D, anisotropy.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(8, gl.getParameter(anisotropy.MAX_TEXTURE_MAX_ANISOTROPY_EXT)))
     }
+    sources.set(result, { url: sources.get(image), generation })
     image.close()
     return result
   }
@@ -153,7 +193,7 @@ export function createSphere(canvas, { onHeading } = {}) {
       spin = Math.hypot(spin.yaw, spin.pitch) * decay < SPIN_STOP ? { yaw: 0, pitch: 0 } : { yaw: spin.yaw * decay, pitch: spin.pitch * decay }
     }
     resize()
-    if (!needsDraw || !texture || !canvas.width) {
+    if (contextLost || !needsDraw || !texture || !canvas.width) {
       return
     }
     gl.viewport(0, 0, canvas.width, canvas.height)
@@ -289,7 +329,12 @@ export function createSphere(canvas, { onHeading } = {}) {
       if (texture) {
         gl.deleteTexture(texture)
       }
-      texture = next
+      const source = sources.get(next)
+      shownUrl = source?.url ?? null
+      texture = source && source.generation !== generation ? null : next
+      if (!texture && shownUrl) {
+        reload(shownUrl)
+      }
       view.yaw = yaw
       view.pitch = pitch
       view.fov = 75
