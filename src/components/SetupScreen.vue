@@ -23,7 +23,7 @@ const maxLabel = computed(() => count.value ? `Up to ${(props.rounds * MAX_POINT
 <template>
   <section class="setup" :class="{ visible }">
     <header class="setup-top rise">
-      <button class="mark" type="button" title="Main menu" @click="emit('back')"><i class="mark-emblem"></i>Horizon Wayfinder</button>
+      <a class="mark" href="/" title="Main menu" @click.exact.prevent="emit('back')"><i class="mark-emblem"></i>Horizon Wayfinder</a>
     </header>
     <div class="setup-main">
       <p class="eyebrow rise" style="--i: 1">{{ GAME_NAMES[games] }}</p>

@@ -6,7 +6,7 @@ const emit = defineEmits(["back"])
 <template>
   <section class="atlas" :class="{ visible, ready }">
     <header class="atlas-top">
-      <button class="mark" type="button" title="Main menu" @click="emit('back')"><i class="mark-emblem"></i>Horizon Wayfinder</button>
+      <a class="mark" href="/" title="Main menu" @click.exact.prevent="emit('back')"><i class="mark-emblem"></i>Horizon Wayfinder</a>
     </header>
     <div class="atlas-card">
       <p class="eyebrow">Map</p>

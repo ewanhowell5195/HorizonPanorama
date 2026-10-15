@@ -84,20 +84,15 @@ button.secondary {
   border: 1px solid var(--border);
 }
 
-button.mark {
-  padding: 0;
-  font: inherit;
-  letter-spacing: inherit;
-  text-transform: inherit;
+a.mark {
   color: var(--text);
-  background: none;
-  border-radius: 0;
+  text-decoration: none;
+  user-select: none;
   transition: color 0.2s ease;
 }
 
-button.mark:hover {
+a.mark:hover {
   color: var(--accent);
-  filter: none;
 }
 
 .mark-emblem {

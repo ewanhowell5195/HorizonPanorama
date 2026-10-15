@@ -38,7 +38,7 @@ function menu() {
 <template>
   <section class="challenge" :class="{ visible }">
     <header class="challenge-top rise">
-      <button class="mark" type="button" title="Main menu" @click="menu"><i class="mark-emblem"></i>Horizon Wayfinder</button>
+      <a class="mark" href="/" title="Main menu" @click.exact.prevent="menu"><i class="mark-emblem"></i>Horizon Wayfinder</a>
     </header>
     <div class="challenge-main">
       <p class="eyebrow rise" style="--i: 1">Shared game</p>

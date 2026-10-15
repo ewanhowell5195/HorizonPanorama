@@ -69,7 +69,7 @@ function playSeed() {
 <template>
   <section class="games" :class="{ visible }">
     <header class="games-top rise">
-      <button class="mark" type="button" title="Main menu" @click="emit('back')"><i class="mark-emblem"></i>Horizon Wayfinder</button>
+      <a class="mark" href="/" title="Main menu" @click.exact.prevent="emit('back')"><i class="mark-emblem"></i>Horizon Wayfinder</a>
     </header>
     <div class="games-main">
       <p class="eyebrow rise" style="--i: 1">New game</p>
