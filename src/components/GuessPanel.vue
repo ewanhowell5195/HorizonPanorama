@@ -43,7 +43,7 @@ watch(() => props.hidden, () => open.value = false)
     </div>
     <div class="actions">
       <button class="secondary map-toggle" type="button" @click="open = !open">{{ swapped ? "View" : "Map" }}</button>
-      <button type="button" :disabled="!hasGuess" @click="guess">{{ guessLabel }}</button>
+      <button class="submit" type="button" :disabled="!hasGuess" @click="guess">{{ guessLabel }}</button>
     </div>
   </div>
 </template>
@@ -171,9 +171,12 @@ watch(() => props.hidden, () => open.value = false)
   flex: 1;
 }
 
-.actions button:disabled {
-  color: rgba(17, 17, 17, 0.6);
-  background: color-mix(in srgb, var(--accent) 55%, #14161a);
+.submit {
+  padding: 15px 20px;
+  font-size: 15px;
+  letter-spacing: 0.22em;
+  clip-path: polygon(0 0, calc(100% - 32px) 0, 100% 32px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+  transition: filter 0.2s ease, opacity 0.2s ease;
 }
 
 .sphere-box {

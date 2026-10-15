@@ -79,7 +79,6 @@ function view(index) {
   gap: 12px;
   padding: 4px 4px 4px 8px;
   background: rgba(255, 255, 255, 0.04);
-  border-radius: 6px;
 }
 
 .rounds span {
@@ -108,7 +107,6 @@ function view(index) {
   padding: 6px 6px 6px 10px;
   text-align: left;
   background: rgba(255, 255, 255, 0.04);
-  border-radius: 6px;
 }
 
 .share small {

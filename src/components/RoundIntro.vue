@@ -190,7 +190,11 @@ const digit = computed(() => props.waiting || props.countdown <= 0 ? "" : props.
 
 .begin {
   flex: none;
-  padding: 14px 24px;
+  padding: 17px 30px 17px 34px;
+  font-size: 17px;
+  letter-spacing: 0.22em;
+  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+  transition: filter 0.2s ease, opacity 0.25s ease, transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .load {

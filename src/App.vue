@@ -1204,7 +1204,6 @@ onBeforeUnmount(() => {
   padding: 8px 8px 8px 18px;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 10px;
   backdrop-filter: blur(8px);
   transform: translateX(-50%);
 }

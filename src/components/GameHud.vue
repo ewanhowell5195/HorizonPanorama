@@ -47,7 +47,6 @@ const emblem = computed(() => `/cauldrons/round-${cauldronFor(props.round)}.png`
   padding: 8px 14px;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 8px;
   backdrop-filter: blur(6px);
 }
 

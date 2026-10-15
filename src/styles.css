@@ -61,7 +61,7 @@ button {
   color: #111;
   background: var(--accent);
   border: 0;
-  border-radius: 8px;
+  border-radius: 0;
   padding: 10px 22px;
   cursor: pointer;
   letter-spacing: 0.04em;
@@ -73,9 +73,8 @@ button:hover:not(:disabled) {
 }
 
 button:disabled {
-  cursor: default;
-  color: var(--muted);
-  background: rgba(255, 255, 255, 0.1);
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 button.secondary {
@@ -190,7 +189,6 @@ a.mark[href]:hover {
   text-align: center;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 12px;
   backdrop-filter: blur(10px);
 }
 
@@ -210,7 +208,6 @@ a.mark[href]:hover {
   margin: 0 0 16px;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
 }
 
 .bar div {

@@ -89,7 +89,6 @@ const TABS = [{ id: "map", name: "Map" }, { id: "photospheres", name: "Photosphe
   letter-spacing: 0.18em;
   color: var(--muted);
   background: none;
-  border-radius: 7px;
   transition: color 0.2s ease, background 0.2s ease;
 }
 
