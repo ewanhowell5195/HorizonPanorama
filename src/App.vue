@@ -46,7 +46,7 @@ const PIN_FADE_MS = 400
 const REVEAL_COUNT_DELAY_MS = 1000
 const REVEAL_COUNT_MS = 1600
 const REVEAL_DOCK_MS = 3000
-const REVEAL_HASH = "#reveal"
+const SEE_ALL_HASH = "#secret_dev_mode_see_all"
 const SECRET = "horizon-panorama"
 const SAVED_GAME = "savedGame"
 const GAME_SUFFIXES = { both: "", hzd: "ZeroDawn", hfw: "ForbiddenWest" }
@@ -111,8 +111,8 @@ const isRound = computed(() => phase.value === "round")
 const homeShown = computed(() => isMenu.value && !challenge.value && !setup.value && !choosing.value && !atlas.value && !restoring.value)
 const markLabel = computed(() => !isMenu.value || restoring.value || viewing.value ? null : homeShown.value ? "Photosphere guessing game" : "Horizon Wayfinder")
 const showsMap = computed(() => (phase.value === "result" || phase.value === "summary" || atlas.value) && !viewing.value)
-const revealAll = ref(location.hash === REVEAL_HASH)
-const atlasRounds = computed(() => revealAll.value ? pool.value : pool.value.filter(round => found.value.has(round.name)))
+const seeAll = ref(location.hash === SEE_ALL_HASH)
+const atlasRounds = computed(() => seeAll.value ? pool.value : pool.value.filter(round => found.value.has(round.name)))
 const playing = computed(() => isRound.value && !intro.value)
 const swapView = computed(() => swapped.value && playing.value)
 const sphereActive = computed(() => playing.value || Boolean(viewing.value && !viewing.value.loading))
@@ -1127,7 +1127,7 @@ onMounted(async () => {
 })
 
 window.addEventListener("hashchange", () => {
-  revealAll.value = location.hash === REVEAL_HASH
+  seeAll.value = location.hash === SEE_ALL_HASH
 })
 
 watch(() => Boolean(viewing.value?.loading || (atlas.value && !atlasReady.value) || mapWaiting.value), shown => {
@@ -1216,7 +1216,7 @@ onBeforeUnmount(() => {
     <a class="mark" :href="homeShown ? null : '/'" :title="homeShown ? null : 'Main menu'" @click.exact="markClick"><i class="mark-emblem"></i><Transition name="mark" mode="out-in"><span v-if="markLabel" :key="markLabel" class="mark-text">{{ markLabel }}</span></Transition></a>
   </div>
   <SlideBackdrop ref="backdrop" :active="((isMenu && !atlas) || intro) && !restoring" :timer="isMenu && !atlas && !restoring" :caption="!choosing" />
-  <AtlasScreen :visible="isMenu && atlas && !viewing" :ready="atlasReady" :found="atlasRounds.length" :total="pool.length" :tab="mapTab" @tab="setMapTab" />
+  <AtlasScreen :visible="isMenu && atlas && !viewing" :ready="atlasReady" :found="atlasRounds.length" :total="pool.length" :counter="!seeAll" :tab="mapTab" @tab="setMapTab" />
   <ChallengeScreen :visible="isMenu && Boolean(challenge)" :ready="canPlay" :rules="challenge?.seed.rules" :games="challenge?.seed.games" :rounds="challenge?.seed.rounds.length || 0" :score="challenge?.score" :error="seedError" @play="playChallenge" />
   <HomeScreen :visible="homeShown" :count="pool.length" :found="found.size" :ready="canPlay" :best="overall.best" :last="overall.last" :average="overall.average" @play="goGames" @atlas="goAtlas" />
   <GamesScreen :visible="isMenu && !challenge && choosing" :ready="canPlay" :counts="counts" :location-counts="locationCounts" :available="choices.length" :games="games" :preview="previewGame" :lit="litAreas" :lit-tribes="litTribes" :tribe-areas="tribeAreas" :frames="tribeFrames" :tribes="availableTribes" :tribe-filter="tribeFilter" :tribe-counts="tribeCounts" :matched="chosenGames !== 'custom'" :custom-rules="customRules" :seed="seedInput" :seed-error="seedError" @games="setGames" @rule="setRule" @tribe-filter="setTribeFilter" @next="goSetup" @seed="openChallenge" />

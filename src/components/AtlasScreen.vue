@@ -1,5 +1,5 @@
 <script setup>
-defineProps({ visible: Boolean, ready: Boolean, found: Number, total: Number, tab: String })
+defineProps({ visible: Boolean, ready: Boolean, found: Number, total: Number, counter: Boolean, tab: String })
 const emit = defineEmits(["tab"])
 const TABS = [{ id: "map", name: "Map" }, { id: "photospheres", name: "Photospheres" }]
 </script>
@@ -13,7 +13,7 @@ const TABS = [{ id: "map", name: "Map" }, { id: "photospheres", name: "Photosphe
       <nav class="atlas-tabs" role="tablist">
         <button v-for="option in TABS" :key="option.id" type="button" role="tab" :class="{ selected: tab === option.id }" :aria-selected="tab === option.id" @click="emit('tab', option.id)">{{ option.name }}</button>
       </nav>
-      <div class="atlas-extra" :class="{ open: tab === 'photospheres' }">
+      <div class="atlas-extra" :class="{ open: counter && tab === 'photospheres' }">
         <div>
           <strong>{{ found }} / {{ total }} found</strong>
         </div>
