@@ -40,7 +40,16 @@ export const SHARED_TRIBES = { tenakthAllClans: ["tribeTenakthLowlandClan", "tri
 const SETTINGS = RULES.concat(LOCATIONS, TRIBES)
 const ALL = Object.fromEntries(SETTINGS.map(setting => [setting.id, true]))
 
-export const MODE_RULES = { normal: ALL, hard: Object.assign({}, ALL, { pan: false, zoom: false }) }
+export const MODE_RULES = { easy: ALL, normal: Object.assign({}, ALL, { icons: false, map3d: false }), hard: Object.assign({}, ALL, { pan: false, zoom: false, icons: false, map3d: false, readouts: false }) }
+
+export const MODES = [
+  { id: "easy", name: "Easy", summary: "Everything on", features: ["Look around and zoom", "Compass, scale, elevation", "Map icons and 3D map"] },
+  { id: "normal", name: "Normal", summary: "No map icons or 3D map", features: ["Look around and zoom", "Compass, scale, elevation", "Flat map, no icons"] },
+  { id: "hard", name: "Hard", summary: "Fixed view, compass only", features: ["Fixed view, no zoom", "Compass only", "Flat map, no icons"] },
+  { id: "custom", name: "Custom", summary: "Choose what you get", features: ["Pick each rule yourself"] }
+]
+
+export const MODE_NAMES = Object.fromEntries(MODES.map(mode => [mode.id, mode.name]))
 
 export function fullRules(rules) {
   return Object.fromEntries(SETTINGS.map(setting => [setting.id, rules?.[setting.id] !== false]))

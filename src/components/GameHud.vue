@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from "vue"
 import { cauldronFor } from "../lib/cauldrons.js"
+import { MODE_NAMES } from "../lib/rules.js"
 import HudCompass from "./HudCompass.vue"
 
 const props = defineProps({ round: Number, count: Number, score: Number, heading: Number, hidden: Boolean, mode: String, compass: Boolean, swapped: Boolean, faded: Boolean })
@@ -14,7 +15,7 @@ const emblem = computed(() => `/cauldrons/${cauldronFor(props.round)}.webp`)
       <img class="emblem" :src="emblem" alt="">
       <div class="stat"><span>Round</span><strong>{{ round }} / {{ count }}</strong></div>
       <div class="stat"><span>Score</span><strong>{{ score.toLocaleString() }}</strong></div>
-      <div v-if="mode !== 'normal'" class="stat"><span>Mode</span><strong class="mode">{{ mode === "hard" ? "Hard" : "Custom" }}</strong></div>
+      <div v-if="mode !== 'normal'" class="stat"><span>Mode</span><strong class="mode">{{ MODE_NAMES[mode] }}</strong></div>
     </div>
     <Teleport to="#sphere-box" defer :disabled="!swapped">
       <HudCompass v-if="compass" :heading="heading" :boxed="swapped" :faded="faded" />

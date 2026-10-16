@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from "vue"
 import { MAX_POINTS } from "../lib/game.js"
-import { LOCATIONS, locationNames, missingRules, modeOf, tribesOf } from "../lib/rules.js"
+import { LOCATIONS, MODES, MODE_NAMES, locationNames, missingRules, modeOf, tribesOf } from "../lib/rules.js"
 import ArrowIcon from "./ArrowIcon.vue"
 import MenuScreen from "./MenuScreen.vue"
 import SlapTitle from "./SlapTitle.vue"
@@ -11,9 +11,9 @@ const emit = defineEmits(["play"])
 
 const hasScore = computed(() => props.score !== null && props.score !== undefined)
 const mode = computed(() => props.rules ? modeOf(props.rules) : "normal")
-const modeName = computed(() => ({ normal: "Normal", hard: "Hard", custom: "Custom" })[mode.value])
+const modeName = computed(() => MODE_NAMES[mode.value])
 const missing = computed(() => props.rules ? missingRules(props.rules) : [])
-const modeDetail = computed(() => mode.value === "hard" ? "Fixed view, no zoom" : missing.value.length ? `No ${new Intl.ListFormat("en", { type: "disjunction" }).format(missing.value)}` : "Look around freely")
+const modeDetail = computed(() => mode.value !== "custom" ? MODES.find(option => option.id === mode.value).summary : missing.value.length ? `No ${new Intl.ListFormat("en", { type: "disjunction" }).format(missing.value)}` : "Everything on")
 const gameName = computed(() => ({ hzd: "Zero Dawn", hfw: "Forbidden West" })[props.games] || "Both games")
 const someLocations = computed(() => props.rules && LOCATIONS.some(location => !props.rules[location.id]))
 const placeDetail = computed(() => someLocations.value ? new Intl.ListFormat("en").format(locationNames(props.rules)) : props.games === "hzd" || props.games === "hfw" ? `Horizon ${gameName.value} only` : "Zero Dawn and Forbidden West")

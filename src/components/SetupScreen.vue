@@ -1,17 +1,12 @@
 <script setup>
 import { computed } from "vue"
 import { MAX_POINTS } from "../lib/game.js"
-import { RULES } from "../lib/rules.js"
+import { MODES, RULES } from "../lib/rules.js"
 import ArrowIcon from "./ArrowIcon.vue"
 import MenuScreen from "./MenuScreen.vue"
 import TickerNumber from "./TickerNumber.vue"
 
 const GAME_NAMES = { both: "Both games", hzd: "Zero Dawn", hfw: "Forbidden West", custom: "Custom locations" }
-const MODES = [
-  { id: "normal", name: "Normal", detail: "Look around freely" },
-  { id: "hard", name: "Hard", detail: "Fixed view, no zoom" },
-  { id: "custom", name: "Custom", detail: "Choose what you get" }
-]
 
 const props = defineProps({ visible: Boolean, ready: Boolean, scored: Boolean, available: Number, rounds: Number, games: String, mode: String, customRules: Object, best: Number, last: Number, average: Number })
 const emit = defineEmits(["start", "mode", "rule"])
@@ -29,7 +24,7 @@ const maxLabel = computed(() => count.value ? `Up to ${(props.rounds * MAX_POINT
     <div class="group rise" style="--i: 3">
       <small class="label">Mode</small>
       <div class="options" role="radiogroup" aria-label="Mode">
-        <button v-for="option in MODES" :key="option.id" class="choice option" :class="{ selected: mode === option.id }" type="button" role="radio" :aria-checked="mode === option.id" @click="emit('mode', option.id)"><strong>{{ option.name }}</strong><span>{{ option.detail }}</span></button>
+        <button v-for="option in MODES" :key="option.id" class="choice option" :class="{ selected: mode === option.id }" type="button" role="radio" :aria-checked="mode === option.id" @click="emit('mode', option.id)"><strong>{{ option.name }}</strong><span v-for="feature in option.features" :key="feature">{{ feature }}</span></button>
       </div>
     </div>
     <div class="rise" style="--i: 4">
@@ -75,16 +70,20 @@ const maxLabel = computed(() => count.value ? `Up to ${(props.rounds * MAX_POINT
 }
 
 .options {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
 }
 
 .option {
   display: grid;
+  align-content: start;
   gap: 2px;
-  min-width: 170px;
-  padding: 10px 16px;
+  padding: 10px 14px 12px;
+}
+
+.option strong {
+  margin-bottom: 4px;
 }
 
 .option strong {
@@ -128,9 +127,8 @@ const maxLabel = computed(() => count.value ? `Up to ${(props.rounds * MAX_POINT
 }
 
 @media (max-width: 760px) {
-  .option {
-    flex: 1;
-    min-width: 0;
+  .options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 </style>

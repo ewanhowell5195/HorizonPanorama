@@ -51,7 +51,7 @@ const SECRET = "horizon-panorama"
 const SAVED_GAME = "savedGame"
 const GAME_SUFFIXES = { both: "", hzd: "ZeroDawn", hfw: "ForbiddenWest" }
 const GAME_TITLES = { hzd: "Horizon Zero Dawn Remastered", hfw: "Horizon Forbidden West" }
-const COMBINATIONS = ["normal", "hard"].flatMap(modeName => Object.keys(GAME_SUFFIXES).map(which => [modeName, which]))
+const COMBINATIONS = ["easy", "normal", "hard"].flatMap(modeName => Object.keys(GAME_SUFFIXES).map(which => [modeName, which]))
 const TIPS = [
   "Hover the map in the corner to open it. The button in its corner makes it bigger.",
   "Right drag pans the map without moving your pin.",
@@ -65,7 +65,7 @@ const ZOOM_TIP = "Scroll or pinch to zoom in on far off details."
 const LOCKED_TIP = "The view is locked. Everything you get is already in frame."
 
 const phase = ref("menu")
-const mode = ref(["hard", "custom"].includes(readStore("mode")) ? readStore("mode") : "normal")
+const mode = ref(["easy", "hard", "custom"].includes(readStore("mode")) ? readStore("mode") : "normal")
 const customRules = ref(fullRules(readJson("customRules")))
 const tribeFilter = ref(readStore("tribeFilter") === "true")
 const games = ref("both")
@@ -437,7 +437,7 @@ function playChallenge() {
 }
 
 function scoreKey(name, modeName = mode.value, which = gamesOf(rules.value)) {
-  return `${name}${modeName === "hard" ? "Hard" : ""}${GAME_SUFFIXES[which]}`
+  return `${name}${{ easy: "Easy", hard: "Hard" }[modeName] || ""}${GAME_SUFFIXES[which]}`
 }
 
 function refreshScores() {

@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from "vue"
+import { MODE_NAMES } from "../lib/rules.js"
 
 const RING = 2 * Math.PI * 28
 
@@ -13,7 +14,7 @@ const digit = computed(() => props.waiting || props.countdown <= 0 ? "" : props.
 
 <template>
   <section class="round-intro" :class="{ visible }">
-    <p class="eyebrow rise">Round<span v-if="mode !== 'normal'" class="mode">{{ mode === "hard" ? "Hard" : "Custom" }}</span></p>
+    <p class="eyebrow rise">Round<span v-if="mode !== 'normal'" class="mode">{{ MODE_NAMES[mode] }}</span></p>
     <div class="number rise" style="--i: 1"><span>{{ number }}</span><small>/ {{ count }}</small></div>
     <div class="start rise" style="--i: 2">
       <Transition name="swap" mode="out-in">
