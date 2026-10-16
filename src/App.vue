@@ -68,7 +68,7 @@ const phase = ref("menu")
 const mode = ref(["hard", "custom"].includes(readStore("mode")) ? readStore("mode") : "normal")
 const customRules = ref(fullRules(readJson("customRules")))
 const tribeFilter = ref(readStore("tribeFilter") === "true")
-const games = ref(Object.hasOwn(GAME_SUFFIXES, readStore("games")) || readStore("games") === "custom" ? readStore("games") : "both")
+const games = ref("both")
 const intro = ref(false)
 const setup = ref(false)
 const choosing = ref(false)
@@ -208,6 +208,7 @@ function screenFromPath() {
 }
 
 function goGames() {
+  setGames("both")
   enter("games")
   show("games")
 }
@@ -475,7 +476,6 @@ function setTribeFilter(value) {
 
 function setGames(value) {
   games.value = value
-  writeStore("games", value)
   refreshScores()
 }
 
