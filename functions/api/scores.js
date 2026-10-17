@@ -3,6 +3,7 @@ import { decodePosition } from "../../src/lib/position.js"
 import { MISS_METRES } from "../../src/lib/stats.js"
 
 const GAMES = ["hzd", "hfw"]
+const HEAT_GUESSES = 256
 
 let schemaReady = null
 let answers = null
@@ -63,8 +64,8 @@ export async function onRequestGet({ env, request }) {
   await ensureSchema(env, request)
   const name = new URL(request.url).searchParams.get("name")
   if (name) {
-    const { results } = await env.DB.prepare("SELECT score, game, x, y FROM guesses WHERE name = ?").bind(name).all()
-    return Response.json(results, { headers: { "Cache-Control": "public, max-age=300" } })
+    const { results } = await env.DB.prepare("SELECT game, x, y FROM guesses WHERE name = ? ORDER BY id DESC LIMIT ?").bind(name, HEAT_GUESSES).all()
+    return Response.json(results.map(row => [row.game, row.x, row.y]), { headers: { "Cache-Control": "public, max-age=300" } })
   }
   const { results } = await env.DB.prepare("SELECT name, count, total, distance FROM totals").all()
   return Response.json(Object.fromEntries(results.map(row => [row.name, { count: row.count, average: Math.round(row.total / row.count), distance: Math.round(row.distance / row.count) }])), { headers: { "Cache-Control": "public, max-age=300" } })

@@ -47,7 +47,9 @@ watch(() => props.selected, selected => {
                 <dd>{{ shown.difficulty }} / 10</dd>
               </template>
             </dl>
-            <button type="button" @click="emit('view')">View photosphere</button>
+            <div class="button-row">
+              <button type="button" @click="emit('view')">View photosphere</button>
+            </div>
           </div>
         </div>
       </div>
@@ -153,6 +155,7 @@ watch(() => props.selected, selected => {
 }
 
 .dev-info strong {
+  padding: 0;
   font-family: var(--font-condensed);
   font-weight: 400;
   font-size: 24px;
@@ -182,7 +185,7 @@ watch(() => props.selected, selected => {
   text-align: right;
 }
 
-.dev-info button {
+.dev-info .button-row {
   margin-top: 4px;
 }
 

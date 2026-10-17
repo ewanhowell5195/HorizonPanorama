@@ -244,6 +244,9 @@ function addFound(name) {
 
 function setMapTab(tab) {
   mapTab.value = tab
+  if (tab !== "dev") {
+    setDevParam(null)
+  }
   writeStore("mapTab", tab)
 }
 
@@ -263,20 +266,43 @@ function clearAtlas() {
   bigmap.value?.setHeat(null)
 }
 
+function setDevParam(name) {
+  const url = new URL(location.href)
+  if (name) {
+    url.searchParams.set("dev", name)
+  } else {
+    url.searchParams.delete("dev")
+  }
+  if (url.href !== location.href) {
+    history.replaceState(history.state, "", url)
+  }
+}
+
+function deselectDev() {
+  devSelected.value = null
+  setDevParam(null)
+  atlasMarkers.forEach(({ element }) => element.classList.remove("selected", "dimmed"))
+  bigmap.value.setHeat(null)
+}
+
 function selectDev(round, stats) {
-  const same = devSelected.value?.name === round.name
-  devSelected.value = same ? null : Object.assign({ name: round.name, title: LOCATIONS.find(location => location.id === round.location)?.name || "" }, stats || { count: 0 })
+  if (devSelected.value?.name === round.name) {
+    deselectDev()
+    return
+  }
+  setDevParam(round.name)
+  devSelected.value = Object.assign({ name: round.name, title: LOCATIONS.find(location => location.id === round.location)?.name || "" }, stats || { count: 0 })
   atlasMarkers.forEach(({ element }) => {
-    element.classList.toggle("selected", !same && element.dataset.name === round.name)
-    element.classList.toggle("dimmed", !same && element.dataset.name !== round.name)
+    element.classList.toggle("selected", element.dataset.name === round.name)
+    element.classList.toggle("dimmed", element.dataset.name !== round.name)
   })
-  if (same || !stats) {
+  if (!stats) {
     bigmap.value.setHeat(null)
     return
   }
   loadGuesses(round.name).then(guesses => {
     if (devSelected.value?.name === round.name) {
-      bigmap.value.setHeat(guesses.map(guess => bigmap.value.place(guess.game, guess.x, guess.y)))
+      bigmap.value.setHeat(guesses.map(([game, x, y]) => bigmap.value.place(game, x, y)))
     }
   }, error => console.warn(error))
 }
@@ -308,6 +334,10 @@ async function drawAtlas() {
     atlasMarkers.push({ element, marker: bigmap.value.addMarker(element, place.x, place.y) })
     return { x: place.x, y: place.y }
   })
+  const remembered = scores && atlasRounds.value.find(round => round.name === new URLSearchParams(location.search).get("dev"))
+  if (remembered) {
+    selectDev(remembered, scores[remembered.name])
+  }
   const sites = pool.value.map(round => {
     const place = bigmap.value.place(round.game, round.x, round.y)
     return { x: place.x, y: place.y }
@@ -1164,10 +1194,13 @@ onMounted(async () => {
   } else {
     const path = screenFromPath()
     sharedView = path === "atlas" ? new URLSearchParams(location.search).get("view") : null
+    const devPick = path === "atlas" && devMode.value ? new URLSearchParams(location.search).get("dev") : null
     if (sharedView) {
       mapTab.value = "photospheres"
+    } else if (devPick) {
+      mapTab.value = "dev"
     }
-    replaceScreen(["games", "atlas"].includes(path) ? path : ["setup", "game"].includes(path) ? "setup" : "home", ["games", "atlas"].includes(path) ? screenUrl(path) + location.hash : undefined)
+    replaceScreen(["games", "atlas"].includes(path) ? path : ["setup", "game"].includes(path) ? "setup" : "home", ["games", "atlas"].includes(path) ? screenUrl(path) + (devPick ? `?dev=${encodeURIComponent(devPick)}` : "") + location.hash : undefined)
   }
   setup.value = history.state.screen === "setup"
   choosing.value = history.state.screen === "games"

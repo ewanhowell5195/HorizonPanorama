@@ -6,8 +6,8 @@ const UNIT_METRES = 256
 const REVEAL_PIXELS_PER_UNIT = 24
 const REVEAL_MAX_PIXELS = 4096
 const REVEAL_SOLID = 0.3
-const HEAT_METRES = 500
-const HEAT_PIXELS_PER_UNIT = 4
+const HEAT_METRES = 150
+const HEAT_PIXELS_PER_UNIT = 16
 const HEAT_MAX_PIXELS = 2048
 const HEAT_FADE_SECONDS = 0.4
 const CLOUD_METRES = 16384
@@ -159,7 +159,7 @@ const fragmentSource = `#version 300 es
       float heat = inHeat ? texture(uHeat, heatUv).r : 0.0;
       vec3 dim = vec3(dot(color, vec3(0.299, 0.587, 0.114)) * 0.45);
       vec3 ramp = heat < 0.5 ? mix(vec3(0.1, 0.35, 1.0), vec3(1.0, 0.85, 0.1), heat * 2.0) : mix(vec3(1.0, 0.85, 0.1), vec3(1.0, 0.12, 0.08), heat * 2.0 - 1.0);
-      color = mix(color, mix(dim, ramp, smoothstep(0.02, 0.3, heat) * 0.85), uHeatOn);
+      color = mix(color, mix(dim, 1.0 - (1.0 - dim) * (1.0 - ramp), smoothstep(0.02, 0.3, heat)), uHeatOn);
     }
     outColor = gl_FrontFacing ? vec4(color * alpha * shade, alpha) : vec4(0.0, 0.0, 0.0, 1.0);
   }`
@@ -2159,7 +2159,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1)
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, width, height, 0, gl.RED, gl.UNSIGNED_BYTE, Uint8Array.from(sum, value => Math.round(value / peak * 255)))
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, width, height, 0, gl.RED, gl.UNSIGNED_BYTE, Uint8Array.from(sum, value => Math.round(Math.sqrt(value / peak) * 255)))
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4)
     return { texture, x: minX, y: maxY, width: maxX - minX, height: maxY - minY }
   }

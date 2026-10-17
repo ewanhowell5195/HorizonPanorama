@@ -20,7 +20,7 @@ export function recordGuess(name, guess) {
 export function loadScores() {
   if (!scores || performance.now() - loadedAt > REFRESH_MS) {
     loadedAt = performance.now()
-    scores = fetch("/api/scores").then(response => response.ok ? response.json() : Promise.reject(new Error(`GET /api/scores: ${response.status}`))).then(rankDifficulty).catch(error => {
+    scores = fetch("/api/scores", { cache: "no-cache" }).then(response => response.ok ? response.json() : Promise.reject(new Error(`GET /api/scores: ${response.status}`))).then(rankDifficulty).catch(error => {
       console.warn(error)
       scores = null
       return {}
@@ -51,5 +51,5 @@ export function scoreColour(stats) {
 }
 
 export function loadGuesses(name) {
-  return fetch(`/api/scores?name=${encodeURIComponent(name)}`).then(response => response.ok ? response.json() : Promise.reject(new Error(`GET /api/scores?name=${name}: ${response.status}`)))
+  return fetch(`/api/scores?name=${encodeURIComponent(name)}`, { cache: "no-cache" }).then(response => response.ok ? response.json() : Promise.reject(new Error(`GET /api/scores?name=${name}: ${response.status}`)))
 }
