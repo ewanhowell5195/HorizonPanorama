@@ -258,7 +258,7 @@ export function createSphere(canvas, { onHeading } = {}) {
     gl.uniform1i(uniforms.hasHatch, hatch ? 1 : 0)
     gl.uniform1f(uniforms.hatchSize, HATCH_SCREEN_PX * canvas.width / Math.max(canvas.clientWidth, 1))
     gl.drawArrays(gl.TRIANGLES, 0, 3)
-    onHeading?.(((view.yaw * 180 / Math.PI) % 360 + 360) % 360)
+    onHeading?.(((view.yaw * 180 / Math.PI) % 360 + 360) % 360, view)
     needsDraw = reveal < 1
     if (!needsDraw) {
       revealed?.()
