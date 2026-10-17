@@ -681,7 +681,7 @@ async function startRound() {
   prepare(round, current)
   status.progress = 1
   status.label = "Ready"
-  sphere.value.present(round.prepared.texture, round.prepared.view.yaw, round.prepared.view.pitch)
+  const revealed = sphere.value.present(round.prepared.texture, round.prepared.view.yaw, round.prepared.view.pitch)
   presentedRound = current.index
   presentedAtlas = null
   sphere.value.setControls({ pan: current.rules.pan, zoom: current.rules.zoom })
@@ -689,7 +689,11 @@ async function startRound() {
   round.image = null
   introRunning = false
   intro.value = false
-  preload(current.index + 1)
+  const next = current.index + 1
+  await revealed
+  if (game === current) {
+    preload(next)
+  }
 }
 
 function removeGuess() {

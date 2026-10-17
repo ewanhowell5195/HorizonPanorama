@@ -1,3 +1,5 @@
+import { NOISE_REVEAL_GLSL } from "./noise.js"
+
 const MIN_FOV = 15
 const MAX_FOV = 110
 const SPIN_DECAY = 4
@@ -5,6 +7,9 @@ const SPIN_MAX = 6
 const SPIN_STOP = 0.01
 const SPIN_HOLD_MS = 80
 const LOW_MEMORY_SIZE = 4096
+const REVEAL_SECONDS = 1.2
+const HATCH_SCREEN_PX = 600
+const REVEAL_BAND = 0.5
 const LOW_MEMORY = (navigator.deviceMemory ?? 8) <= 4 || matchMedia("(pointer: coarse)").matches
 
 const vertexSource = `#version 300 es
@@ -20,8 +25,13 @@ const fragmentSource = `#version 300 es
   uniform float yaw;
   uniform float pitch;
   uniform float tanHalf;
+  uniform float reveal;
+  uniform sampler2D hatch;
+  uniform float hatchSize;
+  uniform bool hasHatch;
   out vec4 color;
   const float PI = 3.14159265358979;
+  ${NOISE_REVEAL_GLSL}
 
   void main() {
     vec2 ndc = gl_FragCoord.xy / resolution * 2.0 - 1.0;
@@ -36,6 +46,12 @@ const fragmentSource = `#version 300 es
     dx.x -= round(dx.x);
     dy.x -= round(dy.x);
     color = textureGrad(panorama, uv, dx, dy);
+    if (reveal < 1.0) {
+      float spread = clamp((noiseField(resolution.y * 0.55) - 0.15) / 0.51, 0.0, 1.0);
+      float edge = clamp((reveal * (1.0 + ${REVEAL_BAND.toFixed(2)}) - spread) / ${REVEAL_BAND.toFixed(2)}, 0.0, 1.0);
+      float shade = hasHatch ? clamp(((texture(hatch, gl_FragCoord.xy / hatchSize).r - 0.25) / 0.69 - 1.0 + edge) * 50.0, 0.0, 1.0) : edge;
+      color.rgb *= shade;
+    }
   }`
 
 export function createSphere(canvas, { onHeading } = {}) {
@@ -50,6 +66,8 @@ export function createSphere(canvas, { onHeading } = {}) {
   const anisotropy = gl.getExtension("EXT_texture_filter_anisotropic")
   let texture = null
   let needsDraw = true
+  let revealStart = -Infinity
+  let revealed = null
   let active = true
   let controls = { pan: true, zoom: true }
   let spin = { yaw: 0, pitch: 0 }
@@ -81,7 +99,7 @@ export function createSphere(canvas, { onHeading } = {}) {
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
       throw new Error(gl.getProgramInfoLog(program))
     }
-    uniforms = Object.fromEntries(["panorama", "resolution", "yaw", "pitch", "tanHalf"].map(name => [name, gl.getUniformLocation(program, name)]))
+    uniforms = Object.fromEntries(["panorama", "resolution", "yaw", "pitch", "tanHalf", "reveal", "hatch", "hatchSize", "hasHatch"].map(name => [name, gl.getUniformLocation(program, name)]))
     gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW)
     const positionLocation = gl.getAttribLocation(program, "position")
@@ -101,10 +119,32 @@ export function createSphere(canvas, { onHeading } = {}) {
     generation++
     initGL()
     texture = null
+    hatch = hatchImage ? hatchTexture() : null
     if (shownUrl) {
       reload(shownUrl)
     }
   })
+
+  let hatchImage = null
+  let hatch = null
+  fetch("/map/hatch.webp").then(response => response.ok ? response.blob() : Promise.reject(new Error(`/map/hatch.webp: ${response.status}`))).then(blob => createImageBitmap(blob, { colorSpaceConversion: "none" })).then(image => {
+    hatchImage = image
+    if (!contextLost) {
+      hatch = hatchTexture()
+    }
+  })
+
+  function hatchTexture() {
+    const result = gl.createTexture()
+    gl.bindTexture(gl.TEXTURE_2D, result)
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, hatchImage)
+    gl.generateMipmap(gl.TEXTURE_2D)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+    return result
+  }
 
   async function reload(url) {
     const bitmap = await decode(url)
@@ -210,9 +250,20 @@ export function createSphere(canvas, { onHeading } = {}) {
     gl.uniform1f(uniforms.yaw, view.yaw)
     gl.uniform1f(uniforms.pitch, view.pitch)
     gl.uniform1f(uniforms.tanHalf, Math.tan(view.fov * Math.PI / 360))
+    const reveal = 1 - (1 - Math.min((now - revealStart) / 1000 / REVEAL_SECONDS, 1)) ** 2
+    gl.uniform1f(uniforms.reveal, reveal)
+    gl.activeTexture(gl.TEXTURE1)
+    gl.bindTexture(gl.TEXTURE_2D, hatch)
+    gl.uniform1i(uniforms.hatch, 1)
+    gl.uniform1i(uniforms.hasHatch, hatch ? 1 : 0)
+    gl.uniform1f(uniforms.hatchSize, HATCH_SCREEN_PX * canvas.width / Math.max(canvas.clientWidth, 1))
     gl.drawArrays(gl.TRIANGLES, 0, 3)
     onHeading?.(((view.yaw * 180 / Math.PI) % 360 + 360) % 360)
-    needsDraw = false
+    needsDraw = reveal < 1
+    if (!needsDraw) {
+      revealed?.()
+      revealed = null
+    }
   }
 
   function look(deltaYaw, deltaPitch) {
@@ -349,7 +400,10 @@ export function createSphere(canvas, { onHeading } = {}) {
       view.pitch = pitch
       view.fov = 75
       spin = { yaw: 0, pitch: 0 }
+      revealStart = performance.now()
       needsDraw = true
+      revealed?.()
+      return new Promise(resolve => revealed = resolve)
     },
     discard(unused) {
       gl.deleteTexture(unused)

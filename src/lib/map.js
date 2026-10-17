@@ -1,5 +1,6 @@
 import { createCompass } from "./compass.js"
 import { areaAt, tileLocation } from "./locations.js"
+import { NOISE_PX, NOISE_REVEAL_GLSL, NOISE_REVEAL_SECONDS } from "./noise.js"
 
 const UNIT_METRES = 256
 const REVEAL_PIXELS_PER_UNIT = 24
@@ -8,9 +9,6 @@ const REVEAL_SOLID = 0.3
 const CLOUD_METRES = 16384
 const CLOUD_SPEED = 8
 const CELL_FADE_METRES = 150
-const REVEAL_FADE_SECONDS = 0.9
-const REVEAL_FADE_NOISE_PX = 280
-const REVEAL_FADE_SOFTNESS = 0.35
 // the .map-mode, .map-scale and .map-compass-frame opacity transition in styles.css
 const FEATURE_FADE_MS = 400
 const CELL_ROUND_METRES = 150
@@ -113,16 +111,7 @@ const fragmentSource = `#version 300 es
   uniform vec3 uGrid;
   uniform vec2 uOffset;
   out vec4 outColor;
-  vec2 gradient(vec2 p) {
-    p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
-    return fract(sin(p) * 43758.5453) * 2.0 - 1.0;
-  }
-  float perlin(vec2 p) {
-    vec2 i = floor(p);
-    vec2 f = fract(p);
-    vec2 u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
-    return mix(mix(dot(gradient(i), f), dot(gradient(i + vec2(1.0, 0.0)), f - vec2(1.0, 0.0)), u.x), mix(dot(gradient(i + vec2(0.0, 1.0)), f - vec2(0.0, 1.0)), dot(gradient(i + vec2(1.0, 1.0)), f - vec2(1.0, 1.0)), u.x), u.y);
-  }
+  ${NOISE_REVEAL_GLSL}
   void main() {
     float present = texture(uOccupancy, vec2(vWorld.x - uGrid.x, uGrid.y - vWorld.y) / uGrid.z).r;
     vec2 borderUv = vec2((vWorld.x - uDomain.x) / uDomain.z, (uDomain.y - vWorld.y) / uDomain.w);
@@ -140,9 +129,7 @@ const fragmentSource = `#version 300 es
       vec2 revealUv = vec2(vWorld.x - uRevealRect.x, uRevealRect.y - vWorld.y) / uRevealRect.zw;
       bool inside = all(greaterThanEqual(revealUv, vec2(0.0))) && all(lessThanEqual(revealUv, vec2(1.0)));
       float seenMask = inside ? texture(uReveal, revealUv).r : 0.0;
-      vec2 noiseUv = gl_FragCoord.xy / ${REVEAL_FADE_NOISE_PX.toFixed(1)};
-      float threshold = clamp(0.5 + perlin(noiseUv) * 0.75 + perlin(noiseUv * 2.3 + 17.0) * 0.35, 0.0, 1.0) * ${(1 - REVEAL_FADE_SOFTNESS).toFixed(2)};
-      float on = smoothstep(threshold, threshold + ${REVEAL_FADE_SOFTNESS.toFixed(2)}, uRevealOn);
+      float on = noiseReveal(uRevealOn, ${NOISE_PX.toFixed(1)});
       float unseen = (1.0 - seenMask) * on;
       vec2 cloudUv = vec2(vWorld.x, -vWorld.y) * ${(UNIT_METRES / CLOUD_METRES).toFixed(6)};
       vec2 drift = uTime * vec2(0.003, 0.001);
@@ -1040,7 +1027,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     if (reveal) {
       const target = revealShown ? 1 : 0
       if (revealAmount !== target) {
-        revealAmount = target > revealAmount ? Math.min(target, revealAmount + dt / REVEAL_FADE_SECONDS) : Math.max(target, revealAmount - dt / REVEAL_FADE_SECONDS)
+        revealAmount = target > revealAmount ? Math.min(target, revealAmount + dt / NOISE_REVEAL_SECONDS) : Math.max(target, revealAmount - dt / NOISE_REVEAL_SECONDS)
         needsDraw = true
       }
       if (!revealShown && revealAmount === 0) {
