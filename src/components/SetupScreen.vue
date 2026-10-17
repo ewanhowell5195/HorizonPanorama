@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from "vue"
 import { MAX_POINTS } from "../lib/game.js"
-import { MODES, RULES } from "../lib/rules.js"
+import { MODES, MODE_RULES, RULES } from "../lib/rules.js"
 import ArrowIcon from "./ArrowIcon.vue"
 import MenuScreen from "./MenuScreen.vue"
 import TickerNumber from "./TickerNumber.vue"
@@ -12,6 +12,7 @@ const props = defineProps({ visible: Boolean, ready: Boolean, scored: Boolean, a
 const emit = defineEmits(["start", "mode", "rule"])
 
 const custom = computed(() => props.mode === "custom")
+const modeRules = computed(() => MODE_RULES[props.mode] || {})
 const count = computed(() => props.available || 0)
 const roundsLabel = computed(() => count.value ? `${props.rounds} rounds` : "No photospheres yet")
 const maxLabel = computed(() => count.value ? `Up to ${(props.rounds * MAX_POINTS).toLocaleString()} points` : "Capture some to play")
@@ -24,7 +25,14 @@ const maxLabel = computed(() => count.value ? `Up to ${(props.rounds * MAX_POINT
     <div class="group rise" style="--i: 3">
       <small class="label">Mode</small>
       <div class="options" role="radiogroup" aria-label="Mode">
-        <button v-for="option in MODES" :key="option.id" class="choice option" :class="{ selected: mode === option.id }" type="button" role="radio" :aria-checked="mode === option.id" @click="emit('mode', option.id)"><strong>{{ option.name }}</strong><span v-for="feature in option.features" :key="feature">{{ feature }}</span></button>
+        <button v-for="option in MODES" :key="option.id" class="choice option" :class="{ selected: mode === option.id }" type="button" role="radio" :aria-checked="mode === option.id" @click="emit('mode', option.id)"><strong>{{ option.name }}</strong></button>
+      </div>
+      <div class="collapse" :class="{ open: !custom }" :inert="custom">
+        <div class="collapse-inner">
+          <ul class="features" aria-label="What this mode gives you">
+            <li v-for="rule in RULES" :key="rule.id" :class="{ off: !modeRules[rule.id] }" :aria-label="`${rule.name}: ${modeRules[rule.id] ? 'on' : 'off'}`"><svg viewBox="0 0 12 12" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square" aria-hidden="true"><path class="tick" d="M2 6.5 5 9.5 10 2.5" /><path class="cross" d="M2.5 2.5l7 7M9.5 2.5l-7 7" /></svg>{{ rule.name }}</li>
+          </ul>
+        </div>
       </div>
     </div>
     <div class="rise" style="--i: 4">
@@ -76,14 +84,7 @@ const maxLabel = computed(() => count.value ? `Up to ${(props.rounds * MAX_POINT
 }
 
 .option {
-  display: grid;
-  align-content: start;
-  gap: 2px;
-  padding: 10px 14px 12px;
-}
-
-.option strong {
-  margin-bottom: 4px;
+  padding: 10px 14px;
 }
 
 .option strong {
@@ -94,9 +95,48 @@ const maxLabel = computed(() => count.value ? `Up to ${(props.rounds * MAX_POINT
   text-transform: uppercase;
 }
 
-.option span {
-  font-size: 12px;
-  font-weight: 400;
+.features {
+  display: grid;
+  grid-template-columns: repeat(3, max-content);
+  gap: 8px 36px;
+  margin: 0;
+  padding: 8px 0 0;
+  list-style: none;
+  font-size: 15px;
+}
+
+.features li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.25s ease, opacity 0.25s ease;
+}
+
+.features svg {
+  flex: none;
+  color: var(--accent);
+  transition: color 0.25s ease;
+}
+
+.features path {
+  transition: opacity 0.2s ease;
+}
+
+.features .cross, .features .off .tick {
+  opacity: 0;
+}
+
+.features .off {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.features .off svg {
+  color: var(--muted);
+}
+
+.features .off .cross {
+  opacity: 1;
 }
 
 .unscored {
@@ -127,7 +167,7 @@ const maxLabel = computed(() => count.value ? `Up to ${(props.rounds * MAX_POINT
 }
 
 @media (max-width: 760px) {
-  .options {
+  .options, .features {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

@@ -4,7 +4,7 @@ export const RULES = [
   { id: "compass", name: "Compass", detail: "Which way you are facing" },
   { id: "icons", name: "Map icons", detail: "Campfires, machine sites and more" },
   { id: "map3d", name: "3D map", detail: "Orbit the map in 3D" },
-  { id: "readouts", name: "Map readouts", detail: "Scale bar and elevation" }
+  { id: "readouts", name: "Scale and elevation", detail: "Map distance and ground height" }
 ]
 
 export const LOCATIONS = [
@@ -43,10 +43,10 @@ const ALL = Object.fromEntries(SETTINGS.map(setting => [setting.id, true]))
 export const MODE_RULES = { easy: ALL, normal: Object.assign({}, ALL, { icons: false, map3d: false }), hard: Object.assign({}, ALL, { pan: false, zoom: false, icons: false, map3d: false, readouts: false }) }
 
 export const MODES = [
-  { id: "easy", name: "Easy", summary: "Everything on", features: ["Look around and zoom", "Compass, scale, elevation", "Map icons and 3D map"] },
-  { id: "normal", name: "Normal", summary: "No map icons or 3D map", features: ["Look around and zoom", "Compass, scale, elevation", "Flat map, no icons"] },
-  { id: "hard", name: "Hard", summary: "Fixed view, compass only", features: ["Fixed view, no zoom", "Compass only", "Flat map, no icons"] },
-  { id: "custom", name: "Custom", summary: "Choose what you get", features: ["Pick each rule yourself"] }
+  { id: "easy", name: "Easy", summary: "Everything on" },
+  { id: "normal", name: "Normal", summary: "No map icons or 3D map" },
+  { id: "hard", name: "Hard", summary: "Fixed view, compass only" },
+  { id: "custom", name: "Custom", summary: "Choose what you get" }
 ]
 
 export const MODE_NAMES = Object.fromEntries(MODES.map(mode => [mode.id, mode.name]))
