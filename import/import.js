@@ -18,6 +18,7 @@ const SOURCES = [
 const OUT = path.join(ROOT, "public", "photospheres")
 const INDEX = path.join(OUT, "photospheres.json")
 const REMOVED = path.join(HERE, "removed.json")
+const LATEST = path.join(HERE, "latest.json")
 const ENCODER = path.join(HERE, "encoder")
 const ENCODER_EXE = path.join(ENCODER, "target", "release", "encoder.exe")
 const QUALITY = 85
@@ -180,6 +181,7 @@ async function importAll() {
     await buildEncoder()
   }
   let saving = Promise.resolve()
+  const latest = []
   await pool(jobs, PARALLEL, async ({ name, game, source, target, position }) => {
     try {
       await convert(source, target)
@@ -190,7 +192,8 @@ async function importAll() {
     }
     index[game] ??= {}
     index[game][name] = hide(name, position.map(value => Math.round(value * 100) / 100))
-    saving = saving.then(() => save(index))
+    latest.push(name)
+    saving = saving.then(() => save(index)).then(() => fs.promises.writeFile(LATEST, `${JSON.stringify(latest.slice().sort(), null, 2)}\n`))
     await saving
     imported++
     const megabytes = async file => ((await fs.promises.stat(file)).size / 1024 ** 2).toFixed(1)
