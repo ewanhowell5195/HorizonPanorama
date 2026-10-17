@@ -282,7 +282,7 @@ async function drawAtlas() {
     const place = bigmap.value.place(round.game, round.x, round.y)
     return { x: place.x, y: place.y }
   })
-  bigmap.value.setReveal(photospheres ? points : null, ATLAS_RADIUS_METRES / 256, sites)
+  bigmap.value.setReveal(photospheres ? points : null, ATLAS_RADIUS_METRES / 256, sites, !atlasFramed)
   if (!atlasFramed) {
     atlasFramed = true
     bigmap.value.fit(null, { snap: true })
