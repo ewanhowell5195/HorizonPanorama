@@ -582,24 +582,18 @@ a.mark[href]:hover {
   left: 10px;
   bottom: 10px;
   display: grid;
-  grid-template-columns: auto auto;
   justify-items: start;
-  align-items: baseline;
-  gap: 3px 10px;
+  gap: 3px;
   pointer-events: none;
   user-select: none;
 }
 
-.map-scale-label {
-  grid-area: 1 / 1;
-}
-
 .map-elevation {
-  grid-area: 1 / 2;
-}
-
-.map-scale-bar {
-  grid-area: 2 / 1;
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  pointer-events: none;
+  user-select: none;
 }
 
 .map-mode {
@@ -621,16 +615,16 @@ a.mark[href]:hover {
   background: linear-gradient(rgba(242, 165, 65, 0.16), rgba(242, 165, 65, 0.16)), var(--panel);
 }
 
-.map-mode, .map-scale, .map-compass-frame {
+.map-mode, .map-scale, .map-elevation, .map-compass-frame {
   transition: opacity 0.4s ease;
 }
 
-.map-mode.off, .map-scale.off, .map-compass-frame.off {
+.map-mode.off, .map-scale.off, .map-elevation.off, .map-compass-frame.off {
   opacity: 0;
   pointer-events: none;
 }
 
-.map-mode[hidden], .map-scale[hidden] {
+.map-mode[hidden], .map-scale[hidden], .map-elevation[hidden] {
   display: none;
 }
 

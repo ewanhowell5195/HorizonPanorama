@@ -31,6 +31,7 @@ defineExpose({
   setMode: (on, instant) => map?.setMode(on, instant),
   setFeatures: features => map?.setFeatures(features),
   setIconZoom: game => map?.setIconZoom(game),
+  setBottomInset: pixels => map?.setBottomInset(pixels),
   setLocations: locations => map?.setLocations(locations),
   setReveal: (...args) => map?.setReveal(...args)
 })

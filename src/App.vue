@@ -41,6 +41,8 @@ const MAP_READY_TIMEOUT_MS = 10000
 const MAP_FADE_MS = 450
 // --tuck in GuessPanel.vue
 const MINIMAP_TUCK = 40 - 8 * Math.SQRT2
+const MINIMAP_PAD = 6
+const MINIMAP_MARGIN = 1.04
 // the .marker.atlas opacity transition in styles.css
 const PIN_FADE_MS = 400
 const REVEAL_COUNT_DELAY_MS = 1000
@@ -603,6 +605,7 @@ function loadMaps() {
     const order = atlas.value ? [bigmap.value, minimap.value] : [minimap.value, bigmap.value]
     await order[0].load()
     await order[1].load()
+    minimap.value.setBottomInset(swapView.value ? 0 : MINIMAP_TUCK)
     applyMapTab()
     mapsReady.value = true
   })()
@@ -640,7 +643,7 @@ async function startRound() {
     minimap.value.setFeatures({ modes: current.rules.map3d, readouts: current.rules.readouts, compass: current.rules.compass, icons: current.rules.icons })
     showLocations(current)
     minimap.value.setMode(false, true)
-    minimap.value.fit(null, { snap: true, game: current.games === "both" ? null : current.games, hidden: MINIMAP_TUCK })
+    minimap.value.fit(null, { snap: true, game: current.games === "both" ? null : current.games, side: MINIMAP_PAD, margin: MINIMAP_MARGIN })
   })
   backdrop.value.cycle(false)
   backdrop.value.next(true).then(() => backdrop.value.prepare())
@@ -1138,6 +1141,8 @@ onMounted(async () => {
   loadMaps()
 })
 
+watch(swapView, swapped => minimap.value?.setBottomInset(swapped ? 0 : MINIMAP_TUCK))
+
 window.addEventListener("hashchange", () => {
   seeAll.value = location.hash === SEE_ALL_HASH
 })
@@ -1285,6 +1290,10 @@ onBeforeUnmount(() => {
 
 .bigmap.atlas :deep(.map-mode ~ .map-scale) {
   left: 10px;
+}
+
+.bigmap.atlas :deep(.map-mode:not([hidden]) ~ .map-elevation) {
+  right: 52px;
 }
 
 .bigmap :deep(.marker.guess:not(.atlas) img) {

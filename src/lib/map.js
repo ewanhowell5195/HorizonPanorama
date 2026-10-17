@@ -220,11 +220,13 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
   let tooltipPoi = null
   container.append(canvas, overlay, markerLayer)
   const scaleBar = document.createElement("div")
+  const elevationLabel = document.createElement("div")
   if (scale) {
     scaleBar.className = "map-scale"
-    scaleBar.innerHTML = `<span class="map-elevation"></span><span class="map-scale-label"></span><span class="map-scale-bar"></span>`
+    scaleBar.innerHTML = `<span class="map-scale-label"></span><span class="map-scale-bar"></span>`
+    elevationLabel.className = "map-elevation"
   }
-  const [elevationLabel, scaleLabel, scaleLine] = scaleBar.children
+  const [scaleLabel, scaleLine] = scaleBar.children
   const modeToggle = document.createElement("button")
   if (modes) {
     modeToggle.type = "button"
@@ -246,7 +248,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     container.append(compassFrame)
   }
   if (scale) {
-    container.append(scaleBar)
+    container.append(scaleBar, elevationLabel)
   }
   const pointsOfInterest = []
   const hiddenTypes = new Set()
@@ -303,6 +305,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
   let pivotSet = false
   let games = {}
   let viewProj = new Float32Array(16)
+  let lensShift = 0
   let inverse = new Float32Array(16)
   let eye = [0, 0, 0]
   let needsDraw = true
@@ -728,6 +731,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     const near = Math.max(Math.min(camera.distance * (0.5 * ct + 0.01), clearance * 0.9), camera.distance * 0.005)
     const far = camera.distance * (1 + 60 * st) + relief * 2 + 1
     const projection = perspective(FOV, canvas.width / canvas.height, near, far)
+    projection[9] = -lensShift / Math.max(viewSize.height, 1)
     viewProj = multiply(projection, lookAt(eye, pivot, [sh * ct, ch * ct, st]))
     inverse = invert(viewProj)
   }
@@ -2159,6 +2163,10 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
       }
       needsDraw = true
     },
+    setBottomInset(pixels) {
+      lensShift = pixels
+      needsDraw = true
+    },
     setIconZoom(game) {
       poiZoom = game ? GAME_POI_ZOOM : POI_ZOOM
       needsDraw = true
@@ -2169,6 +2177,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
         setMode(false, instant)
       }
       fadeFeature(scaleBar, readouts, instant)
+      fadeFeature(elevationLabel, readouts, instant)
       fadeFeature(compassFrame, compassOn, instant)
       iconsOn = icons
       needsDraw = true
