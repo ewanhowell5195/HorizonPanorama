@@ -821,21 +821,21 @@ async function showResult(entry, animate = false) {
   phase.value = "result"
   await nextTick()
   const points = [entry.guess, entry.answer]
-  const inset = (resultCard.value?.dockedHeight() || 0) + 40
+  const room = resultCard.value?.insets() || {}
   const start = { x: entry.guess.x, y: entry.guess.y, zoom: 0.35 }
   if (!animate) {
     resultMarkers.push(bigmap.value.addMarker(answerMarker(), entry.answer.x, entry.answer.y))
-    bigmap.value.fit(points, { inset, start })
+    bigmap.value.fit(points, Object.assign({ start }, room))
     return
   }
   bigmap.value.setLineProgress(0)
-  bigmap.value.fit(points, { inset, start, delay: REVEAL_COUNT_DELAY_MS, duration: REVEAL_COUNT_MS })
-  playReveal(entry, points, inset)
+  bigmap.value.fit(points, Object.assign({ start, delay: REVEAL_COUNT_DELAY_MS, duration: REVEAL_COUNT_MS }, room))
+  playReveal(entry, points, room)
 }
 
-function playReveal(entry, points, inset) {
+function playReveal(entry, points, room) {
   const begin = performance.now()
-  const current = { entry, points, inset, frame: 0, answered: false }
+  const current = { entry, points, room, frame: 0, answered: false }
   scoreReveal = current
   function tick(now) {
     if (scoreReveal !== current) {
@@ -876,7 +876,7 @@ function finishReveal(skipped) {
   result.value.docked = true
   bigmap.value.setLineProgress(1)
   if (skipped) {
-    bigmap.value.fit(current.points, { inset: current.inset })
+    bigmap.value.fit(current.points, current.room)
   }
 }
 

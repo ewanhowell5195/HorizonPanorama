@@ -1075,15 +1075,15 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     }
   }
 
-  function fitBox({ box, snap, inset, start, hidden = 0, delay = 0, duration = FLIGHT_MS }) {
+  function fitBox({ box, snap, inset, top: room = 0, left = 0, side = FIT_SIDE, margin = 1.2, start, hidden = 0, delay = 0, duration = FLIGHT_MS }) {
     const height = canvas.clientHeight
-    const top = inset ? FIT_TOP : 0
+    const top = Math.max(inset ? FIT_TOP : 0, room)
     const bottom = inset + hidden
     const usable = Math.max(height - bottom - top, height * 0.3) / height
-    const sides = Math.max(canvas.clientWidth - FIT_SIDE * 2, canvas.clientWidth * 0.5) / Math.max(canvas.clientWidth, 1)
+    const sides = Math.max(canvas.clientWidth - left - side * 2, canvas.clientWidth * 0.3) / Math.max(canvas.clientWidth, 1)
     const aspect = canvas.width * sides / (canvas.height * usable)
-    const span = Math.max(box.maxY - box.minY, (box.maxX - box.minX) / aspect) * 1.2 / usable
-    const to = { x: (box.minX + box.maxX) / 2, y: (box.minY + box.maxY) / 2 - span * (bottom - top) / height / 2, distance: Math.max(span / 2 / Math.tan(FOV / 2), limits().min * 40) }
+    const span = Math.max(box.maxY - box.minY, (box.maxX - box.minX) / aspect) * margin / usable
+    const to = { x: (box.minX + box.maxX) / 2 - span * left / height / 2, y: (box.minY + box.maxY) / 2 - span * (bottom - top) / height / 2, distance: Math.max(span / 2 / Math.tan(FOV / 2), limits().min * 40) }
     if (camera.z !== null) {
       anchorPivot(false)
     }
@@ -2130,9 +2130,9 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
       lines.forEach(entry => entry.progress = progress)
       needsDraw = true
     },
-    fit(points, { snap = false, inset = 0, start = null, game = null, hidden = 0, delay = 0, duration = FLIGHT_MS } = {}) {
+    fit(points, { snap = false, inset = 0, top = 0, left = 0, side = FIT_SIDE, margin = 1.2, start = null, game = null, hidden = 0, delay = 0, duration = FLIGHT_MS } = {}) {
       const box = points?.length ? { minX: Math.min(...points.map(p => p.x)), maxX: Math.max(...points.map(p => p.x)), minY: Math.min(...points.map(p => p.y)), maxY: Math.max(...points.map(p => p.y)) } : tileExtent(game)
-      pendingFit = { box, snap, inset, start, hidden, delay, duration }
+      pendingFit = { box, snap, inset, top, left, side, margin, start, hidden, delay, duration }
       needsDraw = true
     },
     refresh() {

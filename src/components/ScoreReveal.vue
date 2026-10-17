@@ -8,6 +8,8 @@ const CARD_HEIGHT = 380
 const VISIBLE_TOP = 6
 const VISIBLE_BOTTOM = 297
 const DOCK_BOTTOM = 112
+const CARD_TOP = 20
+const FIT_MARGIN = 40
 // 61 frames at CARD_FRAME_MS in tools/game/build_cauldrons.py
 const CARD_MS = 61 * 33
 const HOLD_EARLY_MS = 60
@@ -25,9 +27,9 @@ function cardHeight() {
   return Math.min(CARD_WIDTH, window.innerWidth * 0.92) * CARD_HEIGHT / CARD_WIDTH
 }
 
-function dockedHeight() {
+function insets() {
   const scale = Number(getComputedStyle(root.value).getPropertyValue("--dock-scale"))
-  return DOCK_BOTTOM + cardHeight() * scale * (VISIBLE_BOTTOM - VISIBLE_TOP) / CARD_HEIGHT
+  return { inset: DOCK_BOTTOM + FIT_MARGIN, top: CARD_TOP + cardHeight() * scale * (VISIBLE_BOTTOM - VISIBLE_TOP) / CARD_HEIGHT + FIT_MARGIN }
 }
 
 function played() {
@@ -58,11 +60,11 @@ onBeforeUnmount(() => {
   }
 })
 
-defineExpose({ dockedHeight })
+defineExpose({ insets })
 </script>
 
 <template>
-  <div ref="root" class="reveal" :class="{ docked, animate, reviewing: viewing }">
+  <div ref="root" class="reveal" :class="{ docked, animate, reviewing: viewing }" :style="{ '--top': `${CARD_TOP}px` }">
     <div class="stage">
       <img v-if="src" :src="src" alt="" @load="played">
       <div class="band">
@@ -91,12 +93,13 @@ defineExpose({ dockedHeight })
 .stage {
   position: absolute;
   left: 50%;
-  top: calc(50% + var(--h) * 0.1);
+  top: calc(var(--top) - var(--h) * 6 / 380);
   width: var(--w);
   height: var(--h);
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
+  transform-origin: 50% calc(var(--h) * 6 / 380);
   user-select: none;
-  transition: top 0.7s cubic-bezier(0.65, 0, 0.35, 1), transform 0.7s cubic-bezier(0.65, 0, 0.35, 1), opacity 0.3s ease;
+  transition: transform 0.7s cubic-bezier(0.65, 0, 0.35, 1), opacity 0.3s ease;
 }
 
 .reveal.reviewing .stage {
@@ -104,8 +107,7 @@ defineExpose({ dockedHeight })
 }
 
 .reveal.docked .stage {
-  top: calc(100% - 112px - var(--h) * var(--dock-scale) * 0.2816);
-  transform: translate(-50%, -50%) scale(var(--dock-scale));
+  transform: translateX(-50%) scale(var(--dock-scale));
 }
 
 .stage::before {
