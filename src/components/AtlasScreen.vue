@@ -15,7 +15,7 @@ const TABS = [{ id: "map", name: "Map" }, { id: "photospheres", name: "Photosphe
       </nav>
       <div class="atlas-extra" :class="{ open: counter && tab === 'photospheres' }">
         <div>
-          <strong>{{ found }} / {{ total }} found</strong>
+          <strong><i class="key" aria-hidden="true"></i>{{ found }} / {{ total }} found</strong>
         </div>
       </div>
     </div>
@@ -102,13 +102,22 @@ const TABS = [{ id: "map", name: "Map" }, { id: "photospheres", name: "Photosphe
 }
 
 .atlas-extra strong {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 12px 12px 8px;
   font-family: var(--font-condensed);
   font-weight: 400;
   font-size: 24px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+.key {
+  height: 1.1em;
+  aspect-ratio: 64 / 72;
+  background: currentColor;
+  mask: url(/glyphs/key.webp) center / contain no-repeat;
 }
 
 @media (max-width: 760px) {
