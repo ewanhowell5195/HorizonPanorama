@@ -1,4 +1,5 @@
-const MIN_PLAYS = 3
+import { MAX_POINTS } from "./game.js"
+
 // the Cache-Control max-age in functions/api/scores.js
 const REFRESH_MS = 300000
 
@@ -26,11 +27,11 @@ export function loadScores() {
 }
 
 function rankDifficulty(all) {
-  const rated = Object.entries(all).filter(([, entry]) => entry.count >= MIN_PLAYS).sort((a, b) => b[1].average - a[1].average)
-  rated.forEach(([, entry], n) => entry.difficulty = rated.length > 1 ? 1 + 9 * n / (rated.length - 1) : 5)
+  const ranked = Object.values(all).sort((a, b) => b.average - a.average)
+  ranked.forEach((entry, n) => entry.difficulty = ranked.length > 1 ? 1 + 9 * n / (ranked.length - 1) : 5)
   return all
 }
 
-export function difficultyColour(difficulty) {
-  return difficulty == null ? "#8a8f96" : `hsl(${Math.round(120 - (difficulty - 1) / 9 * 120)} 80% 50%)`
+export function scoreColour(stats) {
+  return stats ? `hsl(${Math.round(stats.average / MAX_POINTS * 120)} 80% 50%)` : "#8a8f96"
 }

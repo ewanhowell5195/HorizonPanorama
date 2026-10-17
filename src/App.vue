@@ -19,7 +19,7 @@ import { cauldronFor, loadCard } from "./lib/cauldrons.js"
 import { answerMarker, devMarker, pin } from "./lib/markers.js"
 import { pointLocation } from "./lib/locations.js"
 import { LOCATIONS, MODE_RULES, TRIBES, fullRules, gamesOf, modeOf, offTribes, SHARED_TRIBES, tribeOn, tribeOrder, tribeRules, tribesOf, wholeGames, withGames } from "./lib/rules.js"
-import { difficultyColour, loadScores, recordGuess } from "./lib/stats.js"
+import { loadScores, recordGuess, scoreColour } from "./lib/stats.js"
 import { loadTribes, tribeAt } from "./lib/tribes.js"
 import { decodeScore, decodeSeed, encodeSeed, randomCode, seededRandom, seedLink } from "./lib/seed.js"
 import { pickView } from "./lib/view.js"
@@ -279,7 +279,7 @@ async function drawAtlas() {
   const points = (photospheres ? atlasRounds.value : []).map(round => {
     const place = bigmap.value.place(round.game, round.x, round.y)
     const stats = scores?.[round.name]
-    const element = scores ? devMarker(difficultyColour(stats?.difficulty)) : answerMarker()
+    const element = scores ? devMarker(scoreColour(stats)) : answerMarker()
     element.classList.add("atlas")
     element.title = (LOCATIONS.find(location => location.id === round.location)?.name || "") + (scores ? `\n${statsLabel(stats)}` : "")
     element.querySelector(".dot").addEventListener("click", () => openView({ atlas: round.name }))
@@ -313,7 +313,7 @@ function statsLabel(stats) {
     return "No plays yet"
   }
   const plays = `${stats.count} ${stats.count === 1 ? "player" : "players"}`
-  return stats.difficulty == null ? `Average score ${stats.average.toLocaleString("en")} from ${plays}` : `Difficulty ${stats.difficulty.toFixed(1)}, average score ${stats.average.toLocaleString("en")} from ${plays}`
+  return `Difficulty ${stats.difficulty.toFixed(1)}, average score ${stats.average.toLocaleString("en")} from ${plays}`
 }
 
 async function viewAtlas(round) {
@@ -1264,8 +1264,7 @@ onBeforeUnmount(() => {
       <span v-if="viewing.unfound" class="viewing-best">You haven't found this one yet</span>
       <span v-else-if="typeof viewing.best === `number`" class="viewing-best">Your closest guess <strong>{{ formatDistance(viewing.best) }}</strong></span>
       <span v-else-if="viewing.best" class="viewing-best">{{ MISSED[viewing.best] }}</span>
-      <span v-if="viewStats?.difficulty != null" class="viewing-best" :title="statsLabel(viewStats)">Average difficulty <strong>{{ viewStats.difficulty.toFixed(1) }}</strong></span>
-      <span v-else-if="viewStats" class="viewing-best" :title="statsLabel(viewStats)">Average score <strong>{{ viewStats.average.toLocaleString(`en`) }}</strong></span>
+      <span v-if="viewStats" class="viewing-best" :title="statsLabel(viewStats)">Average difficulty <strong>{{ viewStats.difficulty.toFixed(1) }}</strong></span>
       <button class="secondary" type="button" @click="leaveView">{{ atlas ? "Back to the map" : "Back to results" }}</button>
     </div>
   </Transition>
