@@ -40,6 +40,8 @@ const fragmentSource = `#version 300 es
 
 export function createSphere(canvas, { onHeading } = {}) {
   const gl = canvas.getContext("webgl2", { antialias: false })
+  const teardown = new AbortController()
+  let destroyed = false
   if (!gl) {
     throw new Error("WebGL2 is not available in this browser.")
   }
@@ -184,6 +186,9 @@ export function createSphere(canvas, { onHeading } = {}) {
   }
 
   function draw(now) {
+    if (destroyed) {
+      return
+    }
     requestAnimationFrame(draw)
     const dt = Math.min((now - lastFrame) / 1000, 0.1)
     lastFrame = now
@@ -318,11 +323,16 @@ export function createSphere(canvas, { onHeading } = {}) {
     } else if (controls.zoom && event.key === "-") {
       zoom(1 / 0.9)
     }
-  })
+  }, { signal: teardown.signal })
 
   requestAnimationFrame(draw)
 
   return {
+    destroy() {
+      destroyed = true
+      teardown.abort()
+      gl.getExtension("WEBGL_lose_context")?.loseContext()
+    },
     decode,
     upload,
     present(next, yaw, pitch = 0) {

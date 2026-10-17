@@ -256,6 +256,8 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
   const tracksHover = Boolean(scale || onHover)
 
   const gl = canvas.getContext("webgl2", { antialias: true })
+  const teardown = new AbortController()
+  let destroyed = false
   if (!gl) {
     throw new Error("WebGL2 is not available in this browser.")
   }
@@ -1268,6 +1270,9 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
   }
 
   function render(now) {
+    if (destroyed) {
+      return
+    }
     requestAnimationFrame(render)
     if (contextLost) {
       return
@@ -1673,14 +1678,14 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
   canvas.addEventListener("pointerup", endPointer)
   canvas.addEventListener("pointercancel", endPointer)
   let suppressMenu = false
-  window.addEventListener("pointerdown", () => suppressMenu = false, true)
+  window.addEventListener("pointerdown", () => suppressMenu = false, { capture: true, signal: teardown.signal })
   container.addEventListener("pointerdown", event => suppressMenu = event.button === 2)
   window.addEventListener("contextmenu", event => {
     if (suppressMenu || container.contains(event.target)) {
       event.preventDefault()
       suppressMenu = false
     }
-  }, true)
+  }, { capture: true, signal: teardown.signal })
 
   function zoomWheel(event) {
     event.preventDefault()
@@ -2083,6 +2088,11 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
   }
 
   return {
+    destroy() {
+      destroyed = true
+      teardown.abort()
+      gl.getExtension("WEBGL_lose_context")?.loseContext()
+    },
     place,
     locate(x, y) {
       return locate(x, y) || nearestPiece(x, y)

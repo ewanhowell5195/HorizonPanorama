@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, watch } from "vue"
+import { onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { createSphere } from "../lib/sphere.js"
 
 const props = defineProps({ active: Boolean, boxed: Boolean, faded: Boolean })
@@ -13,6 +13,8 @@ onMounted(() => {
 })
 
 watch(() => props.active, active => sphere?.setActive(active))
+
+onBeforeUnmount(() => sphere?.destroy())
 
 defineExpose({
   decode: (url, onProgress) => sphere.decode(url, onProgress),

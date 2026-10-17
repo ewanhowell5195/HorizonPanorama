@@ -150,6 +150,7 @@ export async function createBackdrop(canvas, { onSlide, onFog, fogTop, fogRight 
   let lastDraw = 0
   let fogMiddle = null
   let fogPortrait = null
+  let destroyed = false
 
   function hatchTexture() {
     return texture(hatchImage || new ImageData(new Uint8ClampedArray([128, 128, 128, 255]), 1, 1), gl.REPEAT)
@@ -215,6 +216,9 @@ export async function createBackdrop(canvas, { onSlide, onFog, fogTop, fogRight 
   }
 
   function frame(now) {
+    if (destroyed) {
+      return
+    }
     requestAnimationFrame(frame)
     if (active && !contextLost) {
       draw(now)
@@ -284,6 +288,11 @@ export async function createBackdrop(canvas, { onSlide, onFog, fogTop, fogRight 
   requestAnimationFrame(frame)
 
   return {
+    destroy() {
+      destroyed = true
+      clearInterval(cycle)
+      gl.getExtension("WEBGL_lose_context")?.loseContext()
+    },
     next() {
       return show(nextEntry())
     },

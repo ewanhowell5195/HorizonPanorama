@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, watch } from "vue"
+import { onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { SLIDE_MS, createBackdrop } from "../lib/backdrop.js"
 
 const props = defineProps({ active: Boolean, timer: Boolean, caption: { type: Boolean, default: true } })
@@ -32,6 +32,8 @@ const ready = new Promise(resolve => mounted = resolve).then(() => createBackdro
 })
 
 onMounted(() => mounted())
+
+onBeforeUnmount(() => ready.then(backdrop => backdrop.destroy()))
 
 watch(() => props.active, active => ready.then(backdrop => backdrop.setActive(active)))
 

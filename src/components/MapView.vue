@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue"
+import { onBeforeUnmount, ref } from "vue"
 import { createMap } from "../lib/map.js"
 
 const props = defineProps({ pickable: Boolean, pois: Boolean, scale: Boolean, modes: Boolean, faded: Boolean })
@@ -15,6 +15,8 @@ function load() {
   })
   return loading
 }
+
+onBeforeUnmount(() => loading?.then(created => created.destroy()))
 
 defineExpose({
   load,
