@@ -15,3 +15,11 @@ export function answerMarker(round) {
   element.innerHTML = `<img class="dot" src="/pins/arrow${numbered(round)}.webp" alt="" draggable="false">`
   return element
 }
+
+export function devMarker(colour) {
+  const element = document.createElement("div")
+  element.className = "marker dev"
+  element.innerHTML = `<span class="dot"></span>`
+  element.firstChild.style.background = colour
+  return element
+}

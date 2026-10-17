@@ -707,6 +707,18 @@ a.mark[href]:hover {
   transform: scale(1.25);
 }
 
+.marker.dev .dot {
+  position: absolute;
+  left: -8px;
+  top: -8px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #4fc3f7;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
 .marker.answer .dot {
   position: absolute;
   left: -18px;

@@ -16,9 +16,10 @@ import SetupScreen from "./components/SetupScreen.vue"
 import FinalResults from "./components/FinalResults.vue"
 import { MAX_POINTS, ROUNDS, distanceLabel, formatDistance, points, readStore, shuffle, wait, writeStore } from "./lib/game.js"
 import { cauldronFor, loadCard } from "./lib/cauldrons.js"
-import { answerMarker, pin } from "./lib/markers.js"
+import { answerMarker, devMarker, pin } from "./lib/markers.js"
 import { pointLocation } from "./lib/locations.js"
 import { LOCATIONS, MODE_RULES, TRIBES, fullRules, gamesOf, modeOf, offTribes, SHARED_TRIBES, tribeOn, tribeOrder, tribeRules, tribesOf, wholeGames, withGames } from "./lib/rules.js"
+import { difficultyColour, loadScores, recordGuess } from "./lib/stats.js"
 import { loadTribes, tribeAt } from "./lib/tribes.js"
 import { decodeScore, decodeSeed, encodeSeed, randomCode, seededRandom, seedLink } from "./lib/seed.js"
 import { pickView } from "./lib/view.js"
@@ -96,6 +97,7 @@ const seedInput = ref(new URLSearchParams(location.search).get("seed") || "")
 const seedError = ref("")
 const challenge = ref(readChallenge(location.search))
 const viewing = ref(null)
+const viewStats = ref(null)
 if (seedInput.value && !challenge.value) {
   seedError.value = "That seed doesn't look right. Check it was copied in full."
 }
@@ -265,15 +267,21 @@ async function drawAtlas() {
   if (!atlas.value) {
     return
   }
+  const tab = mapTab.value
+  const scores = tab === "dev" ? await loadScores() : null
+  if (!atlas.value || mapTab.value !== tab) {
+    return
+  }
   clearAtlas()
   bigmap.value.setLocations(null)
   applyMapTab()
   const photospheres = mapTab.value !== "map"
   const points = (photospheres ? atlasRounds.value : []).map(round => {
     const place = bigmap.value.place(round.game, round.x, round.y)
-    const element = answerMarker()
+    const stats = scores?.[round.name]
+    const element = scores ? devMarker(difficultyColour(stats?.difficulty)) : answerMarker()
     element.classList.add("atlas")
-    element.title = LOCATIONS.find(location => location.id === round.location)?.name || ""
+    element.title = (LOCATIONS.find(location => location.id === round.location)?.name || "") + (scores ? `\n${statsLabel(stats)}` : "")
     element.querySelector(".dot").addEventListener("click", () => openView({ atlas: round.name }))
     atlasMarkers.push({ element, marker: bigmap.value.addMarker(element, place.x, place.y) })
     return { x: place.x, y: place.y }
@@ -291,8 +299,26 @@ async function drawAtlas() {
   }
 }
 
+function showStats(name) {
+  viewStats.value = null
+  loadScores().then(scores => {
+    if (viewing.value) {
+      viewStats.value = scores[name] || null
+    }
+  })
+}
+
+function statsLabel(stats) {
+  if (!stats) {
+    return "No plays yet"
+  }
+  const plays = `${stats.count} ${stats.count === 1 ? "player" : "players"}`
+  return stats.difficulty == null ? `Average score ${stats.average.toLocaleString("en")} from ${plays}` : `Difficulty ${stats.difficulty.toFixed(1)}, average score ${stats.average.toLocaleString("en")} from ${plays}`
+}
+
 async function viewAtlas(round) {
   const token = ++viewToken
+  showStats(round.name)
   const title = LOCATIONS.find(location => location.id === round.location)?.name || "This"
   sphere.value.setControls({ pan: true, zoom: true })
   const best = bestGuesses.value[round.name]
@@ -811,6 +837,9 @@ async function submitGuess() {
   game.total += score
   const entry = { guess, answer: { x: answer.x, y: answer.y }, metres, miss, score }
   game.results.push(entry)
+  if (!found.value.has(round.name)) {
+    recordGuess(round.name, { score, game: spot.layer.game, x: Math.round(spot.worldX * 10) / 10, y: Math.round(spot.worldY * 10) / 10 })
+  }
   addFound(round.name)
   const previous = bestGuesses.value[round.name]
   if (previous === undefined || (metres !== null && !(previous <= metres))) {
@@ -956,6 +985,7 @@ async function viewRound(index) {
   const token = ++viewToken
   const round = game.rounds[index]
   const title = `Round ${index + 1}`
+  showStats(round.name)
   sphere.value.setControls({ pan: true, zoom: true })
   if (presentedRound === index) {
     viewing.value = { title, loading: false }
@@ -1238,6 +1268,8 @@ onBeforeUnmount(() => {
       <span v-if="viewing.unfound" class="viewing-best">You haven't found this one yet</span>
       <span v-else-if="typeof viewing.best === `number`" class="viewing-best">Your closest guess <strong>{{ formatDistance(viewing.best) }}</strong></span>
       <span v-else-if="viewing.best" class="viewing-best">{{ MISSED[viewing.best] }}</span>
+      <span v-if="viewStats?.difficulty != null" class="viewing-best" :title="statsLabel(viewStats)">Average difficulty <strong>{{ viewStats.difficulty.toFixed(1) }}</strong></span>
+      <span v-else-if="viewStats" class="viewing-best" :title="statsLabel(viewStats)">Average score <strong>{{ viewStats.average.toLocaleString(`en`) }}</strong></span>
       <button class="secondary" type="button" @click="leaveView">{{ atlas ? "Back to the map" : "Back to results" }}</button>
     </div>
   </Transition>
