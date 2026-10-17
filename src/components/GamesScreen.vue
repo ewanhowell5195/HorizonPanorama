@@ -5,10 +5,10 @@ import ArrowIcon from "./ArrowIcon.vue"
 import MenuScreen from "./MenuScreen.vue"
 
 const GAMES = [
-  { id: "both", name: "Both games", detail: "Zero Dawn and Forbidden West" },
-  { id: "hzd", name: "Zero Dawn", detail: "Including The Frozen Wilds", bars: 1 },
-  { id: "hfw", name: "Forbidden West", detail: "Including Burning Shores", bars: 2 },
-  { id: "custom", name: "Custom", detail: "Pick the areas yourself" }
+  { id: "both", name: "Both games", detail: "Zero Dawn and Forbidden West", glyph: ["one", "plus", "two"] },
+  { id: "hzd", name: "Zero Dawn", detail: "Including The Frozen Wilds", glyph: ["one"] },
+  { id: "hfw", name: "Forbidden West", detail: "Including Burning Shores", glyph: ["two"] },
+  { id: "custom", name: "Custom", detail: "Pick the areas yourself", glyph: ["custom"] }
 ]
 
 const props = defineProps({ visible: Boolean, ready: Boolean, counts: Object, locationCounts: Object, available: Number, games: String, preview: String, lit: Array, litTribes: Array, tribeAreas: Object, frames: Object, tribes: Array, tribeFilter: Boolean, tribeCounts: Object, matched: Boolean, customRules: Object, seed: String, seedError: String })
@@ -131,9 +131,10 @@ function playSeed() {
     <div class="picks rise" style="--i: 3" role="radiogroup" aria-label="Area">
       <button v-for="option in GAMES" :key="option.id" class="choice pick" :class="{ selected: games === option.id }" type="button" role="radio" :aria-checked="games === option.id" @click="emit('games', option.id)">
         <b class="glyph" aria-hidden="true">
-          <svg v-if="option.bars" :viewBox="`0 0 ${option.bars * 10 - 5} 28`" :width="option.bars * 15 - 7.5" height="42" fill="currentColor"><rect v-for="bar in option.bars" :key="bar" :x="(bar - 1) * 10" width="5" height="28" /></svg>
-          <svg v-else-if="option.id === 'both'" viewBox="0 0 44 28" width="66" height="42" fill="currentColor"><rect width="5" height="28" /><rect x="12" y="12.5" width="10" height="3" /><rect x="15.5" y="9" width="3" height="10" /><rect x="29" width="5" height="28" /><rect x="39" width="5" height="28" /></svg>
-          <svg v-else viewBox="0 0 28 28" width="42" height="42" fill="currentColor"><rect y="3" width="28" height="3" /><rect x="5" width="5" height="9" /><rect y="12.5" width="28" height="3" /><rect x="17" y="9.5" width="5" height="9" /><rect y="22" width="28" height="3" /><rect x="9" y="19" width="5" height="9" /></svg>
+          <template v-for="mark in option.glyph" :key="mark">
+            <svg v-if="mark === 'plus'" class="plus" viewBox="0 0 10 28" fill="currentColor"><rect y="12.5" width="10" height="3" /><rect x="3.5" y="9" width="3" height="10" /></svg>
+            <i v-else :class="mark"></i>
+          </template>
         </b>
         <strong>{{ option.name }}</strong>
         <span>{{ option.detail }}</span>
@@ -277,11 +278,42 @@ function playSeed() {
 }
 
 .glyph {
+  --h: 42px;
   display: flex;
   align-items: center;
-  height: 42px;
+  gap: calc(var(--h) * 0.2);
+  height: var(--h);
   margin: 0 0 14px;
+  color: var(--text);
   transition: color 0.2s ease;
+}
+
+.glyph i, .glyph .plus {
+  height: 100%;
+}
+
+.glyph i {
+  background: currentColor;
+  mask: var(--glyph) center / contain no-repeat;
+}
+
+.glyph .one {
+  --glyph: url(/glyphs/one.webp);
+  aspect-ratio: 20 / 80;
+}
+
+.glyph .two {
+  --glyph: url(/glyphs/two.webp);
+  aspect-ratio: 48 / 80;
+}
+
+.glyph .custom {
+  --glyph: url(/glyphs/custom.webp);
+  aspect-ratio: 78 / 48;
+}
+
+.glyph .plus {
+  aspect-ratio: 10 / 28;
 }
 
 .pick.selected .glyph, .pick.selected strong {
@@ -477,13 +509,8 @@ function playSeed() {
   }
 
   .glyph {
-    height: 24px;
+    --h: 24px;
     margin: 0 0 8px;
-  }
-
-  .glyph svg {
-    width: auto;
-    height: 24px;
   }
 }
 
@@ -529,13 +556,8 @@ function playSeed() {
   }
 
   .glyph {
-    height: 24px;
+    --h: 24px;
     margin: 0 0 8px;
-  }
-
-  .glyph svg {
-    width: auto;
-    height: 24px;
   }
 }
 </style>
