@@ -18,8 +18,9 @@ import { MAX_POINTS, ROUNDS, distanceLabel, formatDistance, points, readStore, s
 import { cauldronFor, loadCard } from "./lib/cauldrons.js"
 import { answerMarker, devMarker, pin } from "./lib/markers.js"
 import { pointLocation } from "./lib/locations.js"
+import { decodePosition } from "./lib/position.js"
 import { LOCATIONS, MODE_RULES, TRIBES, fullRules, gamesOf, modeOf, offTribes, SHARED_TRIBES, tribeOn, tribeOrder, tribeRules, tribesOf, wholeGames, withGames } from "./lib/rules.js"
-import { loadScores, recordGuess, scoreColour } from "./lib/stats.js"
+import { loadGuesses, loadScores, recordGuess, scoreColour } from "./lib/stats.js"
 import { loadTribes, tribeAt } from "./lib/tribes.js"
 import { decodeScore, decodeSeed, encodeSeed, randomCode, seededRandom, seedLink } from "./lib/seed.js"
 import { pickView } from "./lib/view.js"
@@ -49,7 +50,6 @@ const PIN_FADE_MS = 400
 const REVEAL_COUNT_DELAY_MS = 1000
 const REVEAL_COUNT_MS = 1600
 const REVEAL_DOCK_MS = 3000
-const SECRET = "horizon-panorama"
 const SAVED_GAME = "savedGame"
 const GAME_SUFFIXES = { both: "", hzd: "ZeroDawn", hfw: "ForbiddenWest" }
 const GAME_TITLES = { hzd: "Horizon Zero Dawn Remastered", hfw: "Horizon Forbidden West" }
@@ -98,6 +98,7 @@ const seedError = ref("")
 const challenge = ref(readChallenge(location.search))
 const viewing = ref(null)
 const viewStats = ref(null)
+const devSelected = ref(null)
 if (seedInput.value && !challenge.value) {
   seedError.value = "That seed doesn't look right. Check it was copied in full."
 }
@@ -258,6 +259,26 @@ function clearAtlas() {
   leaving.forEach(({ element }) => element.classList.add("leaving"))
   setTimeout(() => leaving.forEach(({ marker }) => marker.remove()), PIN_FADE_MS)
   bigmap.value?.setReveal(null)
+  devSelected.value = null
+  bigmap.value?.setHeat(null)
+}
+
+function selectDev(round, stats) {
+  const same = devSelected.value?.name === round.name
+  devSelected.value = same ? null : Object.assign({ name: round.name, title: LOCATIONS.find(location => location.id === round.location)?.name || "" }, stats || { count: 0 })
+  atlasMarkers.forEach(({ element }) => {
+    element.classList.toggle("selected", !same && element.dataset.name === round.name)
+    element.classList.toggle("dimmed", !same && element.dataset.name !== round.name)
+  })
+  if (same || !stats) {
+    bigmap.value.setHeat(null)
+    return
+  }
+  loadGuesses(round.name).then(guesses => {
+    if (devSelected.value?.name === round.name) {
+      bigmap.value.setHeat(guesses.map(guess => bigmap.value.place(guess.game, guess.x, guess.y)))
+    }
+  }, error => console.warn(error))
 }
 
 async function drawAtlas() {
@@ -282,7 +303,8 @@ async function drawAtlas() {
     const element = scores ? devMarker(scoreColour(stats)) : answerMarker()
     element.classList.add("atlas")
     element.title = (LOCATIONS.find(location => location.id === round.location)?.name || "") + (scores ? `\n${statsLabel(stats)}` : "")
-    element.querySelector(".dot").addEventListener("click", () => openView({ atlas: round.name }))
+    element.dataset.name = round.name
+    element.querySelector(".dot").addEventListener("click", () => scores ? selectDev(round, stats) : openView({ atlas: round.name }))
     atlasMarkers.push({ element, marker: bigmap.value.addMarker(element, place.x, place.y) })
     return { x: place.x, y: place.y }
   })
@@ -313,7 +335,7 @@ function statsLabel(stats) {
     return "No plays yet"
   }
   const plays = `${stats.count} ${stats.count === 1 ? "player" : "players"}`
-  return `Difficulty ${stats.difficulty.toFixed(1)}, average score ${stats.average.toLocaleString("en")} from ${plays}`
+  return `Difficulty ${stats.difficulty} / 10, average score ${stats.average.toLocaleString("en")}, average distance ${formatDistance(stats.distance)}, from ${plays}`
 }
 
 async function viewAtlas(round) {
@@ -526,13 +548,6 @@ function clearMarkers() {
   resultMarkers.forEach(marker => marker.remove())
   resultMarkers = []
   bigmap.value?.setLines([])
-}
-
-async function decodePosition(name, text) {
-  const key = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(SECRET + name)))
-  const bytes = Uint8Array.from(atob(text), character => character.charCodeAt(0)).map((value, n) => value ^ key[n])
-  const view = new DataView(bytes.buffer)
-  return [0, 4, 8].map(offset => Math.round(view.getFloat32(offset, true) * 100) / 100)
 }
 
 async function loadPool() {
@@ -1264,7 +1279,7 @@ onBeforeUnmount(() => {
       <span v-if="viewing.unfound" class="viewing-best">You haven't found this one yet</span>
       <span v-else-if="typeof viewing.best === `number`" class="viewing-best">Your closest guess <strong>{{ formatDistance(viewing.best) }}</strong></span>
       <span v-else-if="viewing.best" class="viewing-best">{{ MISSED[viewing.best] }}</span>
-      <span v-if="viewStats" class="viewing-best" :title="statsLabel(viewStats)">Average difficulty <strong>{{ viewStats.difficulty.toFixed(1) }}</strong></span>
+      <span v-if="viewStats" class="viewing-best" :title="statsLabel(viewStats)">Average difficulty <strong>{{ viewStats.difficulty }}</strong> / 10</span>
       <button class="secondary" type="button" @click="leaveView">{{ atlas ? "Back to the map" : "Back to results" }}</button>
     </div>
   </Transition>
@@ -1272,7 +1287,7 @@ onBeforeUnmount(() => {
     <a class="mark" :href="homeShown ? null : '/'" :title="homeShown ? null : 'Main menu'" @click.exact="markClick"><i class="mark-emblem"></i><Transition name="mark" mode="out-in"><span v-if="markLabel" :key="markLabel" class="mark-text">{{ markLabel }}</span></Transition></a>
   </div>
   <SlideBackdrop ref="backdrop" :active="((isMenu && !atlas) || intro) && !restoring" :timer="isMenu && !atlas && !restoring" :caption="!choosing" />
-  <AtlasScreen :visible="isMenu && atlas && !viewing" :ready="atlasReady" :found="foundRounds.length" :total="pool.length" :dev="devMode" :tab="mapTab" @tab="setMapTab" />
+  <AtlasScreen :visible="isMenu && atlas && !viewing" :ready="atlasReady" :found="foundRounds.length" :total="pool.length" :dev="devMode" :selected="devSelected" :tab="mapTab" @tab="setMapTab" @view="openView({ atlas: devSelected.name })" />
   <ChallengeScreen :visible="isMenu && Boolean(challenge)" :ready="canPlay" :rules="challenge?.seed.rules" :games="challenge?.seed.games" :rounds="challenge?.seed.rounds.length || 0" :score="challenge?.score" :error="seedError" @play="playChallenge" />
   <HomeScreen :visible="homeShown" :count="pool.length" :found="found.size" :ready="canPlay" :best="overall.best" :last="overall.last" :average="overall.average" @play="goGames" @atlas="goAtlas" />
   <GamesScreen :visible="isMenu && !challenge && choosing" :ready="canPlay" :counts="counts" :location-counts="locationCounts" :available="choices.length" :games="games" :preview="previewGame" :lit="litAreas" :lit-tribes="litTribes" :tribe-areas="tribeAreas" :frames="tribeFrames" :tribes="availableTribes" :tribe-filter="tribeFilter" :tribe-counts="tribeCounts" :matched="chosenGames !== 'custom'" :custom-rules="customRules" :seed="seedInput" :seed-error="seedError" @games="setGames" @rule="setRule" @tribe-filter="setTribeFilter" @next="goSetup" @seed="openChallenge" />

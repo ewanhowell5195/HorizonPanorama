@@ -33,7 +33,8 @@ defineExpose({
   setIconZoom: game => map?.setIconZoom(game),
   setBottomInset: pixels => map?.setBottomInset(pixels),
   setLocations: locations => map?.setLocations(locations),
-  setReveal: (...args) => map?.setReveal(...args)
+  setReveal: (...args) => map?.setReveal(...args),
+  setHeat: points => map?.setHeat(points)
 })
 </script>
 

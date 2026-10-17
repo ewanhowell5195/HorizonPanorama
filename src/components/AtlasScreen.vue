@@ -1,10 +1,19 @@
 <script setup>
-import { computed } from "vue"
+import { computed, ref, watch } from "vue"
+import { formatDistance } from "../lib/game.js"
 
-const props = defineProps({ visible: Boolean, ready: Boolean, found: Number, total: Number, dev: Boolean, tab: String })
-const emit = defineEmits(["tab"])
+const props = defineProps({ visible: Boolean, ready: Boolean, found: Number, total: Number, dev: Boolean, selected: Object, tab: String })
+const emit = defineEmits(["tab", "view"])
 const TABS = [{ id: "map", name: "Map" }, { id: "photospheres", name: "Photospheres" }]
 const tabs = computed(() => props.dev ? TABS.concat({ id: "dev", name: "Dev" }) : TABS)
+const shown = ref(null)
+const devOpen = computed(() => props.tab === "dev" && Boolean(props.selected))
+
+watch(() => props.selected, selected => {
+  if (selected) {
+    shown.value = selected
+  }
+})
 </script>
 
 <template>
@@ -19,6 +28,27 @@ const tabs = computed(() => props.dev ? TABS.concat({ id: "dev", name: "Dev" }) 
       <div class="atlas-extra" :class="{ open: tab === 'photospheres' }">
         <div>
           <strong><i class="key" aria-hidden="true"></i>{{ found }} / {{ total }} found</strong>
+        </div>
+      </div>
+      <div class="atlas-extra" :class="{ open: devOpen }">
+        <div>
+          <div v-if="shown" class="dev-info">
+            <strong>{{ shown.title }}</strong>
+            <code>{{ shown.name }}</code>
+            <dl>
+              <dt>Guesses</dt>
+              <dd>{{ shown.count }}</dd>
+              <template v-if="shown.count">
+                <dt>Average score</dt>
+                <dd>{{ shown.average.toLocaleString("en") }}</dd>
+                <dt>Average distance</dt>
+                <dd>{{ formatDistance(shown.distance) }}</dd>
+                <dt>Difficulty</dt>
+                <dd>{{ shown.difficulty }} / 10</dd>
+              </template>
+            </dl>
+            <button type="button" @click="emit('view')">View photosphere</button>
+          </div>
         </div>
       </div>
     </div>
@@ -114,6 +144,46 @@ const tabs = computed(() => props.dev ? TABS.concat({ id: "dev", name: "Dev" }) 
   font-size: 24px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+.dev-info {
+  display: grid;
+  gap: 10px;
+  padding: 14px 12px 8px;
+}
+
+.dev-info strong {
+  font-family: var(--font-condensed);
+  font-weight: 400;
+  font-size: 24px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dev-info code {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.dev-info dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 16px;
+  margin: 0;
+  font-size: 14px;
+}
+
+.dev-info dt {
+  color: var(--muted);
+}
+
+.dev-info dd {
+  margin: 0;
+  text-align: right;
+}
+
+.dev-info button {
+  margin-top: 4px;
 }
 
 .key {

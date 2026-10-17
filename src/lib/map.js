@@ -6,6 +6,10 @@ const UNIT_METRES = 256
 const REVEAL_PIXELS_PER_UNIT = 24
 const REVEAL_MAX_PIXELS = 4096
 const REVEAL_SOLID = 0.3
+const HEAT_METRES = 500
+const HEAT_PIXELS_PER_UNIT = 4
+const HEAT_MAX_PIXELS = 2048
+const HEAT_FADE_SECONDS = 0.4
 const CLOUD_METRES = 16384
 const CLOUD_SPEED = 8
 const CELL_FADE_METRES = 150
@@ -106,6 +110,9 @@ const fragmentSource = `#version 300 es
   uniform sampler2D uClouds;
   uniform vec4 uRevealRect;
   uniform float uRevealOn;
+  uniform sampler2D uHeat;
+  uniform vec4 uHeatRect;
+  uniform float uHeatOn;
   uniform float uTime;
   uniform vec4 uDomain;
   uniform vec3 uGrid;
@@ -145,6 +152,14 @@ const fragmentSource = `#version 300 es
       vec3 normal = normalize(vec3((large.rg + small.rg) * 2.0 - 2.0, sqrt(clamp(1.0 - dot(large.rg * 2.0 - 1.0, large.rg * 2.0 - 1.0), 0.0, 1.0)) + sqrt(clamp(1.0 - dot(small.rg * 2.0 - 1.0, small.rg * 2.0 - 1.0), 0.0, 1.0))));
       float light = clamp(dot(normal, vec3(0.70014, 0.70014, 0.14003)), 0.0, 1.0);
       color = pow(linear * (1.0 - amount + amount * (light * light * (3.0 - 2.0 * light) * 0.505 + 0.595)), vec3(1.0 / 2.2));
+    }
+    if (uHeatOn > 0.0) {
+      vec2 heatUv = vec2(vWorld.x - uHeatRect.x, uHeatRect.y - vWorld.y) / uHeatRect.zw;
+      bool inHeat = all(greaterThanEqual(heatUv, vec2(0.0))) && all(lessThanEqual(heatUv, vec2(1.0)));
+      float heat = inHeat ? texture(uHeat, heatUv).r : 0.0;
+      vec3 dim = vec3(dot(color, vec3(0.299, 0.587, 0.114)) * 0.45);
+      vec3 ramp = heat < 0.5 ? mix(vec3(0.1, 0.35, 1.0), vec3(1.0, 0.85, 0.1), heat * 2.0) : mix(vec3(1.0, 0.85, 0.1), vec3(1.0, 0.12, 0.08), heat * 2.0 - 1.0);
+      color = mix(color, mix(dim, ramp, smoothstep(0.02, 0.3, heat) * 0.85), uHeatOn);
     }
     outColor = gl_FrontFacing ? vec4(color * alpha * shade, alpha) : vec4(0.0, 0.0, 0.0, 1.0);
   }`
@@ -288,6 +303,10 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
   let revealArgs = null
   let revealShown = false
   let revealAmount = 0
+  let heat = null
+  let heatPoints = null
+  let heatShown = false
+  let heatAmount = 0
   let cloudsTexture = null
   let cloudsFallback = null
   const clouds = shared(`${root}clouds.avif`, decodeBitmap)
@@ -321,7 +340,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
 
   function initGL() {
     program = createProgram(vertexSource, fragmentSource)
-    for (const name of ["uViewProj", "uRect", "uUv", "uRelief", "uSkirt", "uSolid", "uDepth", "uColor", "uBorder", "uHatch", "uOccupancy", "uReveal", "uClouds", "uRevealRect", "uRevealOn", "uTime", "uDomain", "uGrid", "uOffset"]) {
+    for (const name of ["uViewProj", "uRect", "uUv", "uRelief", "uSkirt", "uSolid", "uDepth", "uColor", "uBorder", "uHatch", "uOccupancy", "uReveal", "uClouds", "uRevealRect", "uRevealOn", "uHeat", "uHeatRect", "uHeatOn", "uTime", "uDomain", "uGrid", "uOffset"]) {
       uniforms[name] = gl.getUniformLocation(program, name)
     }
     meshes = MESH_SIZES.map(createMesh)
@@ -345,6 +364,9 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     if (reveal) {
       reveal = revealMask(...revealArgs)
       ensureClouds()
+    }
+    if (heat) {
+      heat = heatMask(heatPoints)
     }
     needsDraw = true
   }
@@ -1035,6 +1057,17 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
         reveal = null
       }
     }
+    if (heat) {
+      const target = heatShown ? 1 : 0
+      if (heatAmount !== target) {
+        heatAmount = target > heatAmount ? Math.min(target, heatAmount + dt / HEAT_FADE_SECONDS) : Math.max(target, heatAmount - dt / HEAT_FADE_SECONDS)
+        needsDraw = true
+      }
+      if (!heatShown && heatAmount === 0) {
+        gl.deleteTexture(heat.texture)
+        heat = null
+      }
+    }
     const ease = Math.min(1, dt * 8)
     relief = approach(relief, threeD ? fullRelief : fullRelief / 2, ease, 1e-4)
     camera.tilt = approach(camera.tilt, camera.tiltTarget, ease, 1e-4)
@@ -1331,6 +1364,13 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     gl.uniform1i(uniforms.uReveal, 5)
     gl.uniform1i(uniforms.uClouds, 6)
     gl.uniform1f(uniforms.uRevealOn, reveal ? revealAmount : 0)
+    gl.uniform1i(uniforms.uHeat, 7)
+    gl.uniform1f(uniforms.uHeatOn, heat ? heatAmount : 0)
+    if (heat) {
+      gl.uniform4f(uniforms.uHeatRect, heat.x, heat.y, heat.width, heat.height)
+      gl.activeTexture(gl.TEXTURE7)
+      gl.bindTexture(gl.TEXTURE_2D, heat.texture)
+    }
     gl.uniform1f(uniforms.uTime, (performance.now() / 1000 * CLOUD_SPEED) % 10000)
     if (reveal) {
       gl.uniform4f(uniforms.uRevealRect, reveal.x, reveal.y, reveal.width, reveal.height)
@@ -2094,6 +2134,36 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     return { texture, x: minX, y: maxY, width: maxX - minX, height: maxY - minY }
   }
 
+  function heatMask(points) {
+    const sigma = HEAT_METRES / UNIT_METRES
+    const pad = sigma * 3
+    const minX = Math.min(...points.map(p => p.x)) - pad, maxX = Math.max(...points.map(p => p.x)) + pad
+    const minY = Math.min(...points.map(p => p.y)) - pad, maxY = Math.max(...points.map(p => p.y)) + pad
+    const density = Math.min(HEAT_PIXELS_PER_UNIT, HEAT_MAX_PIXELS / Math.max(maxX - minX, maxY - minY))
+    const width = Math.ceil((maxX - minX) * density), height = Math.ceil((maxY - minY) * density)
+    const sum = new Float32Array(width * height)
+    const reach = pad * density, spread = 2 * (sigma * density) ** 2
+    for (const point of points) {
+      const cx = (point.x - minX) * density, cy = (maxY - point.y) * density
+      for (let y = Math.max(0, Math.floor(cy - reach)); y < Math.min(height, Math.ceil(cy + reach)); y++) {
+        for (let x = Math.max(0, Math.floor(cx - reach)); x < Math.min(width, Math.ceil(cx + reach)); x++) {
+          sum[y * width + x] += Math.exp(-((x + 0.5 - cx) ** 2 + (y + 0.5 - cy) ** 2) / spread)
+        }
+      }
+    }
+    const peak = sum.reduce((max, value) => Math.max(max, value), 0)
+    const texture = gl.createTexture()
+    gl.bindTexture(gl.TEXTURE_2D, texture)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1)
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, width, height, 0, gl.RED, gl.UNSIGNED_BYTE, Uint8Array.from(sum, value => Math.round(value / peak * 255)))
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4)
+    return { texture, x: minX, y: maxY, width: maxX - minX, height: maxY - minY }
+  }
+
   return {
     destroy() {
       destroyed = true
@@ -2166,6 +2236,17 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
         revealArgs = [points, radius, sites]
         reveal = revealMask(points, radius, sites)
         ensureClouds()
+      }
+      needsDraw = true
+    },
+    setHeat(points) {
+      heatShown = Boolean(points?.length)
+      if (heatShown) {
+        if (heat) {
+          gl.deleteTexture(heat.texture)
+        }
+        heatPoints = points
+        heat = heatMask(points)
       }
       needsDraw = true
     },
