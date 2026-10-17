@@ -1,7 +1,10 @@
 <script setup>
-defineProps({ visible: Boolean, ready: Boolean, found: Number, total: Number, counter: Boolean, tab: String })
+import { computed } from "vue"
+
+const props = defineProps({ visible: Boolean, ready: Boolean, found: Number, total: Number, dev: Boolean, tab: String })
 const emit = defineEmits(["tab"])
 const TABS = [{ id: "map", name: "Map" }, { id: "photospheres", name: "Photospheres" }]
+const tabs = computed(() => props.dev ? TABS.concat({ id: "dev", name: "Dev" }) : TABS)
 </script>
 
 <template>
@@ -11,9 +14,9 @@ const TABS = [{ id: "map", name: "Map" }, { id: "photospheres", name: "Photosphe
     </header>
     <div class="panel atlas-card">
       <nav class="atlas-tabs" role="tablist">
-        <button v-for="option in TABS" :key="option.id" type="button" role="tab" :class="{ selected: tab === option.id }" :aria-selected="tab === option.id" @click="emit('tab', option.id)">{{ option.name }}</button>
+        <button v-for="option in tabs" :key="option.id" type="button" role="tab" :class="{ selected: tab === option.id }" :aria-selected="tab === option.id" @click="emit('tab', option.id)">{{ option.name }}</button>
       </nav>
-      <div class="atlas-extra" :class="{ open: counter && tab === 'photospheres' }">
+      <div class="atlas-extra" :class="{ open: tab === 'photospheres' }">
         <div>
           <strong><i class="key" aria-hidden="true"></i>{{ found }} / {{ total }} found</strong>
         </div>
