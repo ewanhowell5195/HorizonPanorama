@@ -23,5 +23,5 @@ function minifyJson() {
 
 export default defineConfig({
   plugins: [vue(), minifyJson()],
-  server: { host: "127.0.0.1", port: 9123, strictPort: true, proxy: { "/api": "http://127.0.0.1:8788" } }
+  server: { host: "127.0.0.1", port: 9123, strictPort: true, proxy: { "/api": { target: "https://horizonwayfind.ing", changeOrigin: true } } }
 })

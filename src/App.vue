@@ -837,7 +837,7 @@ async function submitGuess() {
   game.total += score
   const entry = { guess, answer: { x: answer.x, y: answer.y }, metres, miss, score }
   game.results.push(entry)
-  if (!found.value.has(round.name)) {
+  if (!found.value.has(round.name) && !devMode.value) {
     recordGuess(round.name, { score, game: spot.layer.game, x: Math.round(spot.worldX * 10) / 10, y: Math.round(spot.worldY * 10) / 10 })
   }
   addFound(round.name)
@@ -1182,7 +1182,7 @@ window.toggleSecretDevMode = () => {
   if (!devMode.value && mapTab.value === "dev") {
     setMapTab("map")
   }
-  return devMode.value ? "Dev mode on: the map page has a Dev tab" : "Dev mode off"
+  return devMode.value ? "Dev mode on" : "Dev mode off"
 }
 
 watch(() => Boolean(viewing.value?.loading || (atlas.value && !atlasReady.value) || mapWaiting.value), shown => {
