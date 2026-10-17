@@ -7,6 +7,8 @@ const REVEAL_PIXELS_PER_UNIT = 24
 const REVEAL_MAX_PIXELS = 4096
 const REVEAL_SOLID = 0.3
 const HEAT_METRES = 150
+const HEAT_MIN_METRES = 40
+const HEAT_NEIGHBOUR_METRES = 1000
 const HEAT_PIXELS_PER_UNIT = 16
 const HEAT_MAX_PIXELS = 2048
 const HEAT_FADE_SECONDS = 0.4
@@ -305,6 +307,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
   let revealAmount = 0
   let heat = null
   let heatPoints = null
+  let heatSites = null
   let heatShown = false
   let heatAmount = 0
   let cloudsTexture = null
@@ -366,7 +369,7 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
       ensureClouds()
     }
     if (heat) {
-      heat = heatMask(heatPoints)
+      heat = heatMask(heatPoints, heatSites)
     }
     needsDraw = true
   }
@@ -2134,23 +2137,28 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     return { texture, x: minX, y: maxY, width: maxX - minX, height: maxY - minY }
   }
 
-  function heatMask(points) {
+  function heatMask(points, sites) {
     const sigma = HEAT_METRES / UNIT_METRES
     const pad = sigma * 3
+    const neighbour = HEAT_NEIGHBOUR_METRES / UNIT_METRES
+    const sigmas = points.map(point => {
+      const nearby = sites.filter(site => Math.hypot(site.x - point.x, site.y - point.y) < neighbour).length
+      return Math.max(HEAT_METRES / Math.sqrt(Math.max(nearby, 1)), HEAT_MIN_METRES) / UNIT_METRES
+    })
     const minX = Math.min(...points.map(p => p.x)) - pad, maxX = Math.max(...points.map(p => p.x)) + pad
     const minY = Math.min(...points.map(p => p.y)) - pad, maxY = Math.max(...points.map(p => p.y)) + pad
     const density = Math.min(HEAT_PIXELS_PER_UNIT, HEAT_MAX_PIXELS / Math.max(maxX - minX, maxY - minY))
     const width = Math.ceil((maxX - minX) * density), height = Math.ceil((maxY - minY) * density)
     const sum = new Float32Array(width * height)
-    const reach = pad * density, spread = 2 * (sigma * density) ** 2
-    for (const point of points) {
+    points.forEach((point, n) => {
+      const reach = sigmas[n] * 3 * density, spread = 2 * (sigmas[n] * density) ** 2
       const cx = (point.x - minX) * density, cy = (maxY - point.y) * density
       for (let y = Math.max(0, Math.floor(cy - reach)); y < Math.min(height, Math.ceil(cy + reach)); y++) {
         for (let x = Math.max(0, Math.floor(cx - reach)); x < Math.min(width, Math.ceil(cx + reach)); x++) {
           sum[y * width + x] += Math.exp(-((x + 0.5 - cx) ** 2 + (y + 0.5 - cy) ** 2) / spread)
         }
       }
-    }
+    })
     const peak = sum.reduce((max, value) => Math.max(max, value), 0)
     const texture = gl.createTexture()
     gl.bindTexture(gl.TEXTURE_2D, texture)
@@ -2239,14 +2247,15 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
       }
       needsDraw = true
     },
-    setHeat(points) {
+    setHeat(points, sites = []) {
       heatShown = Boolean(points?.length)
       if (heatShown) {
         if (heat) {
           gl.deleteTexture(heat.texture)
         }
         heatPoints = points
-        heat = heatMask(points)
+        heatSites = sites
+        heat = heatMask(points, sites)
       }
       needsDraw = true
     },

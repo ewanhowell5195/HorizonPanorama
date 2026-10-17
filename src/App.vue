@@ -302,7 +302,7 @@ function selectDev(round, stats) {
   }
   loadGuesses(round.name).then(guesses => {
     if (devSelected.value?.name === round.name) {
-      bigmap.value.setHeat(guesses.map(([game, x, y]) => bigmap.value.place(game, x, y)))
+      bigmap.value.setHeat(guesses.map(([game, x, y]) => bigmap.value.place(game, x, y)), pool.value.map(round => bigmap.value.place(round.game, round.x, round.y)))
     }
   }, error => console.warn(error))
 }

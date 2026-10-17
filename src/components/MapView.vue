@@ -34,7 +34,7 @@ defineExpose({
   setBottomInset: pixels => map?.setBottomInset(pixels),
   setLocations: locations => map?.setLocations(locations),
   setReveal: (...args) => map?.setReveal(...args),
-  setHeat: points => map?.setHeat(points)
+  setHeat: (points, sites) => map?.setHeat(points, sites)
 })
 </script>
 
