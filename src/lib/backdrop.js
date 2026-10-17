@@ -150,6 +150,7 @@ export async function createBackdrop(canvas, { onSlide, onFog, fogTop, fogRight 
   let lastDraw = 0
   let fogMiddle = null
   let fogPortrait = null
+  let queued = null
   let destroyed = false
 
   function hatchTexture() {
@@ -198,14 +199,16 @@ export async function createBackdrop(canvas, { onSlide, onFog, fogTop, fogRight 
     return cache.get(entry.file)
   }
 
-  async function show(entry) {
+  async function show(entry, instant = false) {
     const mine = ++token
     current = entry
     const slide = await load(entry)
     if (mine !== token) {
       return
     }
-    layers.push({ texture: slide.texture, aspect: slide.aspect, start: performance.now(), drift: Math.random() < 0.5 ? 0 : 1, focused: Boolean(entry.focused) })
+    const now = performance.now()
+    const layer = { texture: slide.texture, aspect: slide.aspect, start: now, shown: instant ? now - FADE_MS : now, drift: Math.random() < 0.5 ? 0 : 1, focused: Boolean(entry.focused) }
+    layers = instant ? [layer] : layers.concat(layer)
     onSlide?.(entry)
   }
 
@@ -226,7 +229,7 @@ export async function createBackdrop(canvas, { onSlide, onFog, fogTop, fogRight 
   }
 
   function opacity(layer, now) {
-    const fade = Math.min(Math.max((now - layer.start) / FADE_MS, 0), 1)
+    const fade = Math.min(Math.max((now - (layer.shown ?? layer.start)) / FADE_MS, 0), 1)
     return fade * fade * (3 - 2 * fade)
   }
 
@@ -293,11 +296,18 @@ export async function createBackdrop(canvas, { onSlide, onFog, fogTop, fogRight 
       clearInterval(cycle)
       gl.getExtension("WEBGL_lose_context")?.loseContext()
     },
-    next() {
-      return show(nextEntry())
+    next(instant = false) {
+      const entry = queued || nextEntry()
+      queued = null
+      return show(entry, instant)
+    },
+    prepare() {
+      queued = nextEntry()
+      return load(queued)
     },
     useMaps(games, now) {
       darkTarget = 1
+      queued = null
       source = games.flatMap(({ game, title }) => Array.from({ length: MAP_CLOSE_UPS }, (_, n) => ({ file: `map-${game}-${n + 1}`, game: title, label: "Map", focused: true })))
       order = []
       return now ? show(nextEntry()) : null
@@ -307,6 +317,7 @@ export async function createBackdrop(canvas, { onSlide, onFog, fogTop, fogRight 
       if (source !== entries) {
         source = entries
         order = []
+        queued = null
       }
     },
     cycle(on) {

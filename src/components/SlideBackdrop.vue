@@ -39,7 +39,8 @@ watch(() => props.active, active => ready.then(backdrop => backdrop.setActive(ac
 
 defineExpose({
   ready,
-  next: () => ready.then(backdrop => backdrop.next()),
+  next: instant => ready.then(backdrop => backdrop.next(instant)),
+  prepare: () => ready.then(backdrop => backdrop.prepare()),
   useMaps: (game, title) => ready.then(backdrop => backdrop.useMaps(game, title)),
   useScreenshots: () => ready.then(backdrop => backdrop.useScreenshots()),
   cycle(on) {

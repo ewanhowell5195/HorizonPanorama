@@ -643,7 +643,7 @@ async function startRound() {
     minimap.value.fit(null, { snap: true, game: current.games === "both" ? null : current.games, hidden: MINIMAP_TUCK })
   })
   backdrop.value.cycle(false)
-  backdrop.value.next()
+  backdrop.value.next(true).then(() => backdrop.value.prepare())
   preload(current.index)
   const ticker = setInterval(() => {
     status.progress = round.progress || 0
