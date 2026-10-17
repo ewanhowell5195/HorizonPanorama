@@ -38,7 +38,6 @@
   --text: #e8eaed;
   --muted: #9aa0a6;
   --accent: #f2a541;
-  --answer: #4fc3f7;
   --border: rgba(255, 255, 255, 0.12);
   --field: rgba(10, 12, 16, 0.55);
   --accent-tint: rgba(242, 165, 65, 0.12);
@@ -516,6 +515,10 @@ a.mark[href]:hover {
   animation: fade-in 0.6s ease 0.2s backwards;
 }
 
+.marker.drop-in .dot {
+  animation: drop-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+
 .map-markers {
   position: absolute;
   inset: 0;
@@ -655,15 +658,20 @@ a.mark[href]:hover {
   top: 0;
 }
 
-.marker svg {
+.marker.guess img {
   position: absolute;
-  left: -12px;
-  top: -31px;
+  left: -15px;
+  top: -15px;
   display: block;
-  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6));
+  width: 30px;
+  user-select: none;
+  filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, 0.95)) drop-shadow(0 2px 5px rgba(0, 0, 0, 0.85));
 }
 
-.marker.removable svg {
+.marker.removable img {
+  left: -22.5px;
+  top: -22.5px;
+  width: 45px;
   pointer-events: auto;
   cursor: pointer;
 }
@@ -687,6 +695,13 @@ a.mark[href]:hover {
   }
 }
 
+@keyframes drop-in {
+  from {
+    opacity: 0;
+    translate: 0 -10px;
+  }
+}
+
 .marker.atlas .dot {
   pointer-events: auto;
   cursor: pointer;
@@ -700,27 +715,13 @@ a.mark[href]:hover {
 
 .marker.answer .dot {
   position: absolute;
-  left: -8px;
-  top: -8px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--answer);
-  border: 3px solid #fff;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 2px 4px rgba(0, 0, 0, 0.6);
-}
-
-.marker .tag {
-  position: absolute;
-  left: 12px;
-  top: -10px;
-  padding: 1px 6px;
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.7);
-  border-radius: 4px;
+  left: -18px;
+  top: -22px;
+  display: block;
+  width: 32px;
+  user-select: none;
+  transform-origin: 18px 22px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
 }
 
 .compass {

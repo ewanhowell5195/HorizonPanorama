@@ -777,7 +777,7 @@ function placeGuess(place) {
   if (guessMarker) {
     guessMarker.move(place.x, place.y)
   } else {
-    const element = pin("var(--accent)")
+    const element = pin()
     element.classList.add("removable")
     element.title = "Click to remove"
     element.addEventListener("click", removeGuess)
@@ -815,7 +815,7 @@ async function submitGuess() {
 async function showResult(entry, animate = false) {
   stopReveal()
   status.total = game.total
-  resultMarkers.push(bigmap.value.addMarker(pin("var(--accent)"), entry.guess.x, entry.guess.y))
+  resultMarkers.push(bigmap.value.addMarker(pin(), entry.guess.x, entry.guess.y))
   bigmap.value.setLines([[entry.guess, entry.answer]])
   result.value = { key: game.index, card: cauldronFor(game.index + 1), score: entry.score, shown: animate ? 0 : entry.score, distance: distanceLabel(entry), miss: Boolean(entry.miss), lastRound: game.index + 1 >= game.rounds.length, docked: !animate, animate }
   phase.value = "result"
@@ -862,7 +862,9 @@ function revealAnswer(current) {
     return
   }
   current.answered = true
-  resultMarkers.push(bigmap.value.addMarker(answerMarker(), current.entry.answer.x, current.entry.answer.y))
+  const answer = answerMarker()
+  answer.classList.add("drop-in")
+  resultMarkers.push(bigmap.value.addMarker(answer, current.entry.answer.x, current.entry.answer.y))
 }
 
 function finishReveal(skipped) {
@@ -893,7 +895,7 @@ async function showSummary(record = true) {
   clearMarkers()
   const last = game.results.length - 1
   game.results.forEach((entry, n) => {
-    const guess = pin("var(--accent)", n + 1), answer = answerMarker(n + 1)
+    const guess = pin(), answer = answerMarker(n + 1)
     if (n < last) {
       guess.classList.add("fade-in")
       answer.classList.add("fade-in")
@@ -1283,6 +1285,19 @@ onBeforeUnmount(() => {
 
 .bigmap.atlas :deep(.map-mode ~ .map-scale) {
   left: 10px;
+}
+
+.bigmap :deep(.marker.guess:not(.atlas) img) {
+  left: -22.5px;
+  top: -22.5px;
+  width: 45px;
+}
+
+.bigmap :deep(.marker.answer:not(.atlas) .dot) {
+  left: -27px;
+  top: -33px;
+  width: 48px;
+  transform-origin: 27px 33px;
 }
 
 .bigmap :deep(.map-view) {
