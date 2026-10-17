@@ -13,7 +13,7 @@ import RoundIntro from "./components/RoundIntro.vue"
 import SlideBackdrop from "./components/SlideBackdrop.vue"
 import GamesScreen from "./components/GamesScreen.vue"
 import SetupScreen from "./components/SetupScreen.vue"
-import SummaryCard from "./components/SummaryCard.vue"
+import FinalResults from "./components/FinalResults.vue"
 import { MAX_POINTS, ROUNDS, distanceLabel, formatDistance, points, readStore, shuffle, wait, writeStore } from "./lib/game.js"
 import { cauldronFor, loadCard } from "./lib/cauldrons.js"
 import { answerMarker, pin } from "./lib/markers.js"
@@ -106,7 +106,7 @@ const backdrop = ref(null)
 const minimap = ref(null)
 const bigmap = ref(null)
 const resultCard = ref(null)
-const summaryCard = ref(null)
+const finalResults = ref(null)
 
 const isMenu = computed(() => phase.value === "menu")
 const isRound = computed(() => phase.value === "round")
@@ -763,13 +763,16 @@ async function restoreGame(saved) {
   await loadMaps()
   showLocations(game)
   restoring.value = false
+  const entries = game.state === "result" ? [game.results[game.index]] : game.results
+  phase.value = game.state
+  bigmap.value.fit(entries.flatMap(entry => [entry.guess, entry.answer]), { snap: true })
+  await Promise.race([bigmap.value.whenReady(), wait(MAP_READY_TIMEOUT_MS)])
+  mapWaiting.value = false
   if (game.state === "result") {
-    await showResult(game.results[game.index])
+    await showResult(game.results[game.index], true)
   } else {
     await showSummary(false)
   }
-  await Promise.race([bigmap.value.whenReady(), wait(MAP_READY_TIMEOUT_MS)])
-  mapWaiting.value = false
 }
 
 function placeGuess(place) {
@@ -917,10 +920,10 @@ async function showSummary(record = true) {
     writeStore(key("scoreSum"), (storedScore(key("scoreSum")) || 0) + game.total)
     refreshScores()
   }
-  summary.value = { seed: game.seed, total: game.total, max: game.rounds.length * MAX_POINTS, results: game.results.map(entry => ({ distance: distanceLabel(entry), score: entry.score })) }
+  summary.value = { seed: game.seed, total: game.total, max: game.rounds.length * MAX_POINTS, results: game.results.map(entry => ({ distance: distanceLabel(entry), score: entry.score })), animate: true }
   phase.value = "summary"
   await nextTick()
-  bigmap.value.fit(game.results.flatMap(entry => [entry.guess, entry.answer]), { inset: (summaryCard.value?.$el.offsetHeight || 0) + 40 })
+  bigmap.value.fit(game.results.flatMap(entry => [entry.guess, entry.answer]), finalResults.value?.room() || {})
 }
 
 function next() {
@@ -1218,7 +1221,7 @@ onBeforeUnmount(() => {
     <ScoreReveal v-if="phase === `result` && result" ref="resultCard" :class="{ held: mapWaiting }" :key="result.key" :card="result.card" :score="result.shown" :distance="result.distance" :miss="result.miss" :last-round="result.lastRound" :docked="result.docked" :animate="result.animate" :viewing="Boolean(viewing)" @next="next" @view="viewResult" @back="leaveView" />
   </Transition>
   <Transition name="card">
-    <SummaryCard v-if="phase === `summary` && summary && !viewing" ref="summaryCard" :class="{ held: mapWaiting }" :results="summary.results" :total="summary.total" :max="summary.max" :mode="gameMode" :seed="summary.seed" @menu="goHome" @again="newGame" @replay="replay" @view="index => openView({ round: index })" />
+    <FinalResults v-if="phase === `summary` && summary && !viewing" ref="finalResults" :class="{ held: mapWaiting }" :results="summary.results" :total="summary.total" :max="summary.max" :mode="gameMode" :seed="summary.seed" :animate="summary.animate" @menu="goHome" @again="newGame" @replay="replay" @view="index => { summary.animate = false; openView({ round: index }) }" />
   </Transition>
   <Transition name="card">
     <div v-if="viewing && !viewing.loading && (phase !== `result` || atlas)" class="panel viewing">
@@ -1350,7 +1353,7 @@ onBeforeUnmount(() => {
   opacity: 1;
 }
 
-.reveal, .card {
+.reveal {
   transition: opacity 0.45s ease;
 }
 

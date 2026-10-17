@@ -6,12 +6,16 @@ export function cauldronFor(round) {
   return CAULDRONS[(round - 1) % CAULDRONS.length]
 }
 
-export function loadCard(name) {
-  if (!cardBlobs.has(name)) {
-    cardBlobs.set(name, fetch(`/cauldrons/card-${name}.avif`).then(response => response.ok ? response.blob() : Promise.reject(new Error(response.status))).catch(error => {
-      cardBlobs.delete(name)
+export function loadOnce(url) {
+  if (!cardBlobs.has(url)) {
+    cardBlobs.set(url, fetch(url).then(response => response.ok ? response.blob() : Promise.reject(new Error(response.status))).catch(error => {
+      cardBlobs.delete(url)
       throw error
     }))
   }
-  return cardBlobs.get(name)
+  return cardBlobs.get(url)
+}
+
+export function loadCard(name) {
+  return loadOnce(`/cauldrons/card-${name}.avif`)
 }
