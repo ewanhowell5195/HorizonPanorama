@@ -2045,8 +2045,9 @@ export async function createMap(container, { root, onPick, onHover, onView, pois
     const cells = revealCells(points, sites)
     const xs = [0].concat(points.map(p => p.x - radius), points.map(p => p.x + radius), ...cells.map(cell => cell.polygon.map(v => v[0])))
     const ys = [0].concat(points.map(p => p.y - radius), points.map(p => p.y + radius), ...cells.map(cell => cell.polygon.map(v => v[1])))
-    const minX = Math.min(...xs), maxX = Math.max(...xs)
-    const minY = Math.min(...ys), maxY = Math.max(...ys)
+    const pad = (CELL_FADE_METRES + CELL_ROUND_METRES * 3) / UNIT_METRES
+    const minX = Math.min(...xs) - pad, maxX = Math.max(...xs) + pad
+    const minY = Math.min(...ys) - pad, maxY = Math.max(...ys) + pad
     const density = Math.min(REVEAL_PIXELS_PER_UNIT, REVEAL_MAX_PIXELS / Math.max(maxX - minX, maxY - minY))
     const mask = document.createElement("canvas")
     mask.width = Math.ceil((maxX - minX) * density)
