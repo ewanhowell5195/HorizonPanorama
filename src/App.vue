@@ -1105,10 +1105,6 @@ async function toggleSwap() {
   swapFading.value = false
 }
 
-function replay() {
-  playSeed(summary.value.seed)
-}
-
 function onKey(event) {
   if (viewing.value) {
     if (event.key === "Escape") {
@@ -1260,7 +1256,7 @@ onBeforeUnmount(() => {
     <ScoreReveal v-if="phase === `result` && result" ref="resultCard" :class="{ held: mapWaiting }" :key="result.key" :card="result.card" :score="result.shown" :distance="result.distance" :miss="result.miss" :last-round="result.lastRound" :docked="result.docked" :animate="result.animate" :viewing="Boolean(viewing)" @next="next" @view="viewResult" @back="leaveView" />
   </Transition>
   <Transition name="card">
-    <FinalResults v-if="phase === `summary` && summary && !viewing" ref="finalResults" :class="{ held: mapWaiting }" :results="summary.results" :total="summary.total" :max="summary.max" :mode="gameMode" :seed="summary.seed" :animate="summary.animate" @menu="goHome" @again="newGame" @replay="replay" @view="index => { summary.animate = false; openView({ round: index }) }" />
+    <FinalResults v-if="phase === `summary` && summary && !viewing" ref="finalResults" :class="{ held: mapWaiting }" :results="summary.results" :total="summary.total" :max="summary.max" :mode="gameMode" :seed="summary.seed" :animate="summary.animate" @menu="goHome" @again="newGame" @view="index => { summary.animate = false; openView({ round: index }) }" />
   </Transition>
   <Transition name="card">
     <div v-if="viewing && !viewing.loading && (phase !== `result` || atlas)" class="panel viewing">

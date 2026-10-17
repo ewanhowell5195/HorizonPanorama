@@ -34,7 +34,7 @@ function rayGradient() {
 }
 
 const props = defineProps({ results: Array, total: Number, max: Number, mode: String, seed: String, animate: Boolean })
-const emit = defineEmits(["menu", "again", "replay", "view"])
+const emit = defineEmits(["menu", "again", "view"])
 const playing = props.animate
 const shown = ref(playing ? 0 : props.total)
 const rowScores = ref(props.results.map(result => playing ? 0 : result.score))
@@ -152,7 +152,6 @@ defineExpose({ room })
           </div>
           <div class="actions button-row bright">
             <button class="secondary" type="button" @click="emit('menu')">Menu</button>
-            <button class="secondary" type="button" @click="emit('replay')">Replay</button>
             <button type="button" @click="emit('again')">Play again</button>
           </div>
         </div>
