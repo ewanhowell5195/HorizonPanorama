@@ -1,12 +1,11 @@
 <script setup>
 import { computed } from "vue"
-import { cauldronFor } from "../lib/cauldrons.js"
 import { MODE_NAMES } from "../lib/rules.js"
 import HudCompass from "./HudCompass.vue"
 
 const props = defineProps({ round: Number, count: Number, score: Number, heading: Number, hidden: Boolean, mode: String, compass: Boolean, swapped: Boolean, faded: Boolean })
 
-const emblem = computed(() => `/cauldrons/${cauldronFor(props.round)}.webp`)
+const emblem = computed(() => `/rounds/${(props.round - 1) % 5 + 1}.webp`)
 </script>
 
 <template>
@@ -63,8 +62,8 @@ const emblem = computed(() => `/cauldrons/${cauldronFor(props.round)}.webp`)
 
 .emblem {
   align-self: center;
-  height: 30px;
-  margin-right: -4px;
+  height: 40px;
+  margin-right: -2px;
 }
 
 .stat .mode {
