@@ -258,9 +258,7 @@ function clearAtlas() {
 
 async function drawAtlas() {
   loadMaps()
-  while (!bigmap.value) {
-    await nextTick()
-  }
+  await whenMounted(bigmap)
   await Promise.all([bigmap.value.load(), poolLoading])
   if (!atlas.value) {
     return
@@ -585,11 +583,23 @@ function showLocations(current) {
   bigmap.value.setLocations(shown)
 }
 
+function whenMounted(...refs) {
+  if (refs.every(item => item.value)) {
+    return Promise.resolve()
+  }
+  return new Promise(resolve => {
+    const stop = watch(refs, values => {
+      if (values.every(Boolean)) {
+        stop()
+        resolve()
+      }
+    })
+  })
+}
+
 function loadMaps() {
   mapsLoading ??= (async () => {
-    while (!minimap.value || !bigmap.value) {
-      await nextTick()
-    }
+    await whenMounted(minimap, bigmap)
     const order = atlas.value ? [bigmap.value, minimap.value] : [minimap.value, bigmap.value]
     await order[0].load()
     await order[1].load()

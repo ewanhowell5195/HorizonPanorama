@@ -20,12 +20,12 @@ const digit = computed(() => props.waiting || props.countdown <= 0 ? "" : props.
       <Transition name="swap" mode="out-in">
         <button v-if="held" class="action begin" type="button" @click="emit('begin')">Start round</button>
         <div v-else class="countdown" :class="{ waiting }">
-          <span :key="`${number}-${countdown}`" class="pulse"></span>
+          <span :key="`pulse-${number}-${countdown}`" class="pulse"></span>
           <svg :key="number" viewBox="0 0 64 64" width="64" height="64">
             <circle class="track" cx="32" cy="32" r="28" />
             <circle class="sweep" cx="32" cy="32" r="28" :style="waiting ? null : ring" />
           </svg>
-          <span :key="`${number}-${countdown}`" class="digit">{{ digit }}</span>
+          <span :key="`digit-${number}-${countdown}`" class="digit">{{ digit }}</span>
         </div>
       </Transition>
       <div class="load">
